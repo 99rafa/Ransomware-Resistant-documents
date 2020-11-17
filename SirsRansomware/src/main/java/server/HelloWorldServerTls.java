@@ -1,15 +1,15 @@
 package server;
 
 
+import com.google.protobuf.ByteString;
 import io.grpc.Server;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContextBuilder;
-import proto.helloworld.GreeterGrpc;
-import proto.helloworld.HelloReply;
-import proto.helloworld.HelloRequest;
+import org.apache.commons.io.FileUtils;
+import proto.helloworld.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -109,6 +109,21 @@ public class HelloWorldServerTls {
         @Override
         public void sayHello(HelloRequest req, StreamObserver<HelloReply> responseObserver) {
             HelloReply reply = HelloReply.newBuilder().setMessage("Hello pila " + req.getName()).build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        }
+
+        @Override
+        public void fileTransfer(FileTransferRequest req, StreamObserver<FileTransferReply> responseObserver) {
+            ByteString bs = req.getFile();
+            byte[] bytes = bs.toByteArray();
+            try {
+                FileUtils.writeByteArrayToFile(new File("teste"), bytes);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            FileTransferReply reply = FileTransferReply.newBuilder().setOk(true).build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
