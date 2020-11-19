@@ -7,8 +7,8 @@ import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
-import proto.helloworld.*;
-import server.HelloWorldServerTls;
+import proto.*;
+import server.Server;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,13 +20,13 @@ import java.util.logging.Logger;
 import javax.net.ssl.SSLException;
 
 /**
- * A simple client that requests a greeting from the {@link HelloWorldServerTls} with TLS.
+ * A simple client that requests a greeting from the {@link Server} with TLS.
  */
-public class HelloWorldClientTls {
-    private static final Logger logger = Logger.getLogger(HelloWorldClientTls.class.getName());
+public class Client {
+    private static final Logger logger = Logger.getLogger(Client.class.getName());
 
     private final ManagedChannel channel;
-    private final GreeterGrpc.GreeterBlockingStub blockingStub;
+    private final ServerGrpc.ServerBlockingStub blockingStub;
 
     private static SslContext buildSslContext(String trustCertCollectionFilePath,
                                               String clientCertChainFilePath,
@@ -44,9 +44,9 @@ public class HelloWorldClientTls {
     /**
      * Construct client connecting to HelloWorld server at {@code host:port}.
      */
-    public HelloWorldClientTls(String host,
-                               int port,
-                               SslContext sslContext){
+    public Client(String host,
+                  int port,
+                  SslContext sslContext){
 
         this(NettyChannelBuilder.forAddress(host, port)
                 .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
@@ -57,9 +57,9 @@ public class HelloWorldClientTls {
     /**
      * Construct client for accessing RouteGuide server using the existing channel.
      */
-    HelloWorldClientTls(ManagedChannel channel) {
+    Client(ManagedChannel channel) {
         this.channel = channel;
-        blockingStub = GreeterGrpc.newBlockingStub(channel);
+        blockingStub = ServerGrpc.newBlockingStub(channel);
     }
 
     public void shutdown() throws InterruptedException {
@@ -73,31 +73,36 @@ public class HelloWorldClientTls {
         logger.info("Will try to greet " + name + " ...");
         HelloRequest request = HelloRequest.newBuilder().setName(name).build();
         HelloReply response;
-        FileTransferReply res;
-        byte[] file_bytes = null;
         try {
-            file_bytes = Files.readAllBytes(
-                    Paths.get(name)
-            );
-        } catch (IOException e) {
-            e.printStackTrace();
+            response = blockingStub.sayHello(request);
+        } catch (StatusRuntimeException e) {
+            logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
+            return;
         }
+        logger.info("Greeting: " + response.getMessage());
+    }
+
+    public void fileTransfer(String filename){
+        try {
+            logger.info("Sending file to server");
+            FileTransferReply res;
+            byte[] file_bytes = Files.readAllBytes(
+                    Paths.get(filename)
+            );
             FileTransferRequest req = FileTransferRequest
                     .newBuilder()
                     .setFile(
                             ByteString.copyFrom(
                                     file_bytes))
                     .build();
-        try {
-            response = blockingStub.sayHello(request);
             res = blockingStub.fileTransfer(req);
-        } catch (StatusRuntimeException e) {
-            logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
-            return;
+            if(res.getOk())
+                logger.info("File sent");
+            else
+                logger.info("File failed to send");
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        logger.info("Greeting: " + response.getMessage());
-        if(res.getOk())
-            logger.info("JA TA A DISPARAR");
     }
 
     /**
@@ -113,19 +118,24 @@ public class HelloWorldClientTls {
             System.exit(0);
         }
 
-        /* Use default CA. Only for real server certificates. */HelloWorldClientTls client = switch (args.length) {
-            case 3 -> new HelloWorldClientTls(args[0], Integer.parseInt(args[1]),
+        /* Use default CA. Only for real server certificates. */
+        Client client = switch (args.length) {
+            case 3 -> new Client(args[0], Integer.parseInt(args[1]),
                     buildSslContext(null, null, null));
-            case 4 -> new HelloWorldClientTls(args[0], Integer.parseInt(args[1]),
+            case 4 -> new Client(args[0], Integer.parseInt(args[1]),
                     buildSslContext(args[3], null, null));
-            default -> new HelloWorldClientTls(args[0], Integer.parseInt(args[1]),
+            default -> new Client(args[0], Integer.parseInt(args[1]),
                     buildSslContext(args[3], args[4], args[5]));
         };
 
         try {
-            client.greet(args[2]);
+            client.greet("AFONSO");
+            client.fileTransfer(args[2]);
         } finally {
             client.shutdown();
         }
     }
+
+    static class ClientImp extends ClientGrpc.ClientImplBase {}
+
 }

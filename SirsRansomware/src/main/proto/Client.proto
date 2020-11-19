@@ -14,33 +14,13 @@
 syntax = "proto3";
 
 option java_multiple_files = true;
-option java_package = "proto.helloworld";
-option java_outer_classname = "HelloWorldProto";
-option objc_class_prefix = "HLW";
+option java_package = "proto";
+option java_outer_classname = "ClientProto";
+option objc_class_prefix = "CTC";
 
 package proto;
 
-// The greeting service definition.
-service Greeter {
-  // Sends a greeting
-  rpc SayHello (HelloRequest) returns (HelloReply) {}
-  rpc FileTransfer (FileTransferRequest) returns (FileTransferReply) {}
+service Client {
+
 }
 
-// The request message containing the user's name.
-message HelloRequest {
-  string name = 1;
-}
-
-// The response message containing the greetings
-message HelloReply {
-  string message = 1;
-}
-
-message FileTransferRequest {
-  bytes file = 1;
-}
-
-message FileTransferReply {
-  bool ok = 1;
-}

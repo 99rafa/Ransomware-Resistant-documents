@@ -2,37 +2,35 @@ package server;
 
 
 import com.google.protobuf.ByteString;
-import io.grpc.Server;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContextBuilder;
 import org.apache.commons.io.FileUtils;
-import proto.helloworld.*;
+import proto.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.logging.Logger;
 
 /**
  * Server that manages startup/shutdown of a {@code Greeter} server with TLS enabled.
  */
-public class HelloWorldServerTls {
-    private static final Logger logger = Logger.getLogger(HelloWorldServerTls.class.getName());
+public class Server {
+    private static final Logger logger = Logger.getLogger(Server.class.getName());
 
-    private Server server;
+    private io.grpc.Server server;
 
     private final int port;
     private final String certChainFilePath;
     private final String privateKeyFilePath;
     private final String trustCertCollectionFilePath;
 
-    public HelloWorldServerTls(int port,
-                               String certChainFilePath,
-                               String privateKeyFilePath,
-                               String trustCertCollectionFilePath) {
+    public Server(int port,
+                  String certChainFilePath,
+                  String privateKeyFilePath,
+                  String trustCertCollectionFilePath) {
         this.port = port;
         this.certChainFilePath = certChainFilePath;
         this.privateKeyFilePath = privateKeyFilePath;
@@ -51,20 +49,17 @@ public class HelloWorldServerTls {
 
     private void start() throws IOException {
         server = NettyServerBuilder.forPort(port)
-                .addService(new GreeterImpl())
+                .addService(new ServerImp())
                 .sslContext(getSslContextBuilder().build())
                 .build()
                 .start();
         logger.info("Server started, listening on " + port);
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override
-            public void run() {
-                // Use stderr here since the logger may have been reset by its JVM shutdown hook.
-                System.err.println("*** shutting down gRPC server since JVM is shutting down");
-                HelloWorldServerTls.this.stop();
-                System.err.println("*** server shut down");
-            }
-        });
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            // Use stderr here since the logger may have been reset by its JVM shutdown hook.
+            System.err.println("*** shutting down gRPC server since JVM is shutting down");
+            Server.this.stop();
+            System.err.println("*** server shut down");
+        }));
     }
 
     private void stop() {
@@ -89,13 +84,13 @@ public class HelloWorldServerTls {
 
         if (args.length < 3 || args.length > 4) {
             System.out.println(
-                    "USAGE: HelloWorldServerTls port certChainFilePath privateKeyFilePath " +
+                    "USAGE: ServerTls port certChainFilePath privateKeyFilePath " +
                             "[trustCertCollectionFilePath]\n  Note: You only need to supply trustCertCollectionFilePath if you want " +
                             "to enable Mutual TLS.");
             System.exit(0);
         }
 
-        final HelloWorldServerTls server = new HelloWorldServerTls(
+        final Server server = new Server(
                 Integer.parseInt(args[0]),
                 args[1],
                 args[2],
@@ -104,11 +99,11 @@ public class HelloWorldServerTls {
         server.blockUntilShutdown();
     }
 
-    static class GreeterImpl extends GreeterGrpc.GreeterImplBase {
+    static class ServerImp extends ServerGrpc.ServerImplBase {
 
         @Override
         public void sayHello(HelloRequest req, StreamObserver<HelloReply> responseObserver) {
-            HelloReply reply = HelloReply.newBuilder().setMessage("Hello pila " + req.getName()).build();
+            HelloReply reply = HelloReply.newBuilder().setMessage("Hello" + req.getName()).build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
@@ -118,7 +113,7 @@ public class HelloWorldServerTls {
             ByteString bs = req.getFile();
             byte[] bytes = bs.toByteArray();
             try {
-                FileUtils.writeByteArrayToFile(new File("teste"), bytes);
+                FileUtils.writeByteArrayToFile(new File("test"), bytes);
             } catch (IOException e) {
                 e.printStackTrace();
             }
