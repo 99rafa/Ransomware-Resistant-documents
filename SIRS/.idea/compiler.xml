@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="uddi-naming" />
+        <module name="zk-naming" />
+        <module name="SirsRansomware" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="naming" target="1.5" />
+      <module name="SIRS" target="1.5" />
+      <module name="SirsRansomware" target="14" />
+      <module name="uddi-naming" target="1.7" />
+      <module name="zk-naming" target="1.8" />
+    </bytecodeTargetLevel>
+  </component>
+</project>

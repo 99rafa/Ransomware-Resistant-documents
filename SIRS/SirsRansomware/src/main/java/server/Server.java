@@ -9,6 +9,8 @@ import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.SslContextBuilder;
 import org.apache.commons.io.FileUtils;
 import proto.*;
+import pt.ulisboa.tecnico.sdis.zk.ZKNaming;
+import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,23 +25,29 @@ public class Server {
 
     private io.grpc.Server server;
 
-    private final int zooPort;
+    private ZKNaming zkNaming;
+    private final String id;
+    private final String zooPort;
     private final String zooHost;
-    private final int port;
+    private final String zooPath;
+    private final String port;
     private final String host;
     private final String certChainFilePath;
     private final String privateKeyFilePath;
     private final String trustCertCollectionFilePath;
 
-    public Server(int zooPort,
+    public Server(String id,
+                  String zooPort,
                   String zooHost,
-                  int port,
+                  String port,
                   String host,
                   String certChainFilePath,
                   String privateKeyFilePath,
                   String trustCertCollectionFilePath) {
+        this.id = id;
         this.zooPort = zooPort;
         this.zooHost = zooHost;
+        this.zooPath = "/sirs/ransomware/servers/" + id;
         this.host = host;
         this.port = port;
         this.certChainFilePath = certChainFilePath;
@@ -58,16 +66,20 @@ public class Server {
     }
 
     private void start() throws IOException {
-        server = NettyServerBuilder.forAddress(new InetSocketAddress(host, port))
+        server = NettyServerBuilder.forAddress(new InetSocketAddress(host, Integer.parseInt(port)))
                 .addService(new ServerImp())
                 .sslContext(getSslContextBuilder().build())
                 .build()
                 .start();
+        //Adds server to naming server
+        addToZooKeeper();
         logger.info("Server started, listening on " + port);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             // Use stderr here since the logger may have been reset by its JVM shutdown hook.
             System.err.println("*** shutting down gRPC server since JVM is shutting down");
             Server.this.stop();
+            //removes server from naming server
+            removeFromZooKeeper();
             System.err.println("*** server shut down");
         }));
     }
@@ -78,6 +90,26 @@ public class Server {
         }
     }
 
+    private void addToZooKeeper(){
+
+        this.zkNaming = new ZKNaming(zooHost, zooPort);
+        try {
+            zkNaming.rebind(this.zooPath, host, this.port);
+        } catch (ZKNamingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void removeFromZooKeeper(){
+        if (zkNaming != null) {
+            // remove
+            try {
+                zkNaming.unbind(this.zooPath, host, this.port);
+            } catch (ZKNamingException e) {
+                e.printStackTrace();
+            }
+        }
+    }
     /**
      * Await termination on the main thread since the grpc library uses daemon threads.
      */
@@ -94,20 +126,22 @@ public class Server {
 
         if (args.length < 7 || args.length > 8) {
             System.out.println(
-                    "USAGE: ServerTls zooHost zooPort host port certChainFilePath privateKeyFilePath " +
+                    "USAGE: ServerTls id zooHost zooPort host port certChainFilePath privateKeyFilePath " +
                             "[trustCertCollectionFilePath]\n  Note: You only need to supply trustCertCollectionFilePath if you want " +
                             "to enable Mutual TLS.");
             System.exit(0);
         }
 
         final Server server = new Server(
-                Integer.parseInt(args[0]),
+                args[0],
                 args[1],
-                Integer.parseInt(args[2]),
+                args[2],
                 args[3],
                 args[4],
                 args[5],
-                args.length == 7 ? args[6] : null);
+                args[6],
+                args.length == 8 ? args[7] : null);
+
         server.start();
         server.blockUntilShutdown();
     }

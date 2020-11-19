@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="BranchesTreeState">
+    <expand>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="LOCAL_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+      <path>
+        <item name="ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="REMOTE_ROOT" type="e8cecc67:BranchNodeDescriptor" />
+        <item name="GROUP_NODE:origin" type="e8cecc67:BranchNodeDescriptor" />
+      </path>
+    </expand>
+    <select />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="ff71ba6c-ff54-43ba-b15a-7f42795f3979" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/SirsRansomware.iml" beforeDir="false" afterPath="$PROJECT_DIR$/SirsRansomware.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/server/Server.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/server/Server.java" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="mavenHome" value="$APPLICATION_HOME_DIR$/plugins/maven/lib/maven3" />
+      </MavenGeneralSettings>
+    </option>
+  </component>
+  <component name="ProjectId" id="1k7bq21Aiq8tIjZGifLRvNHVQUH" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="aspect.path.notification.shown" value="true" />
+    <property name="ignore.preview.features.used" value="true" />
+    <property name="last_opened_file_path" value="$USER_HOME$/projects/SIRS_proj1/SirsRansomware/naming" />
+    <property name="node.js.detected.package.eslint" value="true" />
+    <property name="node.js.detected.package.tslint" value="true" />
+    <property name="node.js.path.for.package.eslint" value="project" />
+    <property name="node.js.path.for.package.tslint" value="project" />
+    <property name="node.js.selected.package.eslint" value="(autodetect)" />
+    <property name="node.js.selected.package.tslint" value="(autodetect)" />
+    <property name="project.structure.last.edited" value="Modules" />
+    <property name="project.structure.proportion" value="0.15" />
+    <property name="project.structure.side.proportion" value="0.2" />
+    <property name="settings.editor.selected.configurable" value="preferences.general" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src" />
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/src/main/proto" />
+    </key>
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/main/proto" />
+      <recent name="$PROJECT_DIR$/src/certs" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Application.HelloWorldClientTls">
+    <configuration name="Client" type="Application" factoryName="Application" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="client.Client" />
+      <module name="SirsRansomware" />
+      <option name="PROGRAM_PARAMETERS" value="localhost 8080 $PROJECT_DIR$/../../../fenix $PROJECT_DIR$/src/certs/ca.pem" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Server" type="Application" factoryName="Application" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="server.Server" />
+      <module name="SirsRansomware" />
+      <option name="PROGRAM_PARAMETERS" value="1 2181 localhost 8080 localhost $PROJECT_DIR$/src/certs/server1.pem $PROJECT_DIR$/src/certs/server1.key " />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="server.HelloWorldServerTls" />
+      <option name="PROGRAM_PARAMETERS" value="localhost 8080" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="ArquillianJUnit" factoryName="" nameIsGenerated="true">
+      <option name="arquillianRunConfiguration">
+        <value>
+          <option name="containerStateName" value="" />
+        </value>
+      </option>
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="Application.HelloWorldClientTls" />
+      <item itemvalue="Application.Server" />
+    </list>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="ff71ba6c-ff54-43ba-b15a-7f42795f3979" name="Default Changelist" comment="" />
+      <created>1605054764686</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1605054764686</updated>
+      <workItem from="1605054765765" duration="1804000" />
+      <workItem from="1605060451896" duration="26000" />
+      <workItem from="1605574604891" duration="17263000" />
+      <workItem from="1605749989860" duration="314000" />
+      <workItem from="1605750320912" duration="147000" />
+      <workItem from="1605750501327" duration="17143000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="202" y="27" width="1024" height="741" key="#Project_Structure" timestamp="1605582673298">
+      <screen x="72" y="27" width="1294" height="741" />
+    </state>
+    <state x="202" y="27" width="1024" height="741" key="#Project_Structure/72.27.1294.741@72.27.1294.741" timestamp="1605582673298" />
+    <state x="212" y="33" width="1084" height="708" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1605820027094">
+      <screen x="72" y="27" width="1294" height="741" />
+    </state>
+    <state x="212" y="33" width="1084" height="708" key="#com.intellij.execution.impl.EditConfigurationsDialog/72.27.1294.741@72.27.1294.741" timestamp="1605820027094" />
+    <state x="394" y="199" width="640" height="403" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1605056183737">
+      <screen x="72" y="27" width="1294" height="741" />
+    </state>
+    <state x="394" y="199" width="640" height="403" key="#com.intellij.fileTypes.FileTypeChooser/72.27.1294.741@72.27.1294.741" timestamp="1605056183737" />
+    <state x="451" y="189" width="525" height="423" key="#com.intellij.ide.util.TreeClassChooserDialog" timestamp="1605816098933">
+      <screen x="72" y="27" width="1294" height="741" />
+    </state>
+    <state x="451" y="189" width="525" height="423" key="#com.intellij.ide.util.TreeClassChooserDialog/72.27.1294.741@72.27.1294.741" timestamp="1605816098933" />
+    <state x="72" y="27" width="1149" height="741" key="#com.intellij.refactoring.rename.AutomaticRenamingDialog" timestamp="1605819086588">
+      <screen x="72" y="27" width="1294" height="741" />
+    </state>
+    <state x="72" y="27" width="1149" height="741" key="#com.intellij.refactoring.rename.AutomaticRenamingDialog/72.27.1294.741@72.27.1294.741" timestamp="1605819086588" />
+    <state x="502" y="155" width="422" height="498" key="FileChooserDialogImpl" timestamp="1605824003179">
+      <screen x="72" y="27" width="1294" height="741" />
+    </state>
+    <state x="502" y="155" width="422" height="498" key="FileChooserDialogImpl/72.27.1294.741@72.27.1294.741" timestamp="1605824003179" />
+    <state width="1248" height="172" key="GridCell.Tab.0.bottom" timestamp="1605824396636">
+      <screen x="72" y="27" width="1294" height="741" />
+    </state>
+    <state width="1248" height="172" key="GridCell.Tab.0.bottom/72.27.1294.741@72.27.1294.741" timestamp="1605824396636" />
+    <state width="1248" height="172" key="GridCell.Tab.0.center" timestamp="1605824396636">
+      <screen x="72" y="27" width="1294" height="741" />
+    </state>
+    <state width="1248" height="172" key="GridCell.Tab.0.center/72.27.1294.741@72.27.1294.741" timestamp="1605824396636" />
+    <state width="1248" height="172" key="GridCell.Tab.0.left" timestamp="1605824396635">
+      <screen x="72" y="27" width="1294" height="741" />
+    </state>
+    <state width="1248" height="172" key="GridCell.Tab.0.left/72.27.1294.741@72.27.1294.741" timestamp="1605824396635" />
+    <state width="1248" height="172" key="GridCell.Tab.0.right" timestamp="1605824396636">
+      <screen x="72" y="27" width="1294" height="741" />
+    </state>
+    <state width="1248" height="172" key="GridCell.Tab.0.right/72.27.1294.741@72.27.1294.741" timestamp="1605824396636" />
+    <state x="252" y="55" width="924" height="691" key="Maven.ArtifactSearchDialog" timestamp="1605575246747">
+      <screen x="72" y="27" width="1294" height="741" />
+    </state>
+    <state x="252" y="55" width="924" height="691" key="Maven.ArtifactSearchDialog/72.27.1294.741@72.27.1294.741" timestamp="1605575246747" />
+    <state x="72" y="27" width="1024" height="741" key="SettingsEditor" timestamp="1605819237636">
+      <screen x="72" y="27" width="1294" height="741" />
+    </state>
+    <state x="72" y="27" width="1024" height="741" key="SettingsEditor/72.27.1294.741@72.27.1294.741" timestamp="1605819237636" />
+    <state x="500" y="312" width="428" height="177" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2" timestamp="1605753790913">
+      <screen x="72" y="27" width="1294" height="741" />
+    </state>
+    <state x="500" y="312" width="428" height="177" key="com.intellij.openapi.vcs.update.UpdateOrStatusOptionsDialogupdate-v2/72.27.1294.741@72.27.1294.741" timestamp="1605753790913" />
+    <state x="72" y="169" width="1284" height="599" key="new project wizard" timestamp="1605824006437">
+      <screen x="72" y="27" width="1294" height="741" />
+    </state>
+    <state x="72" y="169" width="1284" height="599" key="new project wizard/72.27.1294.741@72.27.1294.741" timestamp="1605824006437" />
+    <state x="383" y="174" key="run.anything.popup" timestamp="1605583946241">
+      <screen x="72" y="27" width="1294" height="741" />
+    </state>
+    <state x="383" y="174" key="run.anything.popup/72.27.1294.741@72.27.1294.741" timestamp="1605583946241" />
+    <state x="382" y="89" width="672" height="678" key="search.everywhere.popup" timestamp="1605805558871">
+      <screen x="72" y="27" width="1294" height="741" />
+    </state>
+    <state x="382" y="89" width="672" height="678" key="search.everywhere.popup/72.27.1294.741@72.27.1294.741" timestamp="1605805558871" />
+  </component>
+</project>
