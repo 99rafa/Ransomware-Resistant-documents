@@ -5,3 +5,7 @@ grpc-java/
 
 SirsRansomware/target/
 SirsRansomware/.idea/
+
+SirsRansomware/.DS_Store
+SirsRansomware/src/.DS_Store
+.DS_Store
