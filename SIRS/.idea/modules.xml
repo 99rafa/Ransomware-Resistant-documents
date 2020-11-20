@@ -4,9 +4,6 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/SIRS.iml" filepath="$PROJECT_DIR$/.idea/SIRS.iml" />
       <module fileurl="file://$PROJECT_DIR$/SirsRansomware/SirsRansomware.iml" filepath="$PROJECT_DIR$/SirsRansomware/SirsRansomware.iml" />
-      <module fileurl="file://$PROJECT_DIR$/naming/naming.iml" filepath="$PROJECT_DIR$/naming/naming.iml" />
-      <module fileurl="file://$PROJECT_DIR$/naming/uddi-naming/uddi-naming.iml" filepath="$PROJECT_DIR$/naming/uddi-naming/uddi-naming.iml" />
-      <module fileurl="file://$PROJECT_DIR$/naming/zk-naming/zk-naming.iml" filepath="$PROJECT_DIR$/naming/zk-naming/zk-naming.iml" />
     </modules>
   </component>
 </project>
