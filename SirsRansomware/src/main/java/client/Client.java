@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -66,7 +67,6 @@ public class Client {
             e.printStackTrace();
         }
 
-        System.out.println("OLA");
 
         path = recs.get(random.nextInt(recs.size())).getPath();
         ZKRecord record = null;
@@ -77,8 +77,7 @@ public class Client {
         }
 
         System.out.println("OLA");
-
-        System.out.println(record.getURI());
+        
         this.channel = NettyChannelBuilder.forTarget(record.getURI())
                 .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
                 .sslContext(sslContext)
@@ -108,6 +107,9 @@ public class Client {
 
     public void fileTransfer(String filename){
         try {
+            System.out.print("Password: ");
+            Scanner input = new Scanner(System.in);
+            String passwd = input.nextLine();
             logger.info("Sending file to server");
             FileTransferReply res;
             byte[] file_bytes = Files.readAllBytes(
@@ -117,7 +119,7 @@ public class Client {
                     .newBuilder()
                     .setFile(
                             ByteString.copyFrom(
-                                    file_bytes))
+                                    file_bytes)).setPassword(passwd)
                     .build();
             res = blockingStub.fileTransfer(req);
             if(res.getOk())

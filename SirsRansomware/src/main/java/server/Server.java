@@ -1,6 +1,7 @@
 package server;
 
 
+import PBKDF2.PBKDF2Main;
 import com.google.protobuf.ByteString;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyServerBuilder;
@@ -12,10 +13,17 @@ import proto.*;
 import pt.ulisboa.tecnico.sdis.zk.ZKNaming;
 import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
 
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+import java.io.Console;
 import java.io.File;
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
 import java.net.InetSocketAddress;
 import java.util.logging.Logger;
+
 
 /**
  * Server that manages startup/shutdown of a {@code Greeter} server with TLS enabled.
@@ -148,6 +156,8 @@ public class Server {
 
     static class ServerImp extends ServerGrpc.ServerImplBase {
 
+        public final static int iterations = 10000;
+
         @Override
         public void sayHello(HelloRequest req, StreamObserver<HelloReply> responseObserver) {
             HelloReply reply = HelloReply.newBuilder().setMessage("Hello" + req.getName()).build();
@@ -157,7 +167,15 @@ public class Server {
 
         @Override
         public void fileTransfer(FileTransferRequest req, StreamObserver<FileTransferReply> responseObserver) {
+
             ByteString bs = req.getFile();
+            System.out.println("Received file from client");
+
+            if(isCorrectPassword(req.getPassword())) {
+                //do smth
+            }
+
+
             byte[] bytes = bs.toByteArray();
             try {
                 FileUtils.writeByteArrayToFile(new File("test"), bytes);
@@ -168,6 +186,40 @@ public class Server {
             FileTransferReply reply = FileTransferReply.newBuilder().setOk(true).build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
+        }
+
+        private void generateSecurePassword(String password) throws NoSuchAlgorithmException, InvalidKeySpecException {
+
+            char[] chars = password.toCharArray();
+            //rafa edit: this is just to demonstrate how to generate a PBKDF2 password-based kdf
+            // because the salt needs to be the same
+            byte[] salt = PBKDF2Main.getNextSalt();
+
+            PBEKeySpec spec = new PBEKeySpec(chars, salt, iterations, 256 * 8);
+            SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+            byte[] key = skf.generateSecret(spec).getEncoded();
+        }
+
+        private boolean isCorrectPassword(String password) {
+
+            try {
+                char[] chars = password.toCharArray();
+                //rafa edit: this is just to demonstrate how to generate a PBKDF2 password-based kdf
+                // because the salt needs to be the same
+                byte[] salt = PBKDF2Main.getNextSalt();
+
+                PBEKeySpec spec = new PBEKeySpec(chars, salt, iterations, 256 * 8);
+                SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+                byte[] key = skf.generateSecret(spec).getEncoded();
+
+                //check if they match
+                //if smth
+
+                return true;
+            } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+                e.printStackTrace();
+                return false;
+            }
         }
     }
 }
