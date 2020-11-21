@@ -54,13 +54,11 @@ public class Client {
                   String zooPort,
                   SslContext sslContext) {
 
-        System.out.println("OLA");
         Random random = new Random();
         String path;
         System.out.println( zooHost+ ":" + zooPort);
         ZKNaming zkNaming = new ZKNaming(zooHost, zooPort);
         ArrayList<ZKRecord> recs = null;
-        System.out.println("OLA");
         try {
             recs = new ArrayList<>(zkNaming.listRecords("/sirs/ransomware/servers"));
         } catch (ZKNamingException e) {
@@ -76,8 +74,7 @@ public class Client {
             e.printStackTrace();
         }
 
-        System.out.println("OLA");
-        
+
         this.channel = NettyChannelBuilder.forTarget(record.getURI())
                 .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
                 .sslContext(sslContext)
@@ -136,7 +133,6 @@ public class Client {
      * greeting.
      */
     public static void main(String[] args) throws Exception {
-        System.out.println("OLA");
         if (args.length < 3 || args.length == 5 || args.length > 6) {
             System.out.println("USAGE: HelloWorldClientTls host port file_path [trustCertCollectionFilePath " +
                     "[clientCertChainFilePath clientPrivateKeyFilePath]]\n  Note: clientCertChainFilePath and " +

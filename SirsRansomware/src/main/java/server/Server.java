@@ -15,11 +15,9 @@ import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
-import java.io.Console;
 import java.io.File;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.net.InetSocketAddress;
 import java.util.logging.Logger;
