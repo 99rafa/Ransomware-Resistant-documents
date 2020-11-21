@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 
@@ -117,5 +118,17 @@ public class User implements DatabaseObject {
                 connector.connection.rollback();
             } catch (SQLException ignored) { }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "username='" + username + '\'' +
+                ", passHash=" + Arrays.toString(passHash) +
+                ", editableFiles=" + editableFiles +
+                ", readableFiles=" + readableFiles +
+                ", ownedFiles=" + ownedFiles +
+                ", createdVersions=" + createdVersions +
+                '}';
     }
 }

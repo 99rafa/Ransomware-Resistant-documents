@@ -101,4 +101,15 @@ public class FileVersion implements DatabaseObject {
             } catch (SQLException ignored) { }
         }
     }
+
+    @Override
+    public String toString() {
+        return "FileVersion{" +
+                "versionUid='" + versionUid + '\'' +
+                ", fileUid='" + fileUid + '\'' +
+                ", creator='" + creator + '\'' +
+                ", path='" + path + '\'' +
+                ", date=" + date +
+                '}';
+    }
 }

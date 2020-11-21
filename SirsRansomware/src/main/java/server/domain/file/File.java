@@ -32,6 +32,14 @@ public class File implements DatabaseObject {
     public File() {
     }
 
+    public List<String> getVersions() {
+        return versions;
+    }
+
+    public void setVersions(List<String> versions) {
+        this.versions = versions;
+    }
+
     public String getOwner() {
         return owner;
     }
@@ -104,5 +112,16 @@ public class File implements DatabaseObject {
                 connector.connection.rollback();
             } catch (SQLException ignored) { }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "File{" +
+                "uid='" + uid + '\'' +
+                ", owner='" + owner + '\'' +
+                ", name='" + name + '\'' +
+                ", versions=" + versions +
+                ", partition='" + partition + '\'' +
+                '}';
     }
 }

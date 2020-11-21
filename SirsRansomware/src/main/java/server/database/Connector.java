@@ -1,7 +1,9 @@
 package server.database;
 
 import server.domain.file.File;
+import server.domain.file.FileRepository;
 import server.domain.fileVersion.FileVersion;
+import server.domain.fileVersion.FileVersionRepository;
 import server.domain.user.User;
 import server.domain.user.UserRepository;
 
@@ -30,6 +32,8 @@ public class Connector {
 
         String pass = "password";
         UserRepository userRepository = new UserRepository(c.connection);
+        FileRepository fileRepository = new FileRepository(c.connection);
+        FileVersionRepository fileVersionRepository = new FileVersionRepository(c.connection);
         User user = new User("Afonso",pass.getBytes());
         File file = new File("123","Afonso","ola.txt","1");
         FileVersion v1 = new FileVersion("1","123","Afonso","path1", new Date());
@@ -44,12 +48,12 @@ public class Connector {
         v3.saveInDatabase(c);
 
         User u1 = userRepository.getUserByUsername("Afonso");
-        System.out.println(u1.getUsername());
-        System.out.println(Arrays.equals(u1.getPassHash(), pass.getBytes()));
-        System.out.println(u1.getOwnedFiles());
-        System.out.println(u1.getCreatedVersions());
-        System.out.println(u1.getEditableFiles());
-        System.out.println(u1.getReadableFiles());
+        File f1 = fileRepository.getFileByUID("123");
+        FileVersion fileVersion1 = fileVersionRepository.getFileVersionByUID("2");
+
+        System.out.println(u1);
+        System.out.println(f1);
+        System.out.println(fileVersion1);
 
     }
 
