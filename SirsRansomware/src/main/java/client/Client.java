@@ -172,6 +172,16 @@ public class Client {
         }
     }
 
+    public void displayHelp(){
+        System.out.println("greet - sends greet to server");
+        System.out.println("login - logins on file server");
+        System.out.println("register - registers on file server server");
+        System.out.println("help - displays help message");
+        System.out.println("pull - recieves files from server");
+        System.out.println("push - sends file to server");
+        System.out.println("exit - exits client");
+    }
+
     /**
      * Greet server. If provided, the first element of {@code args} is the name to use in the
      * greeting.
@@ -203,7 +213,7 @@ public class Client {
                     case "greet" -> client.greet(in.nextLine());
                     case "login" -> System.out.println("login");
                     case "register" -> System.out.println("register");
-                    case "help" -> System.out.println("help");
+                    case "help" -> client.displayHelp();
                     case "pull" -> System.out.println("pull");
                     case "push" -> client.push();
                     case "exit" -> running = false;
