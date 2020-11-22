@@ -15,14 +15,12 @@ public class FileVersion implements DatabaseObject {
     private String versionUid;
     private String fileUid;
     private String creator;
-    private String path;
     private Date date;
 
-    public FileVersion(String versionUid, String fileUid, String creator, String path, Date date) {
+    public FileVersion(String versionUid, String fileUid, String creator, Date date) {
         this.versionUid = versionUid;
         this.fileUid = fileUid;
         this.creator = creator;
-        this.path = path;
         this.date = date;
     }
 
@@ -61,14 +59,6 @@ public class FileVersion implements DatabaseObject {
         this.versionUid = uid;
     }
 
-    public String getPath() {
-        return path;
-    }
-
-    public void setPath(String path) {
-        this.path = path;
-    }
-
     public Date getDate() {
         return date;
     }
@@ -81,15 +71,14 @@ public class FileVersion implements DatabaseObject {
     public void saveInDatabase(Connector connector) {
         try {
             //Prepared statement
-            String sql = "INSERT INTO FileVersions VALUES (?,?,?,?,?)";
+            String sql = "INSERT INTO FileVersions VALUES (?,?,?,?)";
             PreparedStatement s = connector.connection.prepareStatement(sql);
 
             //Set parameters
             s.setString(1,this.versionUid);
             s.setString(2,this.fileUid);
             s.setString(3,this.creator);
-            s.setString(4,this.path);
-            s.setTimestamp(5,new Timestamp(this.date.getTime()));
+            s.setTimestamp(4,new Timestamp(this.date.getTime()));
             s.executeUpdate();
 
             connector.connection.commit();
@@ -108,7 +97,6 @@ public class FileVersion implements DatabaseObject {
                 "versionUid='" + versionUid + '\'' +
                 ", fileUid='" + fileUid + '\'' +
                 ", creator='" + creator + '\'' +
-                ", path='" + path + '\'' +
                 ", date=" + date +
                 '}';
     }

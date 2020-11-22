@@ -16,6 +16,23 @@ public class FileRepository extends Repository {
         super(c);
     }
 
+    public boolean fileExists(String uid){
+        try {
+            String sql = "SELECT uid FROM Files WHERE uid = ?";
+            PreparedStatement statement = super.getConnection().prepareStatement(sql);
+
+            //Set parameters
+            statement.setString(1, uid);
+
+            ResultSet rs = statement.executeQuery();
+            if(rs.next()) return true;
+
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     public File getFileByUID(String uid){
         File file = new File();
         List<String> versions = new ArrayList<>();

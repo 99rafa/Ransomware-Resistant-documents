@@ -20,7 +20,7 @@ public class FileVersionRepository extends Repository {
 
         FileVersion version = new FileVersion();
         try {
-            String sql = "SELECT version_uid,file_uid,creator,path,date FROM FileVersions WHERE version_uid = ?";
+            String sql = "SELECT version_uid,file_uid,creator,date FROM FileVersions WHERE version_uid = ?";
             PreparedStatement statement = super.getConnection().prepareStatement(sql);
 
             //Set parameters
@@ -31,7 +31,6 @@ public class FileVersionRepository extends Repository {
                 version.setVersionUid(uid);
                 version.setFileUid(rs.getString("file_uid"));
                 version.setCreator(rs.getString("creator"));
-                version.setPath(rs.getString("path"));
                 version.setDate(rs.getDate("date"));
             }
 

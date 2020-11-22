@@ -29,6 +29,10 @@ import javax.net.ssl.SSLException;
  * A simple client that requests a greeting from the {@link Server} with TLS.
  */
 public class Client {
+    private static final int INDEX_PATH = 0;
+    private static final int INDEX_UID = 1;
+    private static final int INDEX_NAME = 2;
+    private static final int INDEX_PART_ID = 3;
     private static final Logger logger = Logger.getLogger(Client.class.getName());
     private static final String SIRS_DIR = System.getProperty("user.dir");
     private static final String FILE_MAPPING_PATH = SIRS_DIR + "/src/assets/data/fm.txt";
@@ -166,22 +170,22 @@ public class Client {
     }
 
 
-    public Map<String,String> getUidMap() throws FileNotFoundException {
+    public Map<String,String> getUidMap(int index1, int index2) throws FileNotFoundException {
         Map<String,String> fileMapping = new TreeMap<>();
         Scanner sc = new Scanner(new File(FILE_MAPPING_PATH));
         while (sc.hasNextLine()){
             String[] s = sc.nextLine().split(" ");
-            String path = s[0];
-            String uid = s[1];
+            String path = s[index1];
+            String uid = s[index2];
             fileMapping.put(path,uid);
         }
         return fileMapping;
     }
 
-    public String generateFileUid(String filePath) throws IOException {
-        if(!getUidMap().containsKey(filePath)) {
+    public String generateFileUid(String filePath, String partId, String name) throws IOException {
+        if(!getUidMap(INDEX_PATH,INDEX_UID).containsKey(filePath)) {
             String uid = UUID.randomUUID().toString();
-            String textToAppend = filePath + " " + uid + "\n";
+            String textToAppend = filePath + " " + uid + " " + partId + " " + name +"\n";
 
             //Set true for append mode
             BufferedWriter writer = new BufferedWriter(
@@ -191,7 +195,7 @@ public class Client {
             writer.close();
             return uid;
         }
-        else return getUidMap().get(filePath);
+        else return getUidMap(INDEX_PATH,INDEX_UID).get(filePath);
     }
 
     public void push(){
@@ -200,7 +204,7 @@ public class Client {
                 Scanner input = new Scanner(System.in);
                 System.out.print("File path: ");
                 String filePath = input.nextLine();
-                boolean isNew = !getUidMap().containsKey(filePath);
+                boolean isNew = !getUidMap(INDEX_PATH,INDEX_UID).containsKey(filePath);
                 File f = new File(filePath);
                 if (!f.exists()) {
                     System.out.println("No such file");
@@ -209,12 +213,16 @@ public class Client {
                 byte[] file_bytes = Files.readAllBytes(
                         Paths.get(filePath)
                 );
-                String uid = generateFileUid(filePath);
+                //TODO PICK RANDOM PARTITION
+                //TODO STATIC FOR NOW
+                String partId = "1";
                 String filename = "";
                 if (isNew) {
                     System.out.print("Filename: ");
                     filename = input.nextLine();
-                }
+                } else
+                    filename = getUidMap(INDEX_PATH,INDEX_NAME).get(filePath);
+                String uid = generateFileUid(filePath,partId,filename);
                 int tries = 0;
 
                 while (tries < 3) {
@@ -231,6 +239,7 @@ public class Client {
                             .setPassword(passwd)
                             .setFileName(filename)
                             .setUid(uid)
+                            .setPartId(partId)
                             .build();
                     res = blockingStub.push(req);
                     if (res.getOk()) {

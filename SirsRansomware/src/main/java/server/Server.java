@@ -13,18 +13,23 @@ import proto.*;
 import pt.ulisboa.tecnico.sdis.zk.ZKNaming;
 import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
 import server.database.Connector;
+import server.domain.file.FileRepository;
+import server.domain.fileVersion.FileVersion;
+import server.domain.fileVersion.FileVersionRepository;
 import server.domain.user.User;
 import server.domain.user.UserRepository;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
-import java.io.File;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.net.InetSocketAddress;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.Date;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 
@@ -67,10 +72,10 @@ public class Server {
         this.trustCertCollectionFilePath = trustCertCollectionFilePath;
     }
     private SslContextBuilder getSslContextBuilder() {
-        SslContextBuilder sslClientContextBuilder = SslContextBuilder.forServer(new File(certChainFilePath),
-                new File(privateKeyFilePath));
+        SslContextBuilder sslClientContextBuilder = SslContextBuilder.forServer(new java.io.File(certChainFilePath),
+                new java.io.File(privateKeyFilePath));
         if (trustCertCollectionFilePath != null) {
-            sslClientContextBuilder.trustManager(new File(trustCertCollectionFilePath));
+            sslClientContextBuilder.trustManager(new java.io.File(trustCertCollectionFilePath));
             sslClientContextBuilder.clientAuth(ClientAuth.REQUIRE);
         }
         return GrpcSslContexts.configure(sslClientContextBuilder);
@@ -162,12 +167,17 @@ public class Server {
         public final static int iterations = 10000;
         Connector c;
         UserRepository userRepository;
+        FileRepository fileRepository;
+        FileVersionRepository fileVersionRepository;
+
         byte[] salt = PBKDF2Main.getNextSalt();
 
         public ServerImp() {
             try {
                 c = new Connector();
                 userRepository = new UserRepository(c.getConnection());
+                fileRepository = new FileRepository(c.getConnection());
+                fileVersionRepository = new FileVersionRepository(c.getConnection());
             } catch ( SQLException e) {
                 e.printStackTrace();
             }
@@ -206,13 +216,20 @@ public class Server {
             System.out.println("Received file from client " + req.getUsername() );
             PushReply reply = null;
             if (isCorrectPassword(req.getUsername(),req.getPassword())) {
+                String versionId = UUID.randomUUID().toString();
                 byte[] bytes = bs.toByteArray();
                 try {
-                    FileUtils.writeByteArrayToFile(new File(SIRS_DIR + "/src/assets/serverFiles/" + req.getUid()), bytes);
+                    FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + versionId), bytes);
                      reply = PushReply.newBuilder().setOk(true).build();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                //REGISTAR FILE
+                if(!this.fileRepository.fileExists(req.getUid())){
+                    registerFile(req.getUid(),req.getFileName(),req.getUsername(),req.getPartId());
+                }
+                registerFileVersion(versionId,req.getUid(),req.getUsername());
+
             } else reply = PushReply.newBuilder().setOk(false).build();
 
             responseObserver.onNext(reply);
@@ -256,8 +273,6 @@ public class Server {
                 SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
                 byte[] key = skf.generateSecret(spec).getEncoded();
                 byte[] userSecret = userRepository.getUserPassword(username);
-                System.out.println(Arrays.toString(key));
-                System.out.println(Arrays.toString(userSecret));
                 return (Arrays.equals(key, userSecret));
 
             } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
@@ -270,6 +285,16 @@ public class Server {
             byte[] secret = generateSecurePassword(password);
             User user = new User(name, secret);
             user.saveInDatabase(this.c);
+        }
+
+        private void registerFile(String uid, String filename, String owner, String partId){
+            server.domain.file.File file = new server.domain.file.File(uid,owner,filename,partId);
+            file.saveInDatabase(this.c);
+        }
+
+        private void registerFileVersion(String versionId, String fileId, String creator){
+            FileVersion fileVersion = new FileVersion(versionId,fileId,creator, new Date(System.currentTimeMillis()));
+            fileVersion.saveInDatabase(this.c);
         }
 
     }

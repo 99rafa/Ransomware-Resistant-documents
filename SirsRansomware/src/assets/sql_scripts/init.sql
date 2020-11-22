@@ -10,7 +10,7 @@ CREATE TABLE Users (
 );
 
 CREATE TABLE Files (
-   uid VARCHAR(30) PRIMARY KEY,
+   uid VARCHAR(100) PRIMARY KEY,
    owner VARCHAR(30) NOT NULL,
    name VARCHAR(30) NOT NULL,
    part_id VARCHAR(30) NOT NULL,
@@ -18,10 +18,9 @@ CREATE TABLE Files (
 );
 
 CREATE TABLE FileVersions (
-   version_uid VARCHAR(30) PRIMARY KEY,
-   file_uid VARCHAR(30) NOT NULL,
+   version_uid VARCHAR(100) PRIMARY KEY,
+   file_uid VARCHAR(100) NOT NULL,
    creator VARCHAR(30) NOT NULL ,
-   path VARCHAR(100) NOT NULL,
    date DATETIME NOT NULL,
    FOREIGN KEY (file_uid) REFERENCES Files(uid),
    FOREIGN KEY (creator) REFERENCES Users(username)
@@ -29,14 +28,14 @@ CREATE TABLE FileVersions (
 
 CREATE TABLE EditableFiles(
     username VARCHAR(15),
-    uid VARCHAR(30),
+    uid VARCHAR(100),
     FOREIGN KEY (username) REFERENCES Users(username),
     FOREIGN KEY (uid) REFERENCES Files(uid)
 );
 
 CREATE TABLE ReadableFiles(
     username VARCHAR(15),
-    uid VARCHAR(30),
+    uid VARCHAR(100),
     FOREIGN KEY (username) REFERENCES Users(username),
     FOREIGN KEY (uid) REFERENCES Files(uid)
 );

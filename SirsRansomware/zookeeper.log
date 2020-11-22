@@ -4906,3 +4906,380 @@ EndOfStreamException: Unable to read additional data from server sessionid 0x100
 2020-11-22 22:23:51,671 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b598910064, negotiated timeout = 5000
 2020-11-22 22:23:51,779 [myid:] - INFO  [Thread-1:ZooKeeper@1618] - Session: 0x10001b598910064 closed
 2020-11-22 22:23:51,779 [myid:] - INFO  [Thread-1-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b598910064
+2020-11-22 23:12:55,877 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:zookeeper.version=3.6.0--b4c89dc7f6083829e18fae6e446907ae0b1f22d7, built on 02/25/2020 14:38 GMT
+2020-11-22 23:12:55,881 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:host.name=afonso-HP-Pavilion-Laptop-15-cc5xx
+2020-11-22 23:12:55,884 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.version=14.0.2
+2020-11-22 23:12:55,885 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.vendor=Private Build
+2020-11-22 23:12:55,886 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.home=/usr/lib/jvm/java-14-openjdk-amd64
+2020-11-22 23:12:55,886 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.class.path=/usr/share/maven/boot/plexus-classworlds-2.x.jar
+2020-11-22 23:12:55,886 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.library.path=/usr/java/packages/lib:/usr/lib/x86_64-linux-gnu/jni:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/lib/jni:/lib:/usr/lib
+2020-11-22 23:12:55,887 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.io.tmpdir=/tmp
+2020-11-22 23:12:55,887 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.compiler=<NA>
+2020-11-22 23:12:55,887 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.name=Linux
+2020-11-22 23:12:55,887 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.arch=amd64
+2020-11-22 23:12:55,887 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.version=5.4.0-53-generic
+2020-11-22 23:12:55,887 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:user.name=afonso
+2020-11-22 23:12:55,887 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:user.home=/home/afonso
+2020-11-22 23:12:55,887 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:user.dir=/home/afonso/school/sirs/tls-lib/SirsRansomware
+2020-11-22 23:12:55,887 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.memory.free=29MB
+2020-11-22 23:12:55,891 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.memory.max=1962MB
+2020-11-22 23:12:55,891 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.memory.total=64MB
+2020-11-22 23:12:55,895 [myid:] - INFO  [server.Server.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@29eb4a0e
+2020-11-22 23:12:55,901 [myid:] - INFO  [server.Server.main():X509Util@77] - Setting -D jdk.tls.rejectClientInitiatedRenegotiation=true to disable client-initiated TLS renegotiation
+2020-11-22 23:12:55,905 [myid:] - INFO  [server.Server.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:12:55,917 [myid:] - INFO  [server.Server.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:12:55,927 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:12:55,928 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:12:55,931 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50142, server: localhost/127.0.0.1:2181
+2020-11-22 23:12:55,940 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b598910065, negotiated timeout = 5000
+2020-11-22 23:12:55,949 [myid:] - INFO  [server.Server.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@5bfa1b8b
+2020-11-22 23:12:55,949 [myid:] - INFO  [server.Server.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:12:55,949 [myid:] - INFO  [server.Server.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:12:55,953 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:12:55,953 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:12:55,954 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50144, server: localhost/127.0.0.1:2181
+2020-11-22 23:12:55,956 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b598910066, negotiated timeout = 5000
+2020-11-22 23:12:56,068 [myid:] - INFO  [server.Server.main():ZooKeeper@1618] - Session: 0x10001b598910066 closed
+2020-11-22 23:12:56,068 [myid:] - INFO  [server.Server.main()-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b598910066
+2020-11-22 23:13:02,220 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:zookeeper.version=3.6.0--b4c89dc7f6083829e18fae6e446907ae0b1f22d7, built on 02/25/2020 14:38 GMT
+2020-11-22 23:13:02,223 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:host.name=afonso-HP-Pavilion-Laptop-15-cc5xx
+2020-11-22 23:13:02,226 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.version=14.0.2
+2020-11-22 23:13:02,226 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.vendor=Private Build
+2020-11-22 23:13:02,226 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.home=/usr/lib/jvm/java-14-openjdk-amd64
+2020-11-22 23:13:02,226 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.class.path=/usr/share/maven/boot/plexus-classworlds-2.x.jar
+2020-11-22 23:13:02,226 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.library.path=/usr/java/packages/lib:/usr/lib/x86_64-linux-gnu/jni:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/lib/jni:/lib:/usr/lib
+2020-11-22 23:13:02,227 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.io.tmpdir=/tmp
+2020-11-22 23:13:02,227 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.compiler=<NA>
+2020-11-22 23:13:02,227 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.name=Linux
+2020-11-22 23:13:02,227 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.arch=amd64
+2020-11-22 23:13:02,227 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.version=5.4.0-53-generic
+2020-11-22 23:13:02,227 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:user.name=afonso
+2020-11-22 23:13:02,228 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:user.home=/home/afonso
+2020-11-22 23:13:02,228 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:user.dir=/home/afonso/school/sirs/tls-lib/SirsRansomware
+2020-11-22 23:13:02,228 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.memory.free=42MB
+2020-11-22 23:13:02,229 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.memory.max=1962MB
+2020-11-22 23:13:02,229 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.memory.total=67MB
+2020-11-22 23:13:02,233 [myid:] - INFO  [client.Client.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@9d61b89
+2020-11-22 23:13:02,237 [myid:] - INFO  [client.Client.main():X509Util@77] - Setting -D jdk.tls.rejectClientInitiatedRenegotiation=true to disable client-initiated TLS renegotiation
+2020-11-22 23:13:02,245 [myid:] - INFO  [client.Client.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:13:02,253 [myid:] - INFO  [client.Client.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:13:02,285 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:13:02,285 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:13:02,291 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50148, server: localhost/127.0.0.1:2181
+2020-11-22 23:13:02,299 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b598910067, negotiated timeout = 5000
+2020-11-22 23:13:02,419 [myid:] - INFO  [client.Client.main()-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b598910067
+2020-11-22 23:13:02,419 [myid:] - INFO  [client.Client.main():ZooKeeper@1618] - Session: 0x10001b598910067 closed
+2020-11-22 23:13:02,419 [myid:] - INFO  [client.Client.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@26b506dd
+2020-11-22 23:13:02,419 [myid:] - INFO  [client.Client.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:13:02,420 [myid:] - INFO  [client.Client.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:13:02,421 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:13:02,421 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:13:02,422 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50150, server: localhost/127.0.0.1:2181
+2020-11-22 23:13:02,425 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b598910068, negotiated timeout = 5000
+2020-11-22 23:13:02,530 [myid:] - INFO  [client.Client.main():ZooKeeper@1618] - Session: 0x10001b598910068 closed
+2020-11-22 23:13:02,531 [myid:] - INFO  [client.Client.main()-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b598910068
+2020-11-22 23:16:56,395 [myid:] - INFO  [Thread-1:ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@b89fce9
+2020-11-22 23:16:56,395 [myid:] - INFO  [Thread-1:ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:16:56,403 [myid:] - INFO  [Thread-1:ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:16:56,404 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:16:56,404 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:16:56,405 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50208, server: localhost/127.0.0.1:2181
+2020-11-22 23:16:56,412 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b598910069, negotiated timeout = 5000
+2020-11-22 23:16:56,540 [myid:] - INFO  [Thread-1:ZooKeeper@1618] - Session: 0x10001b598910069 closed
+2020-11-22 23:16:56,540 [myid:] - INFO  [Thread-1-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b598910069
+2020-11-22 23:17:23,534 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:zookeeper.version=3.6.0--b4c89dc7f6083829e18fae6e446907ae0b1f22d7, built on 02/25/2020 14:38 GMT
+2020-11-22 23:17:23,537 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:host.name=afonso-HP-Pavilion-Laptop-15-cc5xx
+2020-11-22 23:17:23,537 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.version=14.0.2
+2020-11-22 23:17:23,537 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.vendor=Private Build
+2020-11-22 23:17:23,537 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.home=/usr/lib/jvm/java-14-openjdk-amd64
+2020-11-22 23:17:23,537 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.class.path=/usr/share/maven/boot/plexus-classworlds-2.x.jar
+2020-11-22 23:17:23,538 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.library.path=/usr/java/packages/lib:/usr/lib/x86_64-linux-gnu/jni:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/lib/jni:/lib:/usr/lib
+2020-11-22 23:17:23,538 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.io.tmpdir=/tmp
+2020-11-22 23:17:23,538 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.compiler=<NA>
+2020-11-22 23:17:23,538 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.name=Linux
+2020-11-22 23:17:23,538 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.arch=amd64
+2020-11-22 23:17:23,538 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.version=5.4.0-53-generic
+2020-11-22 23:17:23,538 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:user.name=afonso
+2020-11-22 23:17:23,538 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:user.home=/home/afonso
+2020-11-22 23:17:23,538 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:user.dir=/home/afonso/school/sirs/tls-lib/SirsRansomware
+2020-11-22 23:17:23,539 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.memory.free=33MB
+2020-11-22 23:17:23,540 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.memory.max=1962MB
+2020-11-22 23:17:23,540 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.memory.total=67MB
+2020-11-22 23:17:23,544 [myid:] - INFO  [server.Server.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@e2c38d8
+2020-11-22 23:17:23,547 [myid:] - INFO  [server.Server.main():X509Util@77] - Setting -D jdk.tls.rejectClientInitiatedRenegotiation=true to disable client-initiated TLS renegotiation
+2020-11-22 23:17:23,551 [myid:] - INFO  [server.Server.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:17:23,558 [myid:] - INFO  [server.Server.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:17:23,567 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:17:23,568 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:17:23,571 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50224, server: localhost/127.0.0.1:2181
+2020-11-22 23:17:23,579 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b59891006a, negotiated timeout = 5000
+2020-11-22 23:17:23,588 [myid:] - INFO  [server.Server.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@54c42746
+2020-11-22 23:17:23,588 [myid:] - INFO  [server.Server.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:17:23,588 [myid:] - INFO  [server.Server.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:17:23,592 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:17:23,592 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:17:23,594 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50226, server: localhost/127.0.0.1:2181
+2020-11-22 23:17:23,598 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b59891006b, negotiated timeout = 5000
+2020-11-22 23:17:23,713 [myid:] - INFO  [server.Server.main():ZooKeeper@1618] - Session: 0x10001b59891006b closed
+2020-11-22 23:17:23,713 [myid:] - INFO  [server.Server.main()-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b59891006b
+2020-11-22 23:17:36,345 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:zookeeper.version=3.6.0--b4c89dc7f6083829e18fae6e446907ae0b1f22d7, built on 02/25/2020 14:38 GMT
+2020-11-22 23:17:36,348 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:host.name=afonso-HP-Pavilion-Laptop-15-cc5xx
+2020-11-22 23:17:36,349 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.version=14.0.2
+2020-11-22 23:17:36,349 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.vendor=Private Build
+2020-11-22 23:17:36,349 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.home=/usr/lib/jvm/java-14-openjdk-amd64
+2020-11-22 23:17:36,349 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.class.path=/usr/share/maven/boot/plexus-classworlds-2.x.jar
+2020-11-22 23:17:36,349 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.library.path=/usr/java/packages/lib:/usr/lib/x86_64-linux-gnu/jni:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/lib/jni:/lib:/usr/lib
+2020-11-22 23:17:36,349 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.io.tmpdir=/tmp
+2020-11-22 23:17:36,349 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.compiler=<NA>
+2020-11-22 23:17:36,350 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.name=Linux
+2020-11-22 23:17:36,350 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.arch=amd64
+2020-11-22 23:17:36,350 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.version=5.4.0-53-generic
+2020-11-22 23:17:36,350 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:user.name=afonso
+2020-11-22 23:17:36,350 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:user.home=/home/afonso
+2020-11-22 23:17:36,350 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:user.dir=/home/afonso/school/sirs/tls-lib/SirsRansomware
+2020-11-22 23:17:36,350 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.memory.free=42MB
+2020-11-22 23:17:36,351 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.memory.max=1962MB
+2020-11-22 23:17:36,352 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.memory.total=67MB
+2020-11-22 23:17:36,356 [myid:] - INFO  [client.Client.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@2b2e9965
+2020-11-22 23:17:36,361 [myid:] - INFO  [client.Client.main():X509Util@77] - Setting -D jdk.tls.rejectClientInitiatedRenegotiation=true to disable client-initiated TLS renegotiation
+2020-11-22 23:17:36,367 [myid:] - INFO  [client.Client.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:17:36,373 [myid:] - INFO  [client.Client.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:17:36,383 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:17:36,383 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:17:36,391 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50232, server: localhost/127.0.0.1:2181
+2020-11-22 23:17:36,400 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b59891006c, negotiated timeout = 5000
+2020-11-22 23:17:36,519 [myid:] - INFO  [client.Client.main():ZooKeeper@1618] - Session: 0x10001b59891006c closed
+2020-11-22 23:17:36,519 [myid:] - INFO  [client.Client.main()-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b59891006c
+2020-11-22 23:17:36,519 [myid:] - INFO  [client.Client.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@530c0f9f
+2020-11-22 23:17:36,520 [myid:] - INFO  [client.Client.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:17:36,520 [myid:] - INFO  [client.Client.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:17:36,524 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:17:36,524 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:17:36,526 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50234, server: localhost/127.0.0.1:2181
+2020-11-22 23:17:36,529 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b59891006d, negotiated timeout = 5000
+2020-11-22 23:17:36,536 [myid:localhost:2181] - WARN  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1266] - An exception was thrown while closing send thread for session 0x10001b59891006d.
+EndOfStreamException: Unable to read additional data from server sessionid 0x10001b59891006d, likely server has closed socket
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doIO(ClientCnxnSocketNIO.java:75)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:348)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1262)
+2020-11-22 23:17:36,641 [myid:] - INFO  [client.Client.main():ZooKeeper@1618] - Session: 0x10001b59891006d closed
+2020-11-22 23:17:36,641 [myid:] - INFO  [client.Client.main()-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b59891006d
+2020-11-22 23:20:12,514 [myid:] - INFO  [Thread-1:ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@3f3c3dad
+2020-11-22 23:20:12,515 [myid:] - INFO  [Thread-1:ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:20:12,515 [myid:] - INFO  [Thread-1:ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:20:12,520 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:20:12,520 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:20:12,521 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50262, server: localhost/127.0.0.1:2181
+2020-11-22 23:20:12,527 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b59891006e, negotiated timeout = 5000
+2020-11-22 23:20:12,643 [myid:] - INFO  [Thread-1:ZooKeeper@1618] - Session: 0x10001b59891006e closed
+2020-11-22 23:20:12,643 [myid:] - INFO  [Thread-1-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b59891006e
+2020-11-22 23:20:24,070 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:zookeeper.version=3.6.0--b4c89dc7f6083829e18fae6e446907ae0b1f22d7, built on 02/25/2020 14:38 GMT
+2020-11-22 23:20:24,073 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:host.name=afonso-HP-Pavilion-Laptop-15-cc5xx
+2020-11-22 23:20:24,073 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.version=14.0.2
+2020-11-22 23:20:24,073 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.vendor=Private Build
+2020-11-22 23:20:24,073 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.home=/usr/lib/jvm/java-14-openjdk-amd64
+2020-11-22 23:20:24,073 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.class.path=/usr/share/maven/boot/plexus-classworlds-2.x.jar
+2020-11-22 23:20:24,074 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.library.path=/usr/java/packages/lib:/usr/lib/x86_64-linux-gnu/jni:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/lib/jni:/lib:/usr/lib
+2020-11-22 23:20:24,074 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.io.tmpdir=/tmp
+2020-11-22 23:20:24,074 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.compiler=<NA>
+2020-11-22 23:20:24,074 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.name=Linux
+2020-11-22 23:20:24,074 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.arch=amd64
+2020-11-22 23:20:24,074 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.version=5.4.0-53-generic
+2020-11-22 23:20:24,074 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:user.name=afonso
+2020-11-22 23:20:24,074 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:user.home=/home/afonso
+2020-11-22 23:20:24,074 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:user.dir=/home/afonso/school/sirs/tls-lib/SirsRansomware
+2020-11-22 23:20:24,075 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.memory.free=29MB
+2020-11-22 23:20:24,076 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.memory.max=1962MB
+2020-11-22 23:20:24,076 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.memory.total=64MB
+2020-11-22 23:20:24,081 [myid:] - INFO  [server.Server.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@e2c38d8
+2020-11-22 23:20:24,084 [myid:] - INFO  [server.Server.main():X509Util@77] - Setting -D jdk.tls.rejectClientInitiatedRenegotiation=true to disable client-initiated TLS renegotiation
+2020-11-22 23:20:24,087 [myid:] - INFO  [server.Server.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:20:24,100 [myid:] - INFO  [server.Server.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:20:24,106 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:20:24,107 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:20:24,111 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50268, server: localhost/127.0.0.1:2181
+2020-11-22 23:20:24,121 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b59891006f, negotiated timeout = 5000
+2020-11-22 23:20:24,130 [myid:] - INFO  [server.Server.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@54c42746
+2020-11-22 23:20:24,130 [myid:] - INFO  [server.Server.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:20:24,131 [myid:] - INFO  [server.Server.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:20:24,136 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:20:24,136 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:20:24,138 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50270, server: localhost/127.0.0.1:2181
+2020-11-22 23:20:24,140 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b598910070, negotiated timeout = 5000
+2020-11-22 23:20:24,257 [myid:] - INFO  [server.Server.main():ZooKeeper@1618] - Session: 0x10001b598910070 closed
+2020-11-22 23:20:24,257 [myid:] - INFO  [server.Server.main()-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b598910070
+2020-11-22 23:21:25,021 [myid:] - INFO  [Thread-1:ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@6ecab291
+2020-11-22 23:21:25,022 [myid:] - INFO  [Thread-1:ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:21:25,022 [myid:] - INFO  [Thread-1:ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:21:25,025 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:21:25,025 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:21:25,026 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50290, server: localhost/127.0.0.1:2181
+2020-11-22 23:21:25,028 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b598910071, negotiated timeout = 5000
+2020-11-22 23:21:25,137 [myid:] - INFO  [Thread-1-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b598910071
+2020-11-22 23:21:25,137 [myid:] - INFO  [Thread-1:ZooKeeper@1618] - Session: 0x10001b598910071 closed
+2020-11-22 23:21:44,515 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:zookeeper.version=3.6.0--b4c89dc7f6083829e18fae6e446907ae0b1f22d7, built on 02/25/2020 14:38 GMT
+2020-11-22 23:21:44,517 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:host.name=afonso-HP-Pavilion-Laptop-15-cc5xx
+2020-11-22 23:21:44,518 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.version=14.0.2
+2020-11-22 23:21:44,518 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.vendor=Private Build
+2020-11-22 23:21:44,518 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.home=/usr/lib/jvm/java-14-openjdk-amd64
+2020-11-22 23:21:44,518 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.class.path=/usr/share/maven/boot/plexus-classworlds-2.x.jar
+2020-11-22 23:21:44,519 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.library.path=/usr/java/packages/lib:/usr/lib/x86_64-linux-gnu/jni:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/lib/jni:/lib:/usr/lib
+2020-11-22 23:21:44,519 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.io.tmpdir=/tmp
+2020-11-22 23:21:44,519 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.compiler=<NA>
+2020-11-22 23:21:44,519 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.name=Linux
+2020-11-22 23:21:44,519 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.arch=amd64
+2020-11-22 23:21:44,520 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.version=5.4.0-53-generic
+2020-11-22 23:21:44,520 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:user.name=afonso
+2020-11-22 23:21:44,520 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:user.home=/home/afonso
+2020-11-22 23:21:44,520 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:user.dir=/home/afonso/school/sirs/tls-lib/SirsRansomware
+2020-11-22 23:21:44,520 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.memory.free=28MB
+2020-11-22 23:21:44,521 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.memory.max=1962MB
+2020-11-22 23:21:44,521 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.memory.total=64MB
+2020-11-22 23:21:44,534 [myid:] - INFO  [server.Server.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@76f8d1d5
+2020-11-22 23:21:44,537 [myid:] - INFO  [server.Server.main():X509Util@77] - Setting -D jdk.tls.rejectClientInitiatedRenegotiation=true to disable client-initiated TLS renegotiation
+2020-11-22 23:21:44,540 [myid:] - INFO  [server.Server.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:21:44,546 [myid:] - INFO  [server.Server.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:21:44,557 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:21:44,564 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:21:44,567 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50298, server: localhost/127.0.0.1:2181
+2020-11-22 23:21:44,579 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b598910072, negotiated timeout = 5000
+2020-11-22 23:21:44,587 [myid:] - INFO  [server.Server.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@68e606c2
+2020-11-22 23:21:44,587 [myid:] - INFO  [server.Server.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:21:44,587 [myid:] - INFO  [server.Server.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:21:44,592 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:21:44,592 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:21:44,593 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50300, server: localhost/127.0.0.1:2181
+2020-11-22 23:21:44,595 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b598910073, negotiated timeout = 5000
+2020-11-22 23:21:44,720 [myid:] - INFO  [server.Server.main():ZooKeeper@1618] - Session: 0x10001b598910073 closed
+2020-11-22 23:21:44,720 [myid:] - INFO  [server.Server.main()-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b598910073
+2020-11-22 23:21:49,811 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:zookeeper.version=3.6.0--b4c89dc7f6083829e18fae6e446907ae0b1f22d7, built on 02/25/2020 14:38 GMT
+2020-11-22 23:21:49,814 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:host.name=afonso-HP-Pavilion-Laptop-15-cc5xx
+2020-11-22 23:21:49,814 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.version=14.0.2
+2020-11-22 23:21:49,814 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.vendor=Private Build
+2020-11-22 23:21:49,814 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.home=/usr/lib/jvm/java-14-openjdk-amd64
+2020-11-22 23:21:49,815 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.class.path=/usr/share/maven/boot/plexus-classworlds-2.x.jar
+2020-11-22 23:21:49,815 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.library.path=/usr/java/packages/lib:/usr/lib/x86_64-linux-gnu/jni:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/lib/jni:/lib:/usr/lib
+2020-11-22 23:21:49,815 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.io.tmpdir=/tmp
+2020-11-22 23:21:49,815 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.compiler=<NA>
+2020-11-22 23:21:49,815 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.name=Linux
+2020-11-22 23:21:49,815 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.arch=amd64
+2020-11-22 23:21:49,815 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.version=5.4.0-53-generic
+2020-11-22 23:21:49,815 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:user.name=afonso
+2020-11-22 23:21:49,816 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:user.home=/home/afonso
+2020-11-22 23:21:49,816 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:user.dir=/home/afonso/school/sirs/tls-lib/SirsRansomware
+2020-11-22 23:21:49,816 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.memory.free=40MB
+2020-11-22 23:21:49,819 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.memory.max=1962MB
+2020-11-22 23:21:49,819 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.memory.total=64MB
+2020-11-22 23:21:49,826 [myid:] - INFO  [client.Client.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@9d61b89
+2020-11-22 23:21:49,831 [myid:] - INFO  [client.Client.main():X509Util@77] - Setting -D jdk.tls.rejectClientInitiatedRenegotiation=true to disable client-initiated TLS renegotiation
+2020-11-22 23:21:49,838 [myid:] - INFO  [client.Client.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:21:49,846 [myid:] - INFO  [client.Client.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:21:49,855 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:21:49,855 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:21:49,864 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50302, server: localhost/127.0.0.1:2181
+2020-11-22 23:21:49,875 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b598910074, negotiated timeout = 5000
+2020-11-22 23:21:50,005 [myid:] - INFO  [client.Client.main():ZooKeeper@1618] - Session: 0x10001b598910074 closed
+2020-11-22 23:21:50,005 [myid:] - INFO  [client.Client.main()-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b598910074
+2020-11-22 23:21:50,005 [myid:] - INFO  [client.Client.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@26b506dd
+2020-11-22 23:21:50,006 [myid:] - INFO  [client.Client.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:21:50,006 [myid:] - INFO  [client.Client.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:21:50,007 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:21:50,009 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:21:50,010 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50304, server: localhost/127.0.0.1:2181
+2020-11-22 23:21:50,015 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b598910075, negotiated timeout = 5000
+2020-11-22 23:21:50,118 [myid:] - INFO  [client.Client.main():ZooKeeper@1618] - Session: 0x10001b598910075 closed
+2020-11-22 23:21:50,119 [myid:] - INFO  [client.Client.main()-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b598910075
+2020-11-22 23:38:07,081 [myid:] - INFO  [Thread-1:ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@792cfbad
+2020-11-22 23:38:07,082 [myid:] - INFO  [Thread-1:ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:38:07,082 [myid:] - INFO  [Thread-1:ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:38:07,105 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:38:07,105 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:38:07,107 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50572, server: localhost/127.0.0.1:2181
+2020-11-22 23:38:07,112 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b598910076, negotiated timeout = 5000
+2020-11-22 23:38:07,119 [myid:localhost:2181] - WARN  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@1266] - An exception was thrown while closing send thread for session 0x10001b598910076.
+EndOfStreamException: Unable to read additional data from server sessionid 0x10001b598910076, likely server has closed socket
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doIO(ClientCnxnSocketNIO.java:75)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:348)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1262)
+2020-11-22 23:38:07,221 [myid:] - INFO  [Thread-1:ZooKeeper@1618] - Session: 0x10001b598910076 closed
+2020-11-22 23:38:07,221 [myid:] - INFO  [Thread-1-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b598910076
+2020-11-22 23:38:24,173 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:zookeeper.version=3.6.0--b4c89dc7f6083829e18fae6e446907ae0b1f22d7, built on 02/25/2020 14:38 GMT
+2020-11-22 23:38:24,175 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:host.name=afonso-HP-Pavilion-Laptop-15-cc5xx
+2020-11-22 23:38:24,176 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.version=14.0.2
+2020-11-22 23:38:24,176 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.vendor=Private Build
+2020-11-22 23:38:24,176 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.home=/usr/lib/jvm/java-14-openjdk-amd64
+2020-11-22 23:38:24,176 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.class.path=/usr/share/maven/boot/plexus-classworlds-2.x.jar
+2020-11-22 23:38:24,177 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.library.path=/usr/java/packages/lib:/usr/lib/x86_64-linux-gnu/jni:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/lib/jni:/lib:/usr/lib
+2020-11-22 23:38:24,177 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.io.tmpdir=/tmp
+2020-11-22 23:38:24,177 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:java.compiler=<NA>
+2020-11-22 23:38:24,177 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.name=Linux
+2020-11-22 23:38:24,177 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.arch=amd64
+2020-11-22 23:38:24,177 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.version=5.4.0-53-generic
+2020-11-22 23:38:24,177 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:user.name=afonso
+2020-11-22 23:38:24,177 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:user.home=/home/afonso
+2020-11-22 23:38:24,177 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:user.dir=/home/afonso/school/sirs/tls-lib/SirsRansomware
+2020-11-22 23:38:24,177 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.memory.free=28MB
+2020-11-22 23:38:24,178 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.memory.max=1962MB
+2020-11-22 23:38:24,178 [myid:] - INFO  [server.Server.main():Environment@98] - Client environment:os.memory.total=64MB
+2020-11-22 23:38:24,182 [myid:] - INFO  [server.Server.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@e2c38d8
+2020-11-22 23:38:24,185 [myid:] - INFO  [server.Server.main():X509Util@77] - Setting -D jdk.tls.rejectClientInitiatedRenegotiation=true to disable client-initiated TLS renegotiation
+2020-11-22 23:38:24,188 [myid:] - INFO  [server.Server.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:38:24,194 [myid:] - INFO  [server.Server.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:38:24,203 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:38:24,204 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:38:24,208 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50576, server: localhost/127.0.0.1:2181
+2020-11-22 23:38:24,218 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b598910077, negotiated timeout = 5000
+2020-11-22 23:38:24,225 [myid:] - INFO  [server.Server.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@54c42746
+2020-11-22 23:38:24,225 [myid:] - INFO  [server.Server.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:38:24,226 [myid:] - INFO  [server.Server.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:38:24,229 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:38:24,229 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:38:24,230 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50578, server: localhost/127.0.0.1:2181
+2020-11-22 23:38:24,236 [myid:localhost:2181] - INFO  [server.Server.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b598910078, negotiated timeout = 5000
+2020-11-22 23:38:24,363 [myid:] - INFO  [server.Server.main():ZooKeeper@1618] - Session: 0x10001b598910078 closed
+2020-11-22 23:38:24,364 [myid:] - INFO  [server.Server.main()-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b598910078
+2020-11-22 23:38:36,158 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:zookeeper.version=3.6.0--b4c89dc7f6083829e18fae6e446907ae0b1f22d7, built on 02/25/2020 14:38 GMT
+2020-11-22 23:38:36,160 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:host.name=afonso-HP-Pavilion-Laptop-15-cc5xx
+2020-11-22 23:38:36,161 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.version=14.0.2
+2020-11-22 23:38:36,161 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.vendor=Private Build
+2020-11-22 23:38:36,161 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.home=/usr/lib/jvm/java-14-openjdk-amd64
+2020-11-22 23:38:36,161 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.class.path=/usr/share/maven/boot/plexus-classworlds-2.x.jar
+2020-11-22 23:38:36,161 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.library.path=/usr/java/packages/lib:/usr/lib/x86_64-linux-gnu/jni:/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/usr/lib/jni:/lib:/usr/lib
+2020-11-22 23:38:36,161 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.io.tmpdir=/tmp
+2020-11-22 23:38:36,161 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:java.compiler=<NA>
+2020-11-22 23:38:36,162 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.name=Linux
+2020-11-22 23:38:36,162 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.arch=amd64
+2020-11-22 23:38:36,162 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.version=5.4.0-53-generic
+2020-11-22 23:38:36,162 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:user.name=afonso
+2020-11-22 23:38:36,162 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:user.home=/home/afonso
+2020-11-22 23:38:36,162 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:user.dir=/home/afonso/school/sirs/tls-lib/SirsRansomware
+2020-11-22 23:38:36,162 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.memory.free=42MB
+2020-11-22 23:38:36,163 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.memory.max=1962MB
+2020-11-22 23:38:36,163 [myid:] - INFO  [client.Client.main():Environment@98] - Client environment:os.memory.total=67MB
+2020-11-22 23:38:36,168 [myid:] - INFO  [client.Client.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@2b2e9965
+2020-11-22 23:38:36,172 [myid:] - INFO  [client.Client.main():X509Util@77] - Setting -D jdk.tls.rejectClientInitiatedRenegotiation=true to disable client-initiated TLS renegotiation
+2020-11-22 23:38:36,178 [myid:] - INFO  [client.Client.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:38:36,186 [myid:] - INFO  [client.Client.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:38:36,199 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:38:36,199 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:38:36,206 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50584, server: localhost/127.0.0.1:2181
+2020-11-22 23:38:36,214 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b598910079, negotiated timeout = 5000
+2020-11-22 23:38:36,334 [myid:] - INFO  [client.Client.main():ZooKeeper@1618] - Session: 0x10001b598910079 closed
+2020-11-22 23:38:36,335 [myid:] - INFO  [client.Client.main():ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@530c0f9f
+2020-11-22 23:38:36,335 [myid:] - INFO  [client.Client.main():ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:38:36,335 [myid:] - INFO  [client.Client.main():ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:38:36,336 [myid:] - INFO  [client.Client.main()-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b598910079
+2020-11-22 23:38:36,338 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:38:36,339 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:38:36,339 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50586, server: localhost/127.0.0.1:2181
+2020-11-22 23:38:36,342 [myid:localhost:2181] - INFO  [client.Client.main(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b59891007a, negotiated timeout = 5000
+2020-11-22 23:38:36,447 [myid:] - INFO  [client.Client.main()-EventThread:ClientCnxn$EventThread@566] - EventThread shut down for session: 0x10001b59891007a
+2020-11-22 23:38:36,447 [myid:] - INFO  [client.Client.main():ZooKeeper@1618] - Session: 0x10001b59891007a closed
+2020-11-22 23:45:35,879 [myid:] - INFO  [Thread-1:ZooKeeper@1005] - Initiating client connection, connectString=localhost:2181 sessionTimeout=5000 watcher=pt.ulisboa.tecnico.sdis.zk.ZKNaming$1@28dc3913
+2020-11-22 23:45:35,880 [myid:] - INFO  [Thread-1:ClientCnxnSocket@239] - jute.maxbuffer value is 1048575 Bytes
+2020-11-22 23:45:35,881 [myid:] - INFO  [Thread-1:ClientCnxn@1703] - zookeeper.request.timeout value is 0. feature enabled=false
+2020-11-22 23:45:35,883 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@1154] - Opening socket connection to server localhost/127.0.0.1:2181.
+2020-11-22 23:45:35,883 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@1156] - SASL config status: Will not attempt to authenticate using SASL (unknown error)
+2020-11-22 23:45:35,886 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@986] - Socket connection established, initiating session, client: /127.0.0.1:50832, server: localhost/127.0.0.1:2181
+2020-11-22 23:45:35,894 [myid:localhost:2181] - INFO  [Thread-1-SendThread(localhost:2181):ClientCnxn$SendThread@1420] - Session establishment complete on server localhost/127.0.0.1:2181, session id = 0x10001b59891007b, negotiated timeout = 5000
+2020-11-22 23:45:36,001 [myid:] - INFO  [Thread-1:ZooKeeper@1618] - Session: 0x10001b59891007b closed
