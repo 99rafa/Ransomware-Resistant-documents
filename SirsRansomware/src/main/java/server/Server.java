@@ -164,7 +164,7 @@ public class Server {
         }
 
         @Override
-        public void fileTransfer(FileTransferRequest req, StreamObserver<FileTransferReply> responseObserver) {
+        public void push(PushRequest req, StreamObserver<PushReply> responseObserver) {
 
             ByteString bs = req.getFile();
             System.out.println("Received file from client");
@@ -181,7 +181,7 @@ public class Server {
                 e.printStackTrace();
             }
 
-            FileTransferReply reply = FileTransferReply.newBuilder().setOk(true).build();
+            PushReply reply = PushReply.newBuilder().setOk(true).build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
