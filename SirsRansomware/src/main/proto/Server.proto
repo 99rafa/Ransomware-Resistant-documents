@@ -24,12 +24,13 @@ package proto;
 service Server {
   // Sends a greeting
   rpc Register (RegisterRequest) returns (RegisterReply) {}
-  rpc FileTransfer (FileTransferRequest) returns (FileTransferReply) {}
+  rpc SayHello (HelloRequest) returns (HelloReply) {}
+  rpc Push (PushRequest) returns (PushReply) {}
 }
 
 // The request message containing the user's name.
 message RegisterRequest {
-  string name = 1;
+  string username = 1;
   string password = 2;
 }
 
@@ -38,12 +39,24 @@ message RegisterReply {
   string ok = 1;
 }
 
-message FileTransferRequest {
+message PushRequest {
   bytes file = 1;
-  string username = 2;
-  string password = 3;
+  string uid = 2;
+  string file_name = 3;
+  string username = 4;
+  string password = 5;
 }
 
-message FileTransferReply {
+message PushReply {
   bool ok = 1;
+}
+
+// The request message containing the user's name.
+message HelloRequest {
+  string name = 1;
+}
+
+// The response message containing the greetings
+message HelloReply {
+  string message = 1;
 }

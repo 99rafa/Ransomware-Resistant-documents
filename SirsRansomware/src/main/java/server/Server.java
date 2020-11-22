@@ -176,17 +176,17 @@ public class Server {
         @Override
         public void register(RegisterRequest req, StreamObserver<RegisterReply> responseObserver) {
             RegisterReply reply;
-            if (req.getName().length() > 15)  reply = RegisterReply.newBuilder().setOk("Username too long").build();
+            if (req.getUsername().length() > 15)  reply = RegisterReply.newBuilder().setOk("Username too long").build();
             else {
-                registerUser(req.getName(), req.getPassword());
-                reply = RegisterReply.newBuilder().setOk("User " + req.getName() + " registered successfully").build();
+                registerUser(req.getUsername(), req.getPassword());
+                reply = RegisterReply.newBuilder().setOk("User " + req.getUsername() + " registered successfully").build();
             }
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
 
         @Override
-        public void fileTransfer(FileTransferRequest req, StreamObserver<FileTransferReply> responseObserver) {
+        public void push(PushRequest req, StreamObserver<PushReply> responseObserver) {
 
             ByteString bs = req.getFile();
             System.out.println("Received file from client " + req.getUsername() );
@@ -202,7 +202,14 @@ public class Server {
                 e.printStackTrace();
             }
 
-            FileTransferReply reply = FileTransferReply.newBuilder().setOk(true).build();
+            PushReply reply = PushReply.newBuilder().setOk(true).build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        }
+
+        @Override
+        public void sayHello(HelloRequest req, StreamObserver<HelloReply> responseObserver) {
+            HelloReply reply = HelloReply.newBuilder().setMessage("Hello" + req.getName()).build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }

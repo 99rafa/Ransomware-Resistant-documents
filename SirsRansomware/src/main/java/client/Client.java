@@ -16,11 +16,10 @@ import server.Server;
 import java.io.Console;
 import java.io.File;
 import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Scanner;
-import java.util.ArrayList;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,6 +30,7 @@ import javax.net.ssl.SSLException;
  */
 public class Client {
     private static final Logger logger = Logger.getLogger(Client.class.getName());
+    private static final String FILE_MAPPING_PATH = "/home/Users/rafael/Documents/school/IST/MEIC/SIRS/project/SIRS_proj1/SirsRansomware/src/assets/data/fm.txt";
 
     private final ManagedChannel channel;
     private final ServerGrpc.ServerBlockingStub blockingStub;
@@ -108,7 +108,7 @@ public class Client {
         }
         System.out.println(passwd);
         logger.info("Will try to register " + name + " ...");
-        RegisterRequest request = RegisterRequest.newBuilder().setName(name).setPassword(passwd).build();
+        RegisterRequest request = RegisterRequest.newBuilder().setUsername(name).setPassword(passwd).build();
         RegisterReply response;
         try {
             response = blockingStub.register(request);
@@ -121,27 +121,91 @@ public class Client {
         this.username = name;
     }
 
-    public void fileTransfer(String filename){
-        System.out.print("Password: ");
+    /**
+     * Say hello to server.
+     */
+    public void greet(String name) {
+        logger.info("Will try to greet " + name + " ...");
+        HelloRequest request = HelloRequest.newBuilder().setName(name).build();
+        HelloReply response;
+        try {
+            response = blockingStub.sayHello(request);
+        } catch (StatusRuntimeException e) {
+            logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
+            return;
+        }
+        logger.info("Greeting: " + response.getMessage());
+    }
+
+
+    public Map<String,String> getUidMap() throws FileNotFoundException {
+        Map<String,String> fileMapping = new TreeMap<>();
+        Scanner sc = new Scanner(new File(FILE_MAPPING_PATH));
+        while (sc.hasNextLine()){
+            String[] s = sc.nextLine().split(" ");
+            String path = s[0];
+            String uid = s[1];
+            fileMapping.put(path,uid);
+        }
+        return fileMapping;
+    }
+
+    public String generateFileUid(String filePath) throws IOException {
+        if(!getUidMap().containsKey(filePath)) {
+            String uid = UUID.randomUUID().toString();
+            String textToAppend = filePath + " " + uid + "\n";
+
+            //Set true for append mode
+            BufferedWriter writer = new BufferedWriter(
+                    new FileWriter(FILE_MAPPING_PATH, true));
+
+            writer.write(textToAppend);
+            writer.close();
+            return uid;
+        }
+        else return getUidMap().get(filePath);
+    }
+
+    public void push(){
         try {
             Scanner input = new Scanner(System.in);
-            String passwd = input.nextLine();
-            logger.info("Sending file to server");
-            FileTransferReply res;
+            System.out.print("File path: ");
+            String filePath = input.nextLine();
+            boolean isNew = !getUidMap().containsKey(filePath);
+            File f = new File(filePath);
+            if(!f.exists()){
+                System.out.println("No such file");
+                return;
+            }
             byte[] file_bytes = Files.readAllBytes(
-                    Paths.get(filename)
+                    Paths.get(filePath)
             );
-            FileTransferRequest req = FileTransferRequest
+            String uid = generateFileUid(filePath);
+            String filename = "";
+            if(isNew){
+                System.out.print("Filename: ");
+                filename = input.nextLine();
+            }
+            System.out.print("Password: ");
+            String passwd = new String(( System.console()).readPassword("Enter a password: " ));
+            logger.info("Sending file to server");
+            PushReply res;
+            PushRequest req;
+            req = PushRequest
                     .newBuilder()
                     .setFile(
                             ByteString.copyFrom(
-                                    file_bytes)).setPassword(passwd).setUsername(this.username)
+                                    file_bytes))
+                    .setUsername(this.username)
+                    .setPassword(passwd)
+                    .setFileName(filename)
+                    .setUid(uid)
                     .build();
-            res = blockingStub.fileTransfer(req);
+            res = blockingStub.push(req);
             if(res.getOk())
-                logger.info("File sent");
+                logger.info("File uploaded successfully");
             else
-                logger.info("File failed to send");
+                logger.info("Wrong password!");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -152,7 +216,7 @@ public class Client {
      * greeting.
      */
     public static void main(String[] args) throws Exception {
-        if (args.length < 3 || args.length == 5 || args.length > 6) {
+        if (args.length < 2 || args.length == 4 || args.length > 5) {
             System.out.println("USAGE: HelloWorldClientTls host port file_path [trustCertCollectionFilePath " +
                     "[clientCertChainFilePath clientPrivateKeyFilePath]]\n  Note: clientCertChainFilePath and " +
                     "clientPrivateKeyFilePath are only needed if mutual auth is desired.");
@@ -161,17 +225,30 @@ public class Client {
 
         /* Use default CA. Only for real server certificates. */
         Client client = switch (args.length) {
-            case 3 -> new Client(args[0], args[1],
+            case 2 -> new Client(args[0], args[1],
                     buildSslContext(null, null, null));
-            case 4 -> new Client(args[0], args[1],
-                    buildSslContext(args[3], null, null));
+            case 3 -> new Client(args[0], args[1],
+                    buildSslContext(args[2], null, null));
             default -> new Client(args[0], args[1],
-                    buildSslContext(args[3], args[4], args[5]));
+                    buildSslContext(args[2], args[3], args[4]));
         };
 
         try {
-            client.register();
-            client.fileTransfer(args[2]);
+            Scanner in = new Scanner(System.in);
+            boolean running = true;
+            while(running){
+                String cmd = in.nextLine();
+                switch (cmd) {
+                    case "greet" -> client.greet(in.nextLine());
+                    case "login" -> System.out.println("login");
+                    case "register" -> System.out.println("register");
+                    case "help" -> System.out.println("help");
+                    case "pull" -> System.out.println("pull");
+                    case "push" -> client.push();
+                    case "exit" -> running = false;
+                    default -> System.out.println("Command not recognized");
+                }
+            }
         } finally {
             client.shutdown();
         }

@@ -1,0 +1,3 @@
+/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/certs/ca.pem 0aa4be3a-5ba3-4293-a929-b5cf9df088fd
+/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/certs/server0.key 21c800ec-3a50-4c2a-b68d-2eb4c2c81409
+/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/certs/server1.key dd3df84d-a025-46c4-bf44-6ab452cdd5cd
