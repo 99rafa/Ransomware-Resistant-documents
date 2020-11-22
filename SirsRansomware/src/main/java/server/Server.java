@@ -12,6 +12,9 @@ import org.apache.commons.io.FileUtils;
 import proto.*;
 import pt.ulisboa.tecnico.sdis.zk.ZKNaming;
 import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
+import server.database.Connector;
+import server.domain.user.User;
+import server.domain.user.UserRepository;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
@@ -20,6 +23,8 @@ import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.net.InetSocketAddress;
+import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.logging.Logger;
 
 
@@ -60,7 +65,6 @@ public class Server {
         this.privateKeyFilePath = privateKeyFilePath;
         this.trustCertCollectionFilePath = trustCertCollectionFilePath;
     }
-
     private SslContextBuilder getSslContextBuilder() {
         SslContextBuilder sslClientContextBuilder = SslContextBuilder.forServer(new File(certChainFilePath),
                 new File(privateKeyFilePath));
@@ -155,10 +159,28 @@ public class Server {
     static class ServerImp extends ServerGrpc.ServerImplBase {
 
         public final static int iterations = 10000;
+        Connector c;
+        UserRepository userRepository;
+        byte[] salt = PBKDF2Main.getNextSalt();
+
+        public ServerImp() {
+            try {
+                c = new Connector();
+                userRepository = new UserRepository(c.getConnection());
+            } catch ( SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
 
         @Override
-        public void sayHello(HelloRequest req, StreamObserver<HelloReply> responseObserver) {
-            HelloReply reply = HelloReply.newBuilder().setMessage("Hello" + req.getName()).build();
+        public void register(RegisterRequest req, StreamObserver<RegisterReply> responseObserver) {
+            RegisterReply reply;
+            if (req.getName().length() > 15)  reply = RegisterReply.newBuilder().setOk("Username too long").build();
+            else {
+                registerUser(req.getName(), req.getPassword());
+                reply = RegisterReply.newBuilder().setOk("User " + req.getName() + " registered successfully").build();
+            }
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
@@ -167,12 +189,11 @@ public class Server {
         public void fileTransfer(FileTransferRequest req, StreamObserver<FileTransferReply> responseObserver) {
 
             ByteString bs = req.getFile();
-            System.out.println("Received file from client");
+            System.out.println("Received file from client " + req.getUsername() );
 
-            if(isCorrectPassword(req.getPassword())) {
-                //do smth
+            if (isCorrectPassword(req.getUsername(),req.getPassword())) {
+                System.out.println("entrou aqui");
             }
-
 
             byte[] bytes = bs.toByteArray();
             try {
@@ -186,37 +207,53 @@ public class Server {
             responseObserver.onCompleted();
         }
 
-        private void generateSecurePassword(String password) throws NoSuchAlgorithmException, InvalidKeySpecException {
-
-            char[] chars = password.toCharArray();
-            //rafa edit: this is just to demonstrate how to generate a PBKDF2 password-based kdf
-            // because the salt needs to be the same
-            byte[] salt = PBKDF2Main.getNextSalt();
-
-            PBEKeySpec spec = new PBEKeySpec(chars, salt, iterations, 256 * 8);
-            SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-            byte[] key = skf.generateSecret(spec).getEncoded();
-        }
-
-        private boolean isCorrectPassword(String password) {
-
+        private byte[] generateSecurePassword(String password) {
+            byte[] key = null;
             try {
                 char[] chars = password.toCharArray();
                 //rafa edit: this is just to demonstrate how to generate a PBKDF2 password-based kdf
                 // because the salt needs to be the same
-                byte[] salt = PBKDF2Main.getNextSalt();
+                //byte[] salt = PBKDF2Main.getNextSalt();
+
+                PBEKeySpec spec = new PBEKeySpec(chars, salt, iterations, 256 * 8);
+                SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+                key = skf.generateSecret(spec).getEncoded();
+            } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+                e.printStackTrace();
+            }
+            return key;
+        }
+
+        private boolean isCorrectPassword(String username, String password) {
+
+            try {
+
+                char[] chars = password.toCharArray();
+                //rafa edit: this is just to demonstrate how to generate a PBKDF2 password-based kdf
+                // because the salt needs to be the same
+                //byte[] salt = PBKDF2Main.getNextSalt();
 
                 PBEKeySpec spec = new PBEKeySpec(chars, salt, iterations, 256 * 8);
                 SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
                 byte[] key = skf.generateSecret(spec).getEncoded();
 
-                //check if they match
-                //if smth
+                byte[] userSecret = userRepository.getUserPassword(username);
+                return (Arrays.equals(key, userSecret));
 
-                return true;
             } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
                 e.printStackTrace();
                 return false;
+            }
+        }
+
+        private void registerUser(String name, String password) {
+            try {
+                Connector c = new Connector();
+                byte[] secret = generateSecurePassword(password);
+                User user = new User(name, secret);
+                user.saveInDatabase(c);
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
         }
     }

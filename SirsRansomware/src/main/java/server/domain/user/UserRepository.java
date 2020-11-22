@@ -4,12 +4,32 @@ import server.database.Repository;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class UserRepository extends Repository {
 
     public UserRepository(Connection c) {
         super(c);
+    }
+
+    public byte[] getUserPassword(String username){
+        User user = new User();
+        byte[] userPassword = null;
+        try {
+
+            String sql = "SELECT password FROM Users WHERE username = ?";
+            PreparedStatement statement = super.getConnection().prepareStatement(sql);
+
+            //Set parameters
+            statement.setString(1, username);
+
+            ResultSet rs = statement.executeQuery();
+            if (rs.next()) userPassword = rs.getBytes("password");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return userPassword;
     }
 
     public User getUserByUsername(String username){

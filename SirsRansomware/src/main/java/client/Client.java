@@ -13,6 +13,7 @@ import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
 import pt.ulisboa.tecnico.sdis.zk.ZKRecord;
 import server.Server;
 
+import java.io.Console;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -33,6 +34,7 @@ public class Client {
 
     private final ManagedChannel channel;
     private final ServerGrpc.ServerBlockingStub blockingStub;
+    private String username = "";
 
     private static SslContext buildSslContext(String trustCertCollectionFilePath,
                                               String clientCertChainFilePath,
@@ -89,22 +91,39 @@ public class Client {
     /**
      * Say hello to server.
      */
-    public void greet(String name) {
-        logger.info("Will try to greet " + name + " ...");
-        HelloRequest request = HelloRequest.newBuilder().setName(name).build();
-        HelloReply response;
+    public void register() {
+
+        Console console = System.console();
+        String name = console.readLine("Enter a username: ");
+
+        boolean match = false;
+        String passwd = "";
+
+        while (! match) {
+            passwd = new String(console.readPassword("Enter a password: " ));
+            String confirmation = new String(console.readPassword("Confirm your password: " ));
+            if (passwd.equals(confirmation))
+                match = true;
+            else System.out.println("Password don't match. Try again");
+        }
+        System.out.println(passwd);
+        logger.info("Will try to register " + name + " ...");
+        RegisterRequest request = RegisterRequest.newBuilder().setName(name).setPassword(passwd).build();
+        RegisterReply response;
         try {
-            response = blockingStub.sayHello(request);
+            response = blockingStub.register(request);
         } catch (StatusRuntimeException e) {
             logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
             return;
         }
-        logger.info("Greeting: " + response.getMessage());
+        logger.info("User registered successfully" );
+        System.out.println(response.getOk());
+        this.username = name;
     }
 
     public void fileTransfer(String filename){
+        System.out.print("Password: ");
         try {
-            System.out.print("Password: ");
             Scanner input = new Scanner(System.in);
             String passwd = input.nextLine();
             logger.info("Sending file to server");
@@ -116,7 +135,7 @@ public class Client {
                     .newBuilder()
                     .setFile(
                             ByteString.copyFrom(
-                                    file_bytes)).setPassword(passwd)
+                                    file_bytes)).setPassword(passwd).setUsername(this.username)
                     .build();
             res = blockingStub.fileTransfer(req);
             if(res.getOk())
@@ -151,7 +170,7 @@ public class Client {
         };
 
         try {
-            client.greet("AFONSO");
+            client.register();
             client.fileTransfer(args[2]);
         } finally {
             client.shutdown();

@@ -23,23 +23,25 @@ package proto;
 // The greeting service definition.
 service Server {
   // Sends a greeting
-  rpc SayHello (HelloRequest) returns (HelloReply) {}
+  rpc Register (RegisterRequest) returns (RegisterReply) {}
   rpc FileTransfer (FileTransferRequest) returns (FileTransferReply) {}
 }
 
 // The request message containing the user's name.
-message HelloRequest {
+message RegisterRequest {
   string name = 1;
+  string password = 2;
 }
 
 // The response message containing the greetings
-message HelloReply {
-  string message = 1;
+message RegisterReply {
+  string ok = 1;
 }
 
 message FileTransferRequest {
   bytes file = 1;
-  string password = 2;
+  string username = 2;
+  string password = 3;
 }
 
 message FileTransferReply {
