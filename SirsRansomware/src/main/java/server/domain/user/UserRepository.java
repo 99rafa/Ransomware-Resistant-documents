@@ -14,7 +14,6 @@ public class UserRepository extends Repository {
     }
 
     public byte[] getUserPassword(String username){
-        User user = new User();
         byte[] userPassword = null;
         try {
 
@@ -22,10 +21,14 @@ public class UserRepository extends Repository {
             PreparedStatement statement = super.getConnection().prepareStatement(sql);
 
             //Set parameters
+
             statement.setString(1, username);
 
             ResultSet rs = statement.executeQuery();
-            if (rs.next()) userPassword = rs.getBytes("password");
+
+            if (rs.next()){
+                userPassword = rs.getBytes("password");
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }

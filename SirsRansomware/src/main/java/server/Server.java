@@ -33,6 +33,7 @@ import java.util.logging.Logger;
  */
 public class Server {
     private static final Logger logger = Logger.getLogger(Server.class.getName());
+    private static final String SIRS_DIR = System.getProperty("user.dir");
 
     private io.grpc.Server server;
 
@@ -194,7 +195,7 @@ public class Server {
             if (isCorrectPassword(req.getUsername(),req.getPassword())) {
                 byte[] bytes = bs.toByteArray();
                 try {
-                    FileUtils.writeByteArrayToFile(new File("test"), bytes);
+                    FileUtils.writeByteArrayToFile(new File(SIRS_DIR + "/src/assets/serverFiles/" + req.getUid()), bytes);
                      reply = PushReply.newBuilder().setOk(true).build();
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -252,14 +253,9 @@ public class Server {
         }
 
         private void registerUser(String name, String password) {
-            try {
-                Connector c = new Connector();
-                byte[] secret = generateSecurePassword(password);
-                User user = new User(name, secret);
-                user.saveInDatabase(c);
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            byte[] secret = generateSecurePassword(password);
+            User user = new User(name, secret);
+            user.saveInDatabase(this.c);
         }
     }
 }

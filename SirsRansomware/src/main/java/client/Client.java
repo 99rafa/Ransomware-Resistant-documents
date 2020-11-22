@@ -30,7 +30,8 @@ import javax.net.ssl.SSLException;
  */
 public class Client {
     private static final Logger logger = Logger.getLogger(Client.class.getName());
-    private static final String FILE_MAPPING_PATH = "/Users/rafael/Documents/IST/MEIC/SIRS/project/SIRS_proj1/SirsRansomware/src/assets/data/fm.txt";
+    private static final String SIRS_DIR = System.getProperty("user.dir");
+    private static final String FILE_MAPPING_PATH = SIRS_DIR + "/src/assets/data/fm.txt";
 
     private final ManagedChannel channel;
     private final ServerGrpc.ServerBlockingStub blockingStub;
