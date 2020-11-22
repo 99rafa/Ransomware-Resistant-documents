@@ -190,19 +190,17 @@ public class Server {
 
             ByteString bs = req.getFile();
             System.out.println("Received file from client " + req.getUsername() );
-
+            PushReply reply = null;
             if (isCorrectPassword(req.getUsername(),req.getPassword())) {
-                System.out.println("entrou aqui");
-            }
+                byte[] bytes = bs.toByteArray();
+                try {
+                    FileUtils.writeByteArrayToFile(new File("test"), bytes);
+                     reply = PushReply.newBuilder().setOk(true).build();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else reply = PushReply.newBuilder().setOk(false).build();
 
-            byte[] bytes = bs.toByteArray();
-            try {
-                FileUtils.writeByteArrayToFile(new File("test"), bytes);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            PushReply reply = PushReply.newBuilder().setOk(true).build();
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }

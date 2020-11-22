@@ -30,7 +30,7 @@ import javax.net.ssl.SSLException;
  */
 public class Client {
     private static final Logger logger = Logger.getLogger(Client.class.getName());
-    private static final String FILE_MAPPING_PATH = "/home/Users/rafael/Documents/school/IST/MEIC/SIRS/project/SIRS_proj1/SirsRansomware/src/assets/data/fm.txt";
+    private static final String FILE_MAPPING_PATH = "/Users/rafael/Documents/IST/MEIC/SIRS/project/SIRS_proj1/SirsRansomware/src/assets/data/fm.txt";
 
     private final ManagedChannel channel;
     private final ServerGrpc.ServerBlockingStub blockingStub;
@@ -186,26 +186,33 @@ public class Client {
                 System.out.print("Filename: ");
                 filename = input.nextLine();
             }
-            System.out.print("Password: ");
-            String passwd = new String(( System.console()).readPassword("Enter a password: " ));
-            logger.info("Sending file to server");
-            PushReply res;
-            PushRequest req;
-            req = PushRequest
-                    .newBuilder()
-                    .setFile(
-                            ByteString.copyFrom(
-                                    file_bytes))
-                    .setUsername(this.username)
-                    .setPassword(passwd)
-                    .setFileName(filename)
-                    .setUid(uid)
-                    .build();
-            res = blockingStub.push(req);
-            if(res.getOk())
-                logger.info("File uploaded successfully");
-            else
-                logger.info("Wrong password!");
+            int tries = 0;
+
+            while (tries < 3) {
+                String passwd = new String((System.console()).readPassword("Enter a password: "));
+                logger.info("Sending file to server");
+                PushReply res;
+                PushRequest req;
+                req = PushRequest
+                        .newBuilder()
+                        .setFile(
+                                ByteString.copyFrom(
+                                        file_bytes))
+                        .setUsername(this.username)
+                        .setPassword(passwd)
+                        .setFileName(filename)
+                        .setUid(uid)
+                        .build();
+                res = blockingStub.push(req);
+                if (res.getOk()) {
+                    logger.info("File uploaded successfully");
+                    break;
+                }
+                else {
+                    logger.info("Wrong password!");
+                    tries++;
+                }
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -251,7 +258,7 @@ public class Client {
                 switch (cmd) {
                     case "greet" -> client.greet(in.nextLine());
                     case "login" -> System.out.println("login");
-                    case "register" -> System.out.println("register");
+                    case "register" -> client.register();
                     case "help" -> client.displayHelp();
                     case "pull" -> System.out.println("pull");
                     case "push" -> client.push();
