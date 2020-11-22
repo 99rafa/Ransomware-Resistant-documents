@@ -176,7 +176,7 @@ public class Server {
         @Override
         public void register(RegisterRequest req, StreamObserver<RegisterReply> responseObserver) {
             RegisterReply reply;
-            if (req.getUsername().length() > 15)  reply = RegisterReply.newBuilder().setOk("Username too long").build();
+            if (req.getUsername().length() > 15 || req.getUsername().length() == 0)  reply = RegisterReply.newBuilder().setOk("Username too long").build();
             else {
                 registerUser(req.getUsername(), req.getPassword());
                 reply = RegisterReply.newBuilder().setOk("User " + req.getUsername() + " registered successfully").build();
@@ -184,6 +184,19 @@ public class Server {
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
+
+        @Override
+        public void login(LoginRequest req, StreamObserver<LoginReply> responseObserver) {
+            LoginReply reply;
+            if (req.getUsername().length() > 15 || req.getUsername().length() == 0)  reply = LoginReply.newBuilder().setOk(false).build();
+            else {
+                if (isCorrectPassword(req.getUsername(),req.getPassword())) reply = LoginReply.newBuilder().setOk(true).build();
+                else reply = LoginReply.newBuilder().setOk(false).build();
+            }
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        }
+
 
         @Override
         public void push(PushRequest req, StreamObserver<PushReply> responseObserver) {
@@ -241,8 +254,9 @@ public class Server {
                 PBEKeySpec spec = new PBEKeySpec(chars, salt, iterations, 256 * 8);
                 SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
                 byte[] key = skf.generateSecret(spec).getEncoded();
-
                 byte[] userSecret = userRepository.getUserPassword(username);
+                System.out.println(Arrays.toString(key));
+                System.out.println(Arrays.toString(userSecret));
                 return (Arrays.equals(key, userSecret));
 
             } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
@@ -252,14 +266,11 @@ public class Server {
         }
 
         private void registerUser(String name, String password) {
-            try {
-                Connector c = new Connector();
-                byte[] secret = generateSecurePassword(password);
-                User user = new User(name, secret);
-                user.saveInDatabase(c);
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            byte[] secret = generateSecurePassword(password);
+            System.out.println(Arrays.toString(secret));
+            User user = new User(name, secret);
+            user.saveInDatabase(c);
         }
+
     }
 }

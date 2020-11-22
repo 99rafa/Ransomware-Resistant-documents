@@ -14,7 +14,7 @@ public class UserRepository extends Repository {
     }
 
     public byte[] getUserPassword(String username){
-        User user = new User();
+
         byte[] userPassword = null;
         try {
 

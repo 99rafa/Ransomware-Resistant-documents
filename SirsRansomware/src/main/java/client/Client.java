@@ -34,7 +34,7 @@ public class Client {
 
     private final ManagedChannel channel;
     private final ServerGrpc.ServerBlockingStub blockingStub;
-    private String username = "";
+    private String username = null;
 
     private static SslContext buildSslContext(String trustCertCollectionFilePath,
                                               String clientCertChainFilePath,
@@ -106,8 +106,7 @@ public class Client {
                 match = true;
             else System.out.println("Password don't match. Try again");
         }
-        System.out.println(passwd);
-        logger.info("Will try to register " + name + " ...");
+        System.out.println("Will try to register " + name + " ...");
         RegisterRequest request = RegisterRequest.newBuilder().setUsername(name).setPassword(passwd).build();
         RegisterReply response;
         try {
@@ -118,14 +117,42 @@ public class Client {
         }
         logger.info("User registered successfully" );
         System.out.println(response.getOk());
-        this.username = name;
+        //this.username = name;
+    }
+
+    public void login() {
+        int tries = 0;
+        Console console = System.console();
+
+        while (tries < 3) {
+            String name = console.readLine("Enter your username: ");
+            String password = new String(console.readPassword("Enter your password: "));
+            LoginRequest request = LoginRequest.newBuilder().setUsername(name).setPassword(password).build();
+
+            LoginReply response;
+
+            try {
+                response = blockingStub.login(request);
+            } catch (StatusRuntimeException e) {
+                logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
+                return;
+            }
+            if (response.getOk()) {
+                this.username = name;
+                System.out.println("Successful Authentication. Welcome " + name);
+                break;
+            } else {
+                tries++;
+                System.err.println("Wrong password.Try again");
+            }
+        }
     }
 
     /**
      * Say hello to server.
      */
     public void greet(String name) {
-        logger.info("Will try to greet " + name + " ...");
+        System.out.println("Will try to greet " + name + " ...");
         HelloRequest request = HelloRequest.newBuilder().setName(name).build();
         HelloReply response;
         try {
@@ -134,7 +161,7 @@ public class Client {
             logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
             return;
         }
-        logger.info("Greeting: " + response.getMessage());
+        System.out.println("Greeting: " + response.getMessage());
     }
 
 
@@ -167,55 +194,57 @@ public class Client {
     }
 
     public void push(){
-        try {
-            Scanner input = new Scanner(System.in);
-            System.out.print("File path: ");
-            String filePath = input.nextLine();
-            boolean isNew = !getUidMap().containsKey(filePath);
-            File f = new File(filePath);
-            if(!f.exists()){
-                System.out.println("No such file");
-                return;
-            }
-            byte[] file_bytes = Files.readAllBytes(
-                    Paths.get(filePath)
-            );
-            String uid = generateFileUid(filePath);
-            String filename = "";
-            if(isNew){
-                System.out.print("Filename: ");
-                filename = input.nextLine();
-            }
-            int tries = 0;
+        if (username != null) {
+            try {
+                Scanner input = new Scanner(System.in);
+                System.out.print("File path: ");
+                String filePath = input.nextLine();
+                boolean isNew = !getUidMap().containsKey(filePath);
+                File f = new File(filePath);
+                if (!f.exists()) {
+                    System.out.println("No such file");
+                    return;
+                }
+                byte[] file_bytes = Files.readAllBytes(
+                        Paths.get(filePath)
+                );
+                String uid = generateFileUid(filePath);
+                String filename = "";
+                if (isNew) {
+                    System.out.print("Filename: ");
+                    filename = input.nextLine();
+                }
+                int tries = 0;
 
-            while (tries < 3) {
-                String passwd = new String((System.console()).readPassword("Enter a password: "));
-                logger.info("Sending file to server");
-                PushReply res;
-                PushRequest req;
-                req = PushRequest
-                        .newBuilder()
-                        .setFile(
-                                ByteString.copyFrom(
-                                        file_bytes))
-                        .setUsername(this.username)
-                        .setPassword(passwd)
-                        .setFileName(filename)
-                        .setUid(uid)
-                        .build();
-                res = blockingStub.push(req);
-                if (res.getOk()) {
-                    logger.info("File uploaded successfully");
-                    break;
+                while (tries < 3) {
+                    String passwd = new String((System.console()).readPassword("Enter a password: "));
+                    System.out.println("Sending file to server");
+                    PushReply res;
+                    PushRequest req;
+                    req = PushRequest
+                            .newBuilder()
+                            .setFile(
+                                    ByteString.copyFrom(
+                                            file_bytes))
+                            .setUsername(this.username)
+                            .setPassword(passwd)
+                            .setFileName(filename)
+                            .setUid(uid)
+                            .build();
+                    res = blockingStub.push(req);
+                    if (res.getOk()) {
+                        System.out.println("File uploaded successfully");
+                        break;
+                    } else {
+                        System.out.println("Wrong password!");
+                        tries++;
+                    }
                 }
-                else {
-                    logger.info("Wrong password!");
-                    tries++;
-                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
+        else System.err.println("Error: To push a file, you need to login first");
     }
 
     public void displayHelp(){
@@ -257,7 +286,7 @@ public class Client {
                 String cmd = in.nextLine();
                 switch (cmd) {
                     case "greet" -> client.greet(in.nextLine());
-                    case "login" -> System.out.println("login");
+                    case "login" -> client.login();
                     case "register" -> client.register();
                     case "help" -> client.displayHelp();
                     case "pull" -> System.out.println("pull");
