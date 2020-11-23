@@ -32,8 +32,8 @@ import javax.net.ssl.SSLException;
 public class Client {
     private static final int INDEX_PATH = 0;
     private static final int INDEX_UID = 1;
-    private static final int INDEX_NAME = 2;
-    private static final int INDEX_PART_ID = 3;
+    private static final int INDEX_PART_ID = 2;
+    private static final int INDEX_NAME = 3;
     private static final Logger logger = Logger.getLogger(Client.class.getName());
     private static final String SIRS_DIR = System.getProperty("user.dir");
     private static final String FILE_MAPPING_PATH = SIRS_DIR + "/src/assets/data/fm.txt";
@@ -144,7 +144,6 @@ public class Client {
                 logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
                 return;
             }
-            System.out.println(response.getOkUsername());
             if (response.getOkUsername()) {
                 if (response.getOkPassword()) {
                     this.username = name;
@@ -188,6 +187,16 @@ public class Client {
             fileMapping.put(path,uid);
         }
         return fileMapping;
+    }
+    public String getUid(String filename) throws FileNotFoundException {
+        Scanner sc = new Scanner(new File(FILE_MAPPING_PATH));
+        while (sc.hasNextLine()) {
+            String[] s = sc.nextLine().split(" ");
+            if (s[INDEX_NAME].equals(filename))
+                return s[INDEX_UID];
+
+        }
+        return null;
     }
 
     public void appendTextToFile(String text, String filePath){
@@ -280,6 +289,7 @@ public class Client {
         System.out.println("help - displays help message");
         System.out.println("pull - receives files from server");
         System.out.println("push - sends file to server");
+        System.out.println("give_perm - give file access permission to a user ");
         System.out.println("exit - exits client");
     }
 
@@ -319,6 +329,36 @@ public class Client {
 
         }
     }
+    public void givePermission(){
+
+        Console console = System.console();
+        String username = console.readLine("Enter the username to give permission: ");
+        String filename = console.readLine("Enter the filename: ");
+        String uid = null;
+        try{
+            uid= getUid(filename);
+        }
+        catch (FileNotFoundException e){
+            e.printStackTrace();
+        }
+        GivePermissionRequest request = GivePermissionRequest
+                .newBuilder()
+                .setUsername(username)
+                .setUid(uid)
+                .build();
+        GivePermissionReply res = blockingStub.givePermission(request);
+        if (res.getOkUsername()){
+            if (res.getOkUid()) {
+                System.out.println("Permission file granted for user " + username );
+            }
+        }
+        else System.out.println("Username do not exist");
+
+
+
+    }
+
+
 
     /**
      * Greet server. If provided, the first element of {@code args} is the name to use in the
@@ -353,6 +393,7 @@ public class Client {
                     case "register" -> client.register();
                     case "help" -> client.displayHelp();
                     case "pull" -> client.pull();
+                    case "give_perm" -> client.givePermission();
                     case "push" -> client.push();
                     case "exit" -> running = false;
                     default -> System.out.println("Command not recognized");

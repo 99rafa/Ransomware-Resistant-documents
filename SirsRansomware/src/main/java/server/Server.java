@@ -278,6 +278,18 @@ public class Server {
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
+        @Override
+        public void givePermission(GivePermissionRequest req, StreamObserver<GivePermissionReply> responseObserver) {
+            GivePermissionReply reply = null;
+            if (usernameExists(req.getUsername())){
+                if (filenameExists(req.getUid())){
+                    reply = GivePermissionReply.newBuilder().setOkUsername(true).setOkUid(true).build();
+                }
+            }
+            else reply = GivePermissionReply.newBuilder().setOkUsername(false).setOkUid(false).build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        }
 
         private byte[] generateSecurePassword(String password) {
             byte[] key = null;
@@ -337,6 +349,10 @@ public class Server {
             User user = userRepository.getUserByUsername(name);
             System.out.println(user);
             return user.getUsername() != null && user.getPassHash() != null;
+        }
+        private boolean filenameExists(String uid){
+            File file = fileRepository.getFileByUID(uid);
+            return file.getUid()!= null && file.getName()!=null && file.getPartition()!=null && file.getOwner()!=null;
         }
     }
 }
