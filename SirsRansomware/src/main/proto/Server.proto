@@ -88,7 +88,7 @@ message HelloRequest {
 message HelloReply {
   string message = 1;
 }
-//Give read/write file access permission to a person
+//Give read/write or both file access permission to a person
 message GivePermissionRequest{
   string username = 1;
   string uid=2;

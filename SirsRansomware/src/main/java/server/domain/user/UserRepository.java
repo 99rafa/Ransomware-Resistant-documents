@@ -80,7 +80,38 @@ public class UserRepository extends Repository {
         return passIterations;
     }
 
-    public void setUserPermissionReadableFile(String username, String uid) {
+    public void setUserPermissionFile(String username, String uid,String mode) {
+        switch (mode) {
+            case "read" -> addToReadableFiles(username, uid);
+            case "write" -> addToEditableFiles(username, uid);
+            case "both" -> {
+                addToEditableFiles(username, uid);
+                addToReadableFiles(username, uid);
+            }
+            default -> System.out.println("It should not happen");
+        }
+    }
+    public void addToEditableFiles(String username, String uid){
+        try {
+
+            String sql = "INSERT INTO EditableFiles VALUES (?,?)";
+            PreparedStatement s = super.getConnection().prepareStatement(sql);
+
+            s.setString(1, username);
+            s.setString(2, uid);
+            s.executeUpdate();
+
+            super.getConnection().commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            //Rollback changes in case of failure
+            try {
+                super.getConnection().rollback();
+            } catch (SQLException ignored) {
+            }
+        }
+    }
+    public void addToReadableFiles(String username, String uid){
         try {
 
             String sql = "INSERT INTO ReadableFiles VALUES (?,?)";
@@ -96,25 +127,8 @@ public class UserRepository extends Repository {
             //Rollback changes in case of failure
             try {
                 super.getConnection().rollback();
-            } catch (SQLException ignored) {}
-        }
-    }
-    public void setUserPermissionEditableFile(String username, String uid) {
-        try {
-            String sql = "INSERT INTO EditableFiles VALUES (?,?)";
-            PreparedStatement s = super.getConnection().prepareStatement(sql);
-
-            s.setString(1, username);
-            s.setString(2, uid);
-            s.executeUpdate();
-
-            super.getConnection().commit();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            //Rollback changes in case of failure
-            try {
-                super.getConnection().rollback();
-            } catch (SQLException ignored) {}
+            } catch (SQLException ignored) {
+            }
         }
     }
     public User getUserByUsername(String username){
