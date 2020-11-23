@@ -160,7 +160,6 @@ public class Server {
                 args[5],
                 args[6],
                 args.length == 8 ? args[7] : null);
-
         server.start();
         server.blockUntilShutdown();
     }
@@ -203,10 +202,13 @@ public class Server {
         @Override
         public void login(LoginRequest req, StreamObserver<LoginReply> responseObserver) {
             LoginReply reply;
-            if (req.getUsername().length() > 15 || req.getUsername().length() == 0)  reply = LoginReply.newBuilder().setOk(false).build();
+            if (req.getUsername().length() > 15 || req.getUsername().length() == 0 || !usernameExists(req.getUsername()))
+                reply = LoginReply.newBuilder().setOkUsername(false).setOkPassword(false).build();
             else {
-                if (isCorrectPassword(req.getUsername(),req.getPassword())) reply = LoginReply.newBuilder().setOk(true).build();
-                else reply = LoginReply.newBuilder().setOk(false).build();
+                if (isCorrectPassword(req.getUsername(),req.getPassword()))
+                    reply = LoginReply.newBuilder().setOkUsername(true).setOkPassword(true).build();
+                else
+                    reply = LoginReply.newBuilder().setOkUsername(true).setOkPassword(false).build();
             }
             responseObserver.onNext(reply);
             responseObserver.onCompleted();

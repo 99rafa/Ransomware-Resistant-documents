@@ -47,7 +47,8 @@ message LoginRequest {
 }
 
 message LoginReply {
-  bool ok = 1;
+  bool ok_username = 1;
+  bool ok_password = 2;
 }
 
 message PullRequest{

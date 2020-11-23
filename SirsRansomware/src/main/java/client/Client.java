@@ -144,13 +144,19 @@ public class Client {
                 logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
                 return;
             }
-            if (response.getOk()) {
-                this.username = name;
-                System.out.println("Successful Authentication. Welcome " + name + "!");
-                break;
-            } else {
-                tries++;
-                System.err.println("Wrong password.Try again");
+            System.out.println(response.getOkUsername());
+            if (response.getOkUsername()) {
+                if (response.getOkPassword()) {
+                    this.username = name;
+                    System.out.println("Successful Authentication. Welcome " + name + "!");
+                    break;
+                } else {
+                    tries++;
+                    System.err.println("Wrong password.Try again");
+                }
+            }
+            else{
+                System.err.println("Wrong username. Try again");
             }
         }
     }
