@@ -156,9 +156,19 @@ public class Client {
                 }
             }
             else{
-                System.err.println("Wrong username. Try again");
+                System.err.println("Username is too long or does not exist. Try again");
             }
         }
+
+        if (tries == 3) {
+            System.err.println("Exceeded the number of tries. Client logged out.");
+            logout();
+        }
+    }
+
+    public void logout() {
+
+        this.username = null;
     }
 
     /**
@@ -180,7 +190,13 @@ public class Client {
 
     public Map<String,String> getUidMap(int index1, int index2) throws FileNotFoundException {
         Map<String,String> fileMapping = new TreeMap<>();
+        try {
+            new FileOutputStream(FILE_MAPPING_PATH, true).close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         Scanner sc = new Scanner(new File(FILE_MAPPING_PATH));
+
         while (sc.hasNextLine()){
             String[] s = sc.nextLine().split(" ");
             String path = s[index1];
@@ -262,9 +278,13 @@ public class Client {
                         System.out.println("File uploaded successfully");
                         break;
                     } else {
-                        System.out.println("Wrong password!");
+                        System.err.println("Wrong password!");
                         tries++;
                     }
+                }
+                if (tries == 3) {
+                    System.err.println("Exceeded the number of tries. Client logged out.");
+                    logout();
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -280,6 +300,7 @@ public class Client {
         System.out.println("help - displays help message");
         System.out.println("pull - receives files from server");
         System.out.println("push - sends file to server");
+        System.out.println("logout - exits client");
         System.out.println("exit - exits client");
     }
 
@@ -354,6 +375,7 @@ public class Client {
                     case "help" -> client.displayHelp();
                     case "pull" -> client.pull();
                     case "push" -> client.push();
+                    case "logout" -> client.logout();
                     case "exit" -> running = false;
                     default -> System.out.println("Command not recognized");
                 }
