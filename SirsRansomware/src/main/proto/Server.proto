@@ -88,13 +88,15 @@ message HelloRequest {
 message HelloReply {
   string message = 1;
 }
-//Give file access permission to a person
+//Give read/write file access permission to a person
 message GivePermissionRequest{
   string username = 1;
   string uid=2;
+  string mode=3;
 }
 
 message GivePermissionReply{
   bool ok_username = 1;
   bool ok_uid= 2;
 }
+

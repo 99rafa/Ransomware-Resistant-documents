@@ -283,7 +283,14 @@ public class Server {
             GivePermissionReply reply = null;
             if (usernameExists(req.getUsername())){
                 if (filenameExists(req.getUid())){
+                    switch (req.getMode()) {
+                        case "both" -> giveUserPermission(req.getUsername(), req.getUid());
+                        case "read" -> giveUserReadPermission(req.getUsername(), req.getUid());
+                        case "write" -> giveUserWritePermission(req.getUsername(), req.getUid());
+                    }
+
                     reply = GivePermissionReply.newBuilder().setOkUsername(true).setOkUid(true).build();
+
                 }
             }
             else reply = GivePermissionReply.newBuilder().setOkUsername(false).setOkUid(false).build();
@@ -356,6 +363,16 @@ public class Server {
         private boolean filenameExists(String uid){
             File file = fileRepository.getFileByUID(uid);
             return file.getUid()!= null && file.getName()!=null && file.getPartition()!=null && file.getOwner()!=null;
+        }
+        private void giveUserPermission(String username, String uid){
+            userRepository.setUserPermissionReadableFile(username,uid);
+            userRepository.setUserPermissionEditableFile(username,uid);
+        }
+        private void giveUserReadPermission(String username, String uid){
+            userRepository.setUserPermissionReadableFile(username,uid);
+        }
+        private void giveUserWritePermission(String username, String uid){
+            userRepository.setUserPermissionEditableFile(username,uid);
         }
     }
 }

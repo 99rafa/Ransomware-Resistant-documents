@@ -93,6 +93,7 @@ public class FileRepository extends Repository {
         }
         return files;
     }
+
     public List<File> getUserEditableFiles(String username){
         List<File> files = new ArrayList<>();
         try {

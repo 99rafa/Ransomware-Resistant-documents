@@ -13,6 +13,7 @@ public class UserRepository extends Repository {
         super(c);
     }
 
+
     public byte[] getUserPassword(String username){
         byte[] userPassword = null;
         try {
@@ -79,6 +80,43 @@ public class UserRepository extends Repository {
         return passIterations;
     }
 
+    public void setUserPermissionReadableFile(String username, String uid) {
+        try {
+
+            String sql = "INSERT INTO ReadableFiles VALUES (?,?)";
+            PreparedStatement s = super.getConnection().prepareStatement(sql);
+
+            s.setString(1, username);
+            s.setString(2, uid);
+            s.executeUpdate();
+
+            super.getConnection().commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            //Rollback changes in case of failure
+            try {
+                super.getConnection().rollback();
+            } catch (SQLException ignored) {}
+        }
+    }
+    public void setUserPermissionEditableFile(String username, String uid) {
+        try {
+            String sql = "INSERT INTO EditableFiles VALUES (?,?)";
+            PreparedStatement s = super.getConnection().prepareStatement(sql);
+
+            s.setString(1, username);
+            s.setString(2, uid);
+            s.executeUpdate();
+
+            super.getConnection().commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            //Rollback changes in case of failure
+            try {
+                super.getConnection().rollback();
+            } catch (SQLException ignored) {}
+        }
+    }
     public User getUserByUsername(String username){
         User user = new User();
         List<String> readableFiles = new ArrayList<>();
