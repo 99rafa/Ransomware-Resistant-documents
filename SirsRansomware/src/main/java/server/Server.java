@@ -29,7 +29,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.net.InetSocketAddress;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -192,6 +191,7 @@ public class Server {
         public void register(RegisterRequest req, StreamObserver<RegisterReply> responseObserver) {
             RegisterReply reply;
             if (req.getUsername().length() > 15 || req.getUsername().length() == 0)  reply = RegisterReply.newBuilder().setOk("Username too long").build();
+            else if( usernameExists(req.getUsername())) reply = RegisterReply.newBuilder().setOk("Duplicate user with username " + req.getUsername()).build();
             else {
                 registerUser(req.getUsername(), req.getPassword());
                 reply = RegisterReply.newBuilder().setOk("User " + req.getUsername() + " registered successfully").build();
@@ -331,5 +331,10 @@ public class Server {
             fileVersion.saveInDatabase(this.c);
         }
 
+        private boolean usernameExists(String name) {
+            User user = userRepository.getUserByUsername(name);
+            System.out.println(user);
+            return user.getUsername() != null && user.getPassHash() != null;
+        }
     }
 }

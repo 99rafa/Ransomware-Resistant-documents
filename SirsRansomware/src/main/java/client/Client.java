@@ -146,7 +146,7 @@ public class Client {
             }
             if (response.getOk()) {
                 this.username = name;
-                System.out.println("Successful Authentication. Welcome " + name);
+                System.out.println("Successful Authentication. Welcome " + name + "!");
                 break;
             } else {
                 tries++;
