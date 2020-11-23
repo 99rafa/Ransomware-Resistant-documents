@@ -39,4 +39,27 @@ public class FileVersionRepository extends Repository {
         }
         return version;
     }
+
+    public FileVersion getMostRecentVersion(String fileUid) {
+        FileVersion version = new FileVersion();
+        try {
+            String sql = "SELECT version_uid,file_uid,creator,date FROM FileVersions WHERE file_uid = ? ORDER BY date DESC LIMIT 1";
+            PreparedStatement statement = super.getConnection().prepareStatement(sql);
+
+            //Set parameters
+            statement.setString(1, fileUid);
+
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                version.setVersionUid(rs.getString("version_uid"));
+                version.setFileUid(fileUid);
+                version.setCreator(rs.getString("creator"));
+                version.setDate(rs.getDate("date"));
+            }
+
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+        return version;
+    }
 }

@@ -7,6 +7,7 @@ import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import org.apache.commons.io.FileUtils;
 import proto.*;
 import pt.ulisboa.tecnico.sdis.zk.ZKNaming;
 import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
@@ -36,6 +37,7 @@ public class Client {
     private static final Logger logger = Logger.getLogger(Client.class.getName());
     private static final String SIRS_DIR = System.getProperty("user.dir");
     private static final String FILE_MAPPING_PATH = SIRS_DIR + "/src/assets/data/fm.txt";
+    private static final String PULLS_DIR = SIRS_DIR + "/src/assets/clientPulls/";
 
     private final ManagedChannel channel;
     private final ServerGrpc.ServerBlockingStub blockingStub;
@@ -182,17 +184,25 @@ public class Client {
         return fileMapping;
     }
 
+    public void appendTextToFile(String text, String filePath){
+        BufferedWriter writer = null;
+        try {
+            writer = new BufferedWriter(
+                    new FileWriter(filePath, true));
+            writer.write(text);
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public String generateFileUid(String filePath, String partId, String name) throws IOException {
         if(!getUidMap(INDEX_PATH,INDEX_UID).containsKey(filePath)) {
             String uid = UUID.randomUUID().toString();
             String textToAppend = filePath + " " + uid + " " + partId + " " + name +"\n";
 
-            //Set true for append mode
-            BufferedWriter writer = new BufferedWriter(
-                    new FileWriter(FILE_MAPPING_PATH, true));
+            appendTextToFile(textToAppend,FILE_MAPPING_PATH);
 
-            writer.write(textToAppend);
-            writer.close();
             return uid;
         }
         else return getUidMap(INDEX_PATH,INDEX_UID).get(filePath);
@@ -262,9 +272,46 @@ public class Client {
         System.out.println("login - logins on file server");
         System.out.println("register - registers on file server server");
         System.out.println("help - displays help message");
-        System.out.println("pull - recieves files from server");
+        System.out.println("pull - receives files from server");
         System.out.println("push - sends file to server");
         System.out.println("exit - exits client");
+    }
+
+    public void pull() throws IOException {
+        if(username == null){
+            System.err.println("Error: To pull files, you need to login first");
+            return;
+        }
+        Map<String,String> uidMap = getUidMap(INDEX_UID,INDEX_PATH);
+        String passwd = new String((System.console()).readPassword("Enter a password: "));
+        PullRequest request = PullRequest
+                .newBuilder()
+                .setUsername(this.username)
+                .setPassword(passwd)
+                .build();
+
+        PullReply reply = blockingStub.pull(request);
+        if(!reply.getOk())
+            System.out.println("Wrong password!");
+        for(int i = 0; i < reply.getFilenamesCount(); i++){
+            System.out.println("Received file " + reply.getFilenames(i));
+            String uid = reply.getUids(i);
+            String filename = reply.getFilenames(i);
+            String owner = reply.getOwners(i);
+            String partId = reply.getPartIds(i);
+            byte [] file_data = reply.getFiles(i).toByteArray();
+
+            //IF FILE EXISTS OVERWRITE IT
+            if(uidMap.containsKey(uid))
+                FileUtils.writeByteArrayToFile(new File(uidMap.get(uid)), file_data);
+            //ELSE CREATE IT
+            else{
+                FileUtils.writeByteArrayToFile(new File(PULLS_DIR + filename), file_data);
+                String text = PULLS_DIR + filename + " " + uid + " " + partId + " " + filename;
+                appendTextToFile(text,FILE_MAPPING_PATH);
+            }
+
+        }
     }
 
     /**
@@ -299,7 +346,7 @@ public class Client {
                     case "login" -> client.login();
                     case "register" -> client.register();
                     case "help" -> client.displayHelp();
-                    case "pull" -> System.out.println("pull");
+                    case "pull" -> client.pull();
                     case "push" -> client.push();
                     case "exit" -> running = false;
                     default -> System.out.println("Command not recognized");

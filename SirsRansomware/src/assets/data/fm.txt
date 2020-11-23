@@ -1,1 +1,0 @@
-/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/certs/ca.pem 064361d9-d0b5-454f-9a76-7cf34af986fc 1 ca

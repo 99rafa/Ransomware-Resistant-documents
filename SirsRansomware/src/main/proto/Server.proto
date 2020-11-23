@@ -27,6 +27,7 @@ service Server {
   rpc Login (LoginRequest) returns (LoginReply) {}
   rpc SayHello (HelloRequest) returns (HelloReply) {}
   rpc Push (PushRequest) returns (PushReply) {}
+  rpc Pull (PullRequest) returns (PullReply) {}
 }
 
 // The request message containing the user's name.
@@ -47,6 +48,20 @@ message LoginRequest {
 
 message LoginReply {
   bool ok = 1;
+}
+
+message PullRequest{
+  string username = 1;
+  string password = 2;
+}
+
+message PullReply{
+  repeated string uids = 1;
+  repeated string filenames = 2;
+  repeated string owners = 3;
+  repeated bytes files = 4;
+  repeated string partIds = 5;
+  bool ok = 6;
 }
 
 message PushRequest {

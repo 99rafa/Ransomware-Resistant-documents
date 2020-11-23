@@ -68,4 +68,53 @@ public class FileRepository extends Repository {
         }
         return file;
     }
+
+    public List<File> getUserReadableFiles(String username){
+        List<File> files = new ArrayList<>();
+        try {
+            String sql = "SELECT Files.uid,owner,name,part_id FROM Files,ReadableFiles WHERE Files.uid = ReadableFiles.uid AND username = ?";
+            PreparedStatement statement = super.getConnection().prepareStatement(sql);
+
+            //Set parameters
+            statement.setString(1, username);
+
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                File file = new File();
+                file.setUid(rs.getString("uid"));
+                file.setOwner(rs.getString("owner"));
+                file.setName(rs.getString("name"));
+                file.setPartition(rs.getString("part_id"));
+                files.add(file);
+            }
+
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+        return files;
+    }
+    public List<File> getUserEditableFiles(String username){
+        List<File> files = new ArrayList<>();
+        try {
+            String sql = "SELECT Files.uid,owner,name,part_id FROM Files,EditableFiles WHERE Files.uid = EditableFiles.uid AND username = ?";
+            PreparedStatement statement = super.getConnection().prepareStatement(sql);
+
+            //Set parameters
+            statement.setString(1, username);
+
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                File file = new File();
+                file.setUid(rs.getString("uid"));
+                file.setOwner(rs.getString("owner"));
+                file.setName(rs.getString("name"));
+                file.setPartition(rs.getString("part_id"));
+                files.add(file);
+            }
+
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+        return files;
+    }
 }

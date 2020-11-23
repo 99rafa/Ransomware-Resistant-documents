@@ -13,6 +13,7 @@ import proto.*;
 import pt.ulisboa.tecnico.sdis.zk.ZKNaming;
 import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
 import server.database.Connector;
+import server.domain.file.File;
 import server.domain.file.FileRepository;
 import server.domain.fileVersion.FileVersion;
 import server.domain.fileVersion.FileVersionRepository;
@@ -22,6 +23,8 @@ import server.domain.user.UserRepository;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.net.InetSocketAddress;
@@ -29,6 +32,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -233,6 +237,36 @@ public class Server {
             } else reply = PushReply.newBuilder().setOk(false).build();
 
             responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        }
+
+        @Override
+        public void pull(PullRequest req, StreamObserver<PullReply> responseObserver){
+            if (!isCorrectPassword(req.getUsername(),req.getPassword())) {
+                responseObserver.onNext(PullReply.newBuilder().setOk(false).build());
+                responseObserver.onCompleted();
+                return;
+            }
+            PullReply.Builder reply = PullReply.newBuilder().setOk(true);
+            List<File> readableFiles = this.fileRepository.getUserReadableFiles(req.getUsername());
+            for ( File file : readableFiles ) {
+                System.out.println("Sending file " + file.getName() + " to client " + req.getUsername());
+                FileVersion mostRecentVersion = fileVersionRepository.getMostRecentVersion(file.getUid());
+                byte[] file_bytes = new byte[0];
+                try {
+                    file_bytes = Files.readAllBytes(
+                            Paths.get(SIRS_DIR + "/src/assets/serverFiles/" + mostRecentVersion.getVersionUid()));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                reply.addUids(file.getUid());
+                reply.addFilenames(file.getName());
+                reply.addOwners(file.getOwner());
+                reply.addPartIds(file.getPartition());
+                reply.addFiles(ByteString.copyFrom(
+                        file_bytes));
+            }
+            responseObserver.onNext(reply.build());
             responseObserver.onCompleted();
         }
 
