@@ -243,7 +243,7 @@ public class Server {
         }
 
         @Override
-        public void pull(PullRequest req, StreamObserver<PullReply> responseObserver){
+        public void pullAll(PullAllRequest req, StreamObserver<PullReply> responseObserver){
             if (!isCorrectPassword(req.getUsername(),req.getPassword())) {
                 responseObserver.onNext(PullReply.newBuilder().setOk(false).build());
                 responseObserver.onCompleted();
@@ -267,6 +267,41 @@ public class Server {
                 reply.addPartIds(file.getPartition());
                 reply.addFiles(ByteString.copyFrom(
                         file_bytes));
+            }
+            responseObserver.onNext(reply.build());
+            responseObserver.onCompleted();
+        }
+
+        @Override
+        public void pullSelected(PullSelectedRequest req, StreamObserver<PullReply> responseObserver){
+            if (!isCorrectPassword(req.getUsername(),req.getPassword())) {
+                responseObserver.onNext(PullReply.newBuilder().setOk(false).build());
+                responseObserver.onCompleted();
+                return;
+            }
+            PullReply.Builder reply = PullReply.newBuilder().setOk(true);
+            List<File> readableFiles = this.fileRepository.getUserReadableFiles(req.getUsername());
+            for ( int i = 0; i < req.getUidsCount(); i++) {
+                for (File file : readableFiles) {
+                    if (req.getUids(i).equals(file.getUid())) {
+                        System.out.println("Sending file " + file.getName() + " to client " + req.getUsername());
+                        FileVersion mostRecentVersion = fileVersionRepository.getMostRecentVersion(file.getUid());
+                        byte[] file_bytes = new byte[0];
+                        try {
+                            file_bytes = Files.readAllBytes(
+                                    Paths.get(SIRS_DIR + "/src/assets/serverFiles/" + mostRecentVersion.getVersionUid()));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        reply.addUids(file.getUid());
+                        reply.addFilenames(file.getName());
+                        reply.addOwners(file.getOwner());
+                        reply.addPartIds(file.getPartition());
+                        reply.addFiles(ByteString.copyFrom(
+                                file_bytes));
+                        break;
+                    }
+                }
             }
             responseObserver.onNext(reply.build());
             responseObserver.onCompleted();
@@ -339,7 +374,8 @@ public class Server {
 
         private boolean usernameExists(String name) {
             User user = userRepository.getUserByUsername(name);
-            return user.getUsername() != null && user.getPassHash() != null;
+
+            return user.getUsername() != null && user.getPassHash() != null && user.getSalt() != null;
         }
     }
 }

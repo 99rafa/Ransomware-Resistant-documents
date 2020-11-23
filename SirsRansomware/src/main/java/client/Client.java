@@ -32,8 +32,8 @@ import javax.net.ssl.SSLException;
 public class Client {
     private static final int INDEX_PATH = 0;
     private static final int INDEX_UID = 1;
-    private static final int INDEX_NAME = 2;
-    private static final int INDEX_PART_ID = 3;
+    private static final int INDEX_PART_ID = 2;
+    private static final int INDEX_NAME = 3;
     private static final Logger logger = Logger.getLogger(Client.class.getName());
     private static final String SIRS_DIR = System.getProperty("user.dir");
     private static final String FILE_MAPPING_PATH = SIRS_DIR + "/src/assets/data/fm.txt";
@@ -230,6 +230,17 @@ public class Client {
         else return getUidMap(INDEX_PATH,INDEX_UID).get(filePath);
     }
 
+    public String getUid(String filename) throws FileNotFoundException {
+        Scanner sc = new Scanner(new File(FILE_MAPPING_PATH));
+        while (sc.hasNextLine()) {
+            String[] s = sc.nextLine().split(" ");
+            if (s[INDEX_NAME].equals(filename))
+                return s[INDEX_UID];
+
+        }
+        return null;
+    }
+
     public void push(){
         if (username != null) {
             try {
@@ -309,35 +320,64 @@ public class Client {
             System.err.println("Error: To pull files, you need to login first");
             return;
         }
+        String choice = ((System.console().readLine("Select which files you want to pull, separated by a blank space. 'all' for pulling every file: ")));
+
+
         Map<String,String> uidMap = getUidMap(INDEX_UID,INDEX_PATH);
         String passwd = new String((System.console()).readPassword("Enter a password: "));
-        PullRequest request = PullRequest
-                .newBuilder()
-                .setUsername(this.username)
-                .setPassword(passwd)
-                .build();
 
-        PullReply reply = blockingStub.pull(request);
-        if(!reply.getOk())
-            System.out.println("Wrong password!");
-        for(int i = 0; i < reply.getFilenamesCount(); i++){
-            System.out.println("Received file " + reply.getFilenames(i));
-            String uid = reply.getUids(i);
-            String filename = reply.getFilenames(i);
-            String owner = reply.getOwners(i);
-            String partId = reply.getPartIds(i);
-            byte [] file_data = reply.getFiles(i).toByteArray();
+        PullReply reply;
+        if (choice.equals("all")) {
+            PullAllRequest request = PullAllRequest
+                    .newBuilder()
+                    .setUsername(this.username)
+                    .setPassword(passwd)
+                    .build();
+            reply = blockingStub.pullAll(request);
+        }
+        else {
+            String[] fileNames = choice.split(" ");
+           ;
+            List<String> uids = new ArrayList<>();
+            for (String file : fileNames) {
 
-            //IF FILE EXISTS OVERWRITE IT
-            if(uidMap.containsKey(uid))
-                FileUtils.writeByteArrayToFile(new File(uidMap.get(uid)), file_data);
-            //ELSE CREATE IT
-            else{
-                FileUtils.writeByteArrayToFile(new File(PULLS_DIR + filename), file_data);
-                String text = PULLS_DIR + filename + " " + uid + " " + partId + " " + filename;
-                appendTextToFile(text,FILE_MAPPING_PATH);
+                if (getUid(file) != null)
+                    uids.add(getUid(file));
+                else
+                    System.err.println("Error: file " + file + " does not exist in the database. File ignored.");
             }
+            PullSelectedRequest request = PullSelectedRequest
+                    .newBuilder()
+                    .setUsername(this.username)
+                    .setPassword(passwd)
+                    .addAllUids(uids)
+                    .build();
+            reply = blockingStub.pullSelected(request);
+        }
 
+
+        if(!reply.getOk())
+            System.err.println("Wrong password!");
+        else {
+            for (int i = 0; i < reply.getFilenamesCount(); i++) {
+                System.out.println("Received file " + reply.getFilenames(i));
+                String uid = reply.getUids(i);
+                String filename = reply.getFilenames(i);
+                String owner = reply.getOwners(i);
+                String partId = reply.getPartIds(i);
+                byte[] file_data = reply.getFiles(i).toByteArray();
+
+                //IF FILE EXISTS OVERWRITE IT
+                if (uidMap.containsKey(uid))
+                    FileUtils.writeByteArrayToFile(new File(uidMap.get(uid)), file_data);
+                    //ELSE CREATE IT
+                else {
+                    FileUtils.writeByteArrayToFile(new File(PULLS_DIR + filename), file_data);
+                    String text = PULLS_DIR + filename + " " + uid + " " + partId + " " + filename;
+                    appendTextToFile(text, FILE_MAPPING_PATH);
+                }
+
+            }
         }
     }
 
