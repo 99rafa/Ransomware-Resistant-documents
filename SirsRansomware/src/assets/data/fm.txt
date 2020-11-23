@@ -1,1 +1,1 @@
-/Users/rafael/Documents/IST/MEIC/SIRS/project/SIRS_proj1/SirsRansomware/test 110d0e19-665e-4e7b-8c04-78103007506a
+/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/certs/ca.pem 064361d9-d0b5-454f-9a76-7cf34af986fc 1 ca

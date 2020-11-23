@@ -1,5 +1,11 @@
 tls-channel/
 
+SirsRansomware/test
+SirsRansomware/src/assets/serverFiles/
+
+
+SirsRansomware/zookeeper.log
+
 SirsRansomware/SirsRansomware.iml
 grpc-java/
 

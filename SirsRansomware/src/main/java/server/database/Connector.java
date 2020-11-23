@@ -14,7 +14,6 @@ import java.util.Date;
 
 public class Connector {
 
-    private static final String JDBC_DRIVER = "com.mysql.jdbc.Driver";
     private static final String DB_URL = "jdbc:mysql://localhost:3306/ransomdb";
     private static final String USER = "rafael";
     private static final String PASSWORD = "pass";
@@ -35,9 +34,9 @@ public class Connector {
         FileVersionRepository fileVersionRepository = new FileVersionRepository(c.connection);
         User user = new User("Afonso",pass.getBytes());
         File file = new File("123","Afonso","ola.txt","1");
-        FileVersion v1 = new FileVersion("1","123","Afonso","path1", new Date());
-        FileVersion v2 = new FileVersion("2","123","Afonso","path2", new Date());
-        FileVersion v3 = new FileVersion("3","123","Afonso","path3", new Date());
+        FileVersion v1 = new FileVersion("1","123","Afonso", new Date());
+        FileVersion v2 = new FileVersion("2","123","Afonso", new Date());
+        FileVersion v3 = new FileVersion("3","123","Afonso", new Date());
 
 
         user.saveInDatabase(c);

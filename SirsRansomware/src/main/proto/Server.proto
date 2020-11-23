@@ -55,6 +55,7 @@ message PushRequest {
   string file_name = 3;
   string username = 4;
   string password = 5;
+  string part_id = 6;
 }
 
 message PushReply {
