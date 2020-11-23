@@ -17,7 +17,6 @@ public class UserRepository extends Repository {
     public byte[] getUserPassword(String username){
         byte[] userPassword = null;
         try {
-
             String sql = "SELECT password FROM Users WHERE username = ?";
             PreparedStatement statement = super.getConnection().prepareStatement(sql);
 
@@ -139,7 +138,7 @@ public class UserRepository extends Repository {
         List<String> createdVersions = new ArrayList<>();
         try {
 
-            String sql = "SELECT username,password FROM Users WHERE username = ?";
+            String sql = "SELECT username,password,salt FROM Users WHERE username = ?";
             PreparedStatement statement = super.getConnection().prepareStatement(sql);
 
             //Set parameters
@@ -150,6 +149,7 @@ public class UserRepository extends Repository {
                 //Retrieve by column name
                 user.setUsername(username);
                 user.setPassHash(rs.getBytes("password"));
+                user.setSalt(rs.getBytes("salt"));
             }
 
             //Retrieve owned files

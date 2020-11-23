@@ -27,8 +27,10 @@ service Server {
   rpc Login (LoginRequest) returns (LoginReply) {}
   rpc SayHello (HelloRequest) returns (HelloReply) {}
   rpc Push (PushRequest) returns (PushReply) {}
-  rpc Pull (PullRequest) returns (PullReply) {}
+  rpc PullAll (PullAllRequest) returns (PullReply) {}
+  rpc PullSelected (PullSelectedRequest) returns (PullReply) {}
   rpc GivePermission (GivePermissionRequest) returns (GivePermissionReply) {}
+
 }
 
 // The request message containing the user's name.
@@ -52,10 +54,17 @@ message LoginReply {
   bool ok_password = 2;
 }
 
-message PullRequest{
+message PullAllRequest{
   string username = 1;
   string password = 2;
 }
+
+message PullSelectedRequest{
+  string username = 1;
+  string password = 2;
+  repeated string uids = 3;
+}
+
 
 message PullReply{
   repeated string uids = 1;
@@ -65,6 +74,8 @@ message PullReply{
   repeated string partIds = 5;
   bool ok = 6;
 }
+
+
 
 message PushRequest {
   bytes file = 1;
