@@ -317,10 +317,14 @@ public class Server {
                 // because the salt needs to be the same
                 //byte[] salt = PBKDF2Main.getNextSalt();
 
-                PBEKeySpec spec = new PBEKeySpec(chars, salt, iterations, 256 * 8);
+                byte[] userSecret = userRepository.getUserPassword(username);
+                byte[] passSalt = userRepository.getPasswordSalt(username);
+                int passIterations = userRepository.getPasswordIterations(username);
+
+                PBEKeySpec spec = new PBEKeySpec(chars, passSalt, passIterations, 256 * 8);
                 SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
                 byte[] key = skf.generateSecret(spec).getEncoded();
-                byte[] userSecret = userRepository.getUserPassword(username);
+
                 return (Arrays.equals(key, userSecret));
 
             } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
@@ -331,7 +335,7 @@ public class Server {
 
         private void registerUser(String name, String password) {
             byte[] secret = generateSecurePassword(password);
-            User user = new User(name, secret);
+            User user = new User(name, secret, this.salt, iterations);
             user.saveInDatabase(this.c);
         }
 
@@ -347,7 +351,6 @@ public class Server {
 
         private boolean usernameExists(String name) {
             User user = userRepository.getUserByUsername(name);
-            System.out.println(user);
             return user.getUsername() != null && user.getPassHash() != null;
         }
         private boolean filenameExists(String uid){

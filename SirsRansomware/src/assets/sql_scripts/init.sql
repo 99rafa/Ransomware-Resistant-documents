@@ -6,7 +6,9 @@ DROP TABLE IF EXISTS Users;
 
 CREATE TABLE Users (
    username VARCHAR(15) PRIMARY KEY,
-   password VARBINARY(1024) NOT NULL
+   password VARBINARY(1024) NOT NULL,
+   salt VARBINARY(64) NOT NULL,
+   iterations INT NOT NULL
 );
 
 CREATE TABLE Files (

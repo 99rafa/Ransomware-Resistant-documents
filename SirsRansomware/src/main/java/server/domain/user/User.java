@@ -20,6 +20,10 @@ public class User implements DatabaseObject {
 
     private byte[] passHash;
 
+    private byte[] salt;
+
+    private int iterations;
+
     //MTM
     private List<String> editableFiles = new ArrayList<>();
     //MTM
@@ -29,9 +33,11 @@ public class User implements DatabaseObject {
     //OTM
     private List<String> createdVersions = new ArrayList<>();
 
-    public User(String username, byte[] passHash) {
+    public User(String username, byte[] passHash , byte[] salt, int iterations) {
         this.username = username;
         this.passHash = passHash;
+        this.salt = salt;
+        this.iterations = iterations;
     }
 
     public User() {
@@ -82,6 +88,21 @@ public class User implements DatabaseObject {
         return readableFiles;
     }
 
+    public byte[] getSalt() {
+        return salt;
+    }
+
+    public void setSalt(byte[] salt) {
+        this.salt = salt;
+    }
+
+    public int getIterations() {
+        return iterations;
+    }
+
+    public void setIterations(int iterations) {
+        this.iterations = iterations;
+    }
 
     public List<String> getOwnedFiles() {
         return ownedFiles;
@@ -102,12 +123,14 @@ public class User implements DatabaseObject {
     public void saveInDatabase(Connector connector) {
         try {
             //Insert user
-            String sql = "INSERT INTO Users VALUES (?,?)";
+            String sql = "INSERT INTO Users VALUES (?,?,?,?)";
             PreparedStatement s = connector.connection.prepareStatement(sql);
 
             //Set parameters
             s.setString(1,this.username);
             s.setBinaryStream(2,new ByteArrayInputStream(this.passHash));
+            s.setBinaryStream(3, new ByteArrayInputStream(this.salt));
+            s.setInt(4, this.iterations);
             s.executeUpdate();
 
             //Commit transaction

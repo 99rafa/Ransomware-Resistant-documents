@@ -35,6 +35,50 @@ public class UserRepository extends Repository {
         return userPassword;
     }
 
+    public byte[] getPasswordSalt(String username){
+        byte[] passSalt = null;
+        try {
+
+            String sql = "SELECT salt FROM Users WHERE username = ?";
+            PreparedStatement statement = super.getConnection().prepareStatement(sql);
+
+            //Set parameters
+
+            statement.setString(1, username);
+
+            ResultSet rs = statement.executeQuery();
+
+            if (rs.next()){
+                passSalt = rs.getBytes("salt");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return passSalt;
+    }
+
+    public int getPasswordIterations(String username){
+        int passIterations = 0;
+        try {
+
+            String sql = "SELECT iterations FROM Users WHERE username = ?";
+            PreparedStatement statement = super.getConnection().prepareStatement(sql);
+
+            //Set parameters
+
+            statement.setString(1, username);
+
+            ResultSet rs = statement.executeQuery();
+
+            if (rs.next()){
+                passIterations = rs.getInt("iterations");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return passIterations;
+    }
+
     public User getUserByUsername(String username){
         User user = new User();
         List<String> readableFiles = new ArrayList<>();

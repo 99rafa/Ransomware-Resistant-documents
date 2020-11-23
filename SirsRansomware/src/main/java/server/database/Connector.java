@@ -15,7 +15,7 @@ import java.util.Date;
 public class Connector {
 
     private static final String DB_URL = "jdbc:mysql://localhost:3306/ransomdb";
-    private static final String USER = "mateus";
+    private static final String USER = "rafael";
     private static final String PASSWORD = "pass";
 
     public Connection connection;
@@ -28,7 +28,7 @@ public class Connector {
     public static void main(String[] args) throws SQLException, ClassNotFoundException {
         Connector c = new Connector();
 
-        String pass = "password";
+        /*String pass = "password";
         UserRepository userRepository = new UserRepository(c.connection);
         FileRepository fileRepository = new FileRepository(c.connection);
         FileVersionRepository fileVersionRepository = new FileVersionRepository(c.connection);
@@ -51,7 +51,7 @@ public class Connector {
 
         System.out.println(u1);
         System.out.println(f1);
-        System.out.println(fileVersion1);
+        System.out.println(fileVersion1);*/
 
     }
 
