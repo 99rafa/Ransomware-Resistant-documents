@@ -144,7 +144,6 @@ public class Client {
                 logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
                 return;
             }
-            System.out.println(response.getOkUsername());
             if (response.getOkUsername()) {
                 if (response.getOkPassword()) {
                     this.username = name;
@@ -311,6 +310,9 @@ public class Client {
         System.out.println("help - displays help message");
         System.out.println("pull - receives files from server");
         System.out.println("push - sends file to server");
+        System.out.println("give_perm - give read/write file access permission to a user");
+        System.out.println("give_perm_read - give read file access permission to a user");
+        System.out.println("give_perm_write - give write file access permission to a user");
         System.out.println("logout - exits client");
         System.out.println("exit - exits client");
     }
@@ -380,6 +382,39 @@ public class Client {
             }
         }
     }
+    public void givePermission(String s){
+        Console console = System.console();
+        String username = console.readLine("Enter the username to give permission: ");
+        String filename = console.readLine("Enter the filename: ");
+        String uid = null;
+        try{
+            uid= getUid(filename);
+        }
+        catch (FileNotFoundException e){
+            e.printStackTrace();
+        }
+        //read/write permissions
+        GivePermissionRequest request = GivePermissionRequest
+                .newBuilder()
+                .setUsername(username)
+                .setUid(uid)
+                .setMode(s)
+                .build();
+        GivePermissionReply res = blockingStub.givePermission(request);
+        if (res.getOkUsername()) {
+            if (res.getOkUid()) {
+                switch (s) {
+                    case "both" -> System.out.println("Write/Read permission of file " + filename + " granted for user " + username);
+                    case "read" -> System.out.println("Read permission of file " + filename + " granted for user " + username);
+                    case "write" -> System.out.println("Write permission of file " + filename + " granted for user " + username);
+                    default -> System.out.println("Não pode acontecer");
+                }
+            }
+        } else System.out.println("Username do not exist");
+
+    }
+
+
 
     /**
      * Greet server. If provided, the first element of {@code args} is the name to use in the
@@ -414,6 +449,9 @@ public class Client {
                     case "register" -> client.register();
                     case "help" -> client.displayHelp();
                     case "pull" -> client.pull();
+                    case "give_perm" -> client.givePermission("both");
+                    case "give_perm_read" -> client.givePermission("read");
+                    case "give_perm_write" -> client.givePermission("write");
                     case "push" -> client.push();
                     case "logout" -> client.logout();
                     case "exit" -> running = false;
