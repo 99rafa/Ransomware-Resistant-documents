@@ -346,7 +346,7 @@ public class Client {
      * greeting.
      */
     public static void main(String[] args) throws Exception {
-        if (args.length < 2 || args.length == 4 || args.length > 5) {
+        if (args.length != 5) {
             System.out.println("USAGE: HelloWorldClientTls host port file_path [trustCertCollectionFilePath " +
                     "[clientCertChainFilePath clientPrivateKeyFilePath]]\n  Note: clientCertChainFilePath and " +
                     "clientPrivateKeyFilePath are only needed if mutual auth is desired.");
@@ -354,14 +354,8 @@ public class Client {
         }
 
         /* Use default CA. Only for real server certificates. */
-        Client client = switch (args.length) {
-            case 2 -> new Client(args[0], args[1],
-                    buildSslContext(null, null, null));
-            case 3 -> new Client(args[0], args[1],
-                    buildSslContext(args[2], null, null));
-            default -> new Client(args[0], args[1],
-                    buildSslContext(args[2], args[3], args[4]));
-        };
+        Client client = new Client(args[0], args[1],
+                buildSslContext(args[2], args[3], args[4]));
 
         try {
             Scanner in = new Scanner(System.in);

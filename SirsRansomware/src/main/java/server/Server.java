@@ -3,15 +3,20 @@ package server;
 
 import PBKDF2.PBKDF2Main;
 import com.google.protobuf.ByteString;
+import io.grpc.ManagedChannel;
+import io.grpc.StatusRuntimeException;
 import io.grpc.netty.GrpcSslContexts;
+import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
 import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import org.apache.commons.io.FileUtils;
 import proto.*;
 import pt.ulisboa.tecnico.sdis.zk.ZKNaming;
 import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
+import pt.ulisboa.tecnico.sdis.zk.ZKRecord;
 import server.database.Connector;
 import server.domain.file.File;
 import server.domain.file.FileRepository;
@@ -22,6 +27,7 @@ import server.domain.user.UserRepository;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
+import javax.net.ssl.SSLException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -29,11 +35,11 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.net.InetSocketAddress;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 /**
@@ -55,6 +61,66 @@ public class Server {
     private final String certChainFilePath;
     private final String privateKeyFilePath;
     private final String trustCertCollectionFilePath;
+
+    private  ManagedChannel channel;
+    private  ServerGrpc.ServerBlockingStub blockingStub;
+
+    private static SslContext buildSslContext(String trustCertCollectionFilePath,
+                                              String clientCertChainFilePath,
+                                              String clientPrivateKeyFilePath) throws SSLException {
+        SslContextBuilder builder = GrpcSslContexts.forClient();
+        if (trustCertCollectionFilePath != null) {
+            builder.trustManager(new java.io.File(trustCertCollectionFilePath));
+        }
+        if (clientCertChainFilePath != null && clientPrivateKeyFilePath != null) {
+            builder.keyManager(new java.io.File(clientCertChainFilePath), new java.io.File(clientPrivateKeyFilePath));
+        }
+        return builder.build();
+    }
+
+    public List<String> getZooPaths(String zooPath){
+        System.out.println( this.zooHost+ ":" + this.zooPort);
+        ZKNaming zkNaming = new ZKNaming(this.zooHost, this.zooPort);
+        ArrayList<ZKRecord> recs = null;
+        try {
+            recs = new ArrayList<>(zkNaming.listRecords(zooPath));
+        } catch (ZKNamingException e) {
+            e.printStackTrace();
+        }
+
+        return recs.stream().map(ZKRecord::getPath).collect(Collectors.toList());
+    }
+
+    /**
+     * Construct client connecting to HelloWorld server at {@code host:port}.
+     */
+    public void changeChannel(String zooPath) throws SSLException {
+        ZKRecord record = null;
+        try {
+            record = zkNaming.lookup(zooPath);
+        } catch (ZKNamingException e) {
+            e.printStackTrace();
+        }
+        this.channel = NettyChannelBuilder.forTarget(record.getURI())
+                .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
+                .sslContext(buildSslContext(this.trustCertCollectionFilePath,this.certChainFilePath,this.privateKeyFilePath))
+                .build();
+        this.blockingStub = ServerGrpc.newBlockingStub(channel);
+    }
+
+    public void greet(String name) throws SSLException {
+        changeChannel(getZooPaths("/sirs/ransomware/servers").get(0));
+        System.out.println("Will try to greet " + name + " ...");
+        HelloRequest request = HelloRequest.newBuilder().setName(name).build();
+        HelloReply response;
+        try {
+            response = this.blockingStub.sayHello(request);
+        } catch (StatusRuntimeException e) {
+            logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
+            return;
+        }
+        System.out.println("Greeting: " + response.getMessage());
+    }
 
     public Server(String id,
                   String zooPort,
@@ -143,10 +209,10 @@ public class Server {
      */
     public static void main(String[] args) throws IOException, InterruptedException {
 
-        if (args.length < 7 || args.length > 8) {
+        if (args.length != 8) {
             System.out.println(
                     "USAGE: ServerTls id zooHost zooPort host port certChainFilePath privateKeyFilePath " +
-                            "[trustCertCollectionFilePath]\n  Note: You only need to supply trustCertCollectionFilePath if you want " +
+                            "trustCertCollectionFilePath\n  Note: You only need to supply trustCertCollectionFilePath if you want " +
                             "to enable Mutual TLS.");
             System.exit(0);
         }
@@ -159,8 +225,9 @@ public class Server {
                 args[4],
                 args[5],
                 args[6],
-                args.length == 8 ? args[7] : null);
+                args[7]);
         server.start();
+        server.greet("Server");
         server.blockUntilShutdown();
     }
 
