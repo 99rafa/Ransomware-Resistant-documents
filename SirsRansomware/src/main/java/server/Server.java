@@ -316,14 +316,16 @@ public class Server {
         @Override
         public void givePermission(GivePermissionRequest req, StreamObserver<GivePermissionReply> responseObserver) {
             GivePermissionReply reply = null;
-            if (usernameExists(req.getUsername())){
-                if (filenameExists(req.getUid())){
-                    giveUserPermission(req.getUsername(), req.getUid(),req.getMode());
-                    reply = GivePermissionReply.newBuilder().setOkUsername(true).setOkUid(true).build();
+            if (req.getMode().matches("read|write|both")) {
+                if (usernameExists(req.getUsername())) {
+                    if (filenameExists(req.getUid())) {
+                        giveUserPermission(req.getUsername(), req.getUid(), req.getMode());
+                        reply = GivePermissionReply.newBuilder().setOkUsername(true).setOkUid(true).setOkMode(true).build();
 
-                }
-            }
-            else reply = GivePermissionReply.newBuilder().setOkUsername(false).setOkUid(false).build();
+                    }
+                } else reply = GivePermissionReply.newBuilder().setOkUsername(false).setOkUid(false).setOkMode(true).build();
+            } else reply = GivePermissionReply.newBuilder().setOkUsername(false).setOkUid(false).setOkMode(false).build();
+
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }

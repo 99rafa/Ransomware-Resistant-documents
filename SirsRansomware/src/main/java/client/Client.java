@@ -310,9 +310,7 @@ public class Client {
         System.out.println("help - displays help message");
         System.out.println("pull - receives files from server");
         System.out.println("push - sends file to server");
-        System.out.println("give_perm - give read/write file access permission to a user");
-        System.out.println("give_perm_read - give read file access permission to a user");
-        System.out.println("give_perm_write - give write file access permission to a user");
+        System.out.println("give_perm - give read/write/both file access permission to a user");
         System.out.println("logout - exits client");
         System.out.println("exit - exits client");
     }
@@ -382,11 +380,13 @@ public class Client {
             }
         }
     }
-    public void givePermission(String s){
+    public void givePermission(){
         Console console = System.console();
         String username = console.readLine("Enter the username to give permission: ");
+        String s = ((System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for write permission\n -> 'both' for read and write permission\n ")));
         String filename = console.readLine("Enter the filename: ");
         String uid = null;
+
         try{
             uid= getUid(filename);
         }
@@ -401,16 +401,17 @@ public class Client {
                 .setMode(s)
                 .build();
         GivePermissionReply res = blockingStub.givePermission(request);
-        if (res.getOkUsername()) {
-            if (res.getOkUid()) {
-                switch (s) {
-                    case "both" -> System.out.println("Write/Read permission of file " + filename + " granted for user " + username);
-                    case "read" -> System.out.println("Read permission of file " + filename + " granted for user " + username);
-                    case "write" -> System.out.println("Write permission of file " + filename + " granted for user " + username);
-                    default -> System.out.println("Não pode acontecer");
+        if (res.getOkMode()) {
+            if (res.getOkUsername()) {
+                if (res.getOkUid()) {
+                    switch (s) {
+                        case "both" -> System.out.println("Write/Read permission of file " + filename + " granted for user " + username);
+                        case "read" -> System.out.println("Read permission of file " + filename + " granted for user " + username);
+                        case "write" -> System.out.println("Write permission of file " + filename + " granted for user " + username);
+                    }
                 }
-            }
-        } else System.out.println("Username do not exist");
+            } else System.out.println("Username do not exist");
+        } else System.out.println("Wrong type of permission inserted");
 
     }
 
@@ -449,9 +450,7 @@ public class Client {
                     case "register" -> client.register();
                     case "help" -> client.displayHelp();
                     case "pull" -> client.pull();
-                    case "give_perm" -> client.givePermission("both");
-                    case "give_perm_read" -> client.givePermission("read");
-                    case "give_perm_write" -> client.givePermission("write");
+                    case "give_perm" -> client.givePermission();
                     case "push" -> client.push();
                     case "logout" -> client.logout();
                     case "exit" -> running = false;

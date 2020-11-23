@@ -109,5 +109,6 @@ message GivePermissionRequest{
 message GivePermissionReply{
   bool ok_username = 1;
   bool ok_uid= 2;
+  bool ok_mode=3;
 }
 
