@@ -139,7 +139,7 @@ public class Client {
             }
             if (response.getOk()) {
                 this.username = name;
-                System.out.println("Successful Authentication. Welcome " + name);
+                System.out.println("Successful Authentication. Welcome " + name + "!");
                 break;
             } else {
                 tries++;
@@ -252,7 +252,7 @@ public class Client {
         System.out.println("login - logins on file server");
         System.out.println("register - registers on file server server");
         System.out.println("help - displays help message");
-        System.out.println("pull - recieves files from server");
+        System.out.println("pull - receives files from server");
         System.out.println("push - sends file to server");
         System.out.println("exit - exits client");
     }

@@ -7,6 +7,7 @@ import server.database.DatabaseObject;
 import java.io.ByteArrayInputStream;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -111,7 +112,8 @@ public class User implements DatabaseObject {
 
             //Commit transaction
             connector.connection.commit();
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             e.printStackTrace();
             //Rollback changes in case of failure
             try {
