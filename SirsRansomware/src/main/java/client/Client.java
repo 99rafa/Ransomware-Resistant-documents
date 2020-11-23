@@ -32,8 +32,8 @@ import javax.net.ssl.SSLException;
 public class Client {
     private static final int INDEX_PATH = 0;
     private static final int INDEX_UID = 1;
-    private static final int INDEX_NAME = 2;
-    private static final int INDEX_PART_ID = 3;
+    private static final int INDEX_PART_ID = 2;
+    private static final int INDEX_NAME = 3;
     private static final Logger logger = Logger.getLogger(Client.class.getName());
     private static final String SIRS_DIR = System.getProperty("user.dir");
     private static final String FILE_MAPPING_PATH = SIRS_DIR + "/src/assets/data/fm.txt";
@@ -144,7 +144,6 @@ public class Client {
                 logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
                 return;
             }
-            System.out.println(response.getOkUsername());
             if (response.getOkUsername()) {
                 if (response.getOkPassword()) {
                     this.username = name;
@@ -230,6 +229,17 @@ public class Client {
         else return getUidMap(INDEX_PATH,INDEX_UID).get(filePath);
     }
 
+    public String getUid(String filename) throws FileNotFoundException {
+        Scanner sc = new Scanner(new File(FILE_MAPPING_PATH));
+        while (sc.hasNextLine()) {
+            String[] s = sc.nextLine().split(" ");
+            if (s[INDEX_NAME].equals(filename))
+                return s[INDEX_UID];
+
+        }
+        return null;
+    }
+
     public void push(){
         if (username != null) {
             try {
@@ -300,6 +310,7 @@ public class Client {
         System.out.println("help - displays help message");
         System.out.println("pull - receives files from server");
         System.out.println("push - sends file to server");
+        System.out.println("give_perm - give read/write/both file access permission to a user");
         System.out.println("logout - exits client");
         System.out.println("exit - exits client");
     }
@@ -309,37 +320,102 @@ public class Client {
             System.err.println("Error: To pull files, you need to login first");
             return;
         }
+        String choice = ((System.console().readLine("Select which files you want to pull, separated by a blank space. 'all' for pulling every file: ")));
+
+
         Map<String,String> uidMap = getUidMap(INDEX_UID,INDEX_PATH);
         String passwd = new String((System.console()).readPassword("Enter a password: "));
-        PullRequest request = PullRequest
-                .newBuilder()
-                .setUsername(this.username)
-                .setPassword(passwd)
-                .build();
 
-        PullReply reply = blockingStub.pull(request);
-        if(!reply.getOk())
-            System.out.println("Wrong password!");
-        for(int i = 0; i < reply.getFilenamesCount(); i++){
-            System.out.println("Received file " + reply.getFilenames(i));
-            String uid = reply.getUids(i);
-            String filename = reply.getFilenames(i);
-            String owner = reply.getOwners(i);
-            String partId = reply.getPartIds(i);
-            byte [] file_data = reply.getFiles(i).toByteArray();
+        PullReply reply;
+        if (choice.equals("all")) {
+            PullAllRequest request = PullAllRequest
+                    .newBuilder()
+                    .setUsername(this.username)
+                    .setPassword(passwd)
+                    .build();
+            reply = blockingStub.pullAll(request);
+        }
+        else {
+            String[] fileNames = choice.split(" ");
+           ;
+            List<String> uids = new ArrayList<>();
+            for (String file : fileNames) {
 
-            //IF FILE EXISTS OVERWRITE IT
-            if(uidMap.containsKey(uid))
-                FileUtils.writeByteArrayToFile(new File(uidMap.get(uid)), file_data);
-            //ELSE CREATE IT
-            else{
-                FileUtils.writeByteArrayToFile(new File(PULLS_DIR + filename), file_data);
-                String text = PULLS_DIR + filename + " " + uid + " " + partId + " " + filename;
-                appendTextToFile(text,FILE_MAPPING_PATH);
+                if (getUid(file) != null)
+                    uids.add(getUid(file));
+                else
+                    System.err.println("Error: file " + file + " does not exist in the database. File ignored.");
             }
+            PullSelectedRequest request = PullSelectedRequest
+                    .newBuilder()
+                    .setUsername(this.username)
+                    .setPassword(passwd)
+                    .addAllUids(uids)
+                    .build();
+            reply = blockingStub.pullSelected(request);
+        }
 
+
+        if(!reply.getOk())
+            System.err.println("Wrong password!");
+        else {
+            for (int i = 0; i < reply.getFilenamesCount(); i++) {
+                System.out.println("Received file " + reply.getFilenames(i));
+                String uid = reply.getUids(i);
+                String filename = reply.getFilenames(i);
+                String owner = reply.getOwners(i);
+                String partId = reply.getPartIds(i);
+                byte[] file_data = reply.getFiles(i).toByteArray();
+
+                //IF FILE EXISTS OVERWRITE IT
+                if (uidMap.containsKey(uid))
+                    FileUtils.writeByteArrayToFile(new File(uidMap.get(uid)), file_data);
+                    //ELSE CREATE IT
+                else {
+                    FileUtils.writeByteArrayToFile(new File(PULLS_DIR + filename), file_data);
+                    String text = PULLS_DIR + filename + " " + uid + " " + partId + " " + filename;
+                    appendTextToFile(text, FILE_MAPPING_PATH);
+                }
+
+            }
         }
     }
+    public void givePermission(){
+        Console console = System.console();
+        String username = console.readLine("Enter the username to give permission: ");
+        String s = ((System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for write permission\n -> 'both' for read and write permission\n ")));
+        String filename = console.readLine("Enter the filename: ");
+        String uid = null;
+
+        try{
+            uid= getUid(filename);
+        }
+        catch (FileNotFoundException e){
+            e.printStackTrace();
+        }
+        //read/write permissions
+        GivePermissionRequest request = GivePermissionRequest
+                .newBuilder()
+                .setUsername(username)
+                .setUid(uid)
+                .setMode(s)
+                .build();
+        GivePermissionReply res = blockingStub.givePermission(request);
+        if (res.getOkMode()) {
+            if (res.getOkUsername()) {
+                if (res.getOkUid()) {
+                    switch (s) {
+                        case "both" -> System.out.println("Write/Read permission of file " + filename + " granted for user " + username);
+                        case "read" -> System.out.println("Read permission of file " + filename + " granted for user " + username);
+                        case "write" -> System.out.println("Write permission of file " + filename + " granted for user " + username);
+                    }
+                }
+            } else System.out.println("Username do not exist");
+        } else System.out.println("Wrong type of permission inserted");
+
+    }
+
+
 
     /**
      * Greet server. If provided, the first element of {@code args} is the name to use in the
@@ -368,6 +444,7 @@ public class Client {
                     case "register" -> client.register();
                     case "help" -> client.displayHelp();
                     case "pull" -> client.pull();
+                    case "give_perm" -> client.givePermission();
                     case "push" -> client.push();
                     case "logout" -> client.logout();
                     case "exit" -> running = false;

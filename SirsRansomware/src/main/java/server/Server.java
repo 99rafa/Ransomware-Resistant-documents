@@ -310,7 +310,7 @@ public class Server {
         }
 
         @Override
-        public void pull(PullRequest req, StreamObserver<PullReply> responseObserver){
+        public void pullAll(PullAllRequest req, StreamObserver<PullReply> responseObserver){
             if (!isCorrectPassword(req.getUsername(),req.getPassword())) {
                 responseObserver.onNext(PullReply.newBuilder().setOk(false).build());
                 responseObserver.onCompleted();
@@ -340,8 +340,59 @@ public class Server {
         }
 
         @Override
+        public void pullSelected(PullSelectedRequest req, StreamObserver<PullReply> responseObserver){
+            if (!isCorrectPassword(req.getUsername(),req.getPassword())) {
+                responseObserver.onNext(PullReply.newBuilder().setOk(false).build());
+                responseObserver.onCompleted();
+                return;
+            }
+            PullReply.Builder reply = PullReply.newBuilder().setOk(true);
+            List<File> readableFiles = this.fileRepository.getUserReadableFiles(req.getUsername());
+            for ( int i = 0; i < req.getUidsCount(); i++) {
+                for (File file : readableFiles) {
+                    if (req.getUids(i).equals(file.getUid())) {
+                        System.out.println("Sending file " + file.getName() + " to client " + req.getUsername());
+                        FileVersion mostRecentVersion = fileVersionRepository.getMostRecentVersion(file.getUid());
+                        byte[] file_bytes = new byte[0];
+                        try {
+                            file_bytes = Files.readAllBytes(
+                                    Paths.get(SIRS_DIR + "/src/assets/serverFiles/" + mostRecentVersion.getVersionUid()));
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        reply.addUids(file.getUid());
+                        reply.addFilenames(file.getName());
+                        reply.addOwners(file.getOwner());
+                        reply.addPartIds(file.getPartition());
+                        reply.addFiles(ByteString.copyFrom(
+                                file_bytes));
+                        break;
+                    }
+                }
+            }
+            responseObserver.onNext(reply.build());
+            responseObserver.onCompleted();
+        }
+
+        @Override
         public void sayHello(HelloRequest req, StreamObserver<HelloReply> responseObserver) {
             HelloReply reply = HelloReply.newBuilder().setMessage("Hello" + req.getName()).build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        }
+        @Override
+        public void givePermission(GivePermissionRequest req, StreamObserver<GivePermissionReply> responseObserver) {
+            GivePermissionReply reply = null;
+            if (req.getMode().matches("read|write|both")) {
+                if (usernameExists(req.getUsername())) {
+                    if (filenameExists(req.getUid())) {
+                        giveUserPermission(req.getUsername(), req.getUid(), req.getMode());
+                        reply = GivePermissionReply.newBuilder().setOkUsername(true).setOkUid(true).setOkMode(true).build();
+
+                    }
+                } else reply = GivePermissionReply.newBuilder().setOkUsername(false).setOkUid(false).setOkMode(true).build();
+            } else reply = GivePermissionReply.newBuilder().setOkUsername(false).setOkUid(false).setOkMode(false).build();
+
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
@@ -406,7 +457,15 @@ public class Server {
 
         private boolean usernameExists(String name) {
             User user = userRepository.getUserByUsername(name);
-            return user.getUsername() != null && user.getPassHash() != null;
+
+            return user.getUsername() != null && user.getPassHash() != null && user.getSalt() != null;
+        }
+        private boolean filenameExists(String uid){
+            File file = fileRepository.getFileByUID(uid);
+            return file.getUid()!= null && file.getName()!=null && file.getPartition()!=null && file.getOwner()!=null;
+        }
+        private void giveUserPermission(String username, String uid,String mode) {
+            userRepository.setUserPermissionFile(username, uid, mode);
         }
     }
 }

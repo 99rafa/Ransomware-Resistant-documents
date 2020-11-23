@@ -13,10 +13,10 @@ public class UserRepository extends Repository {
         super(c);
     }
 
+
     public byte[] getUserPassword(String username){
         byte[] userPassword = null;
         try {
-
             String sql = "SELECT password FROM Users WHERE username = ?";
             PreparedStatement statement = super.getConnection().prepareStatement(sql);
 
@@ -79,6 +79,57 @@ public class UserRepository extends Repository {
         return passIterations;
     }
 
+    public void setUserPermissionFile(String username, String uid,String mode) {
+        switch (mode) {
+            case "read" -> addToReadableFiles(username, uid);
+            case "write" -> addToEditableFiles(username, uid);
+            case "both" -> {
+                addToEditableFiles(username, uid);
+                addToReadableFiles(username, uid);
+            }
+            default -> System.out.println("It should not happen");
+        }
+    }
+    public void addToEditableFiles(String username, String uid){
+        try {
+
+            String sql = "INSERT INTO EditableFiles VALUES (?,?)";
+            PreparedStatement s = super.getConnection().prepareStatement(sql);
+
+            s.setString(1, username);
+            s.setString(2, uid);
+            s.executeUpdate();
+
+            super.getConnection().commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            //Rollback changes in case of failure
+            try {
+                super.getConnection().rollback();
+            } catch (SQLException ignored) {
+            }
+        }
+    }
+    public void addToReadableFiles(String username, String uid){
+        try {
+
+            String sql = "INSERT INTO ReadableFiles VALUES (?,?)";
+            PreparedStatement s = super.getConnection().prepareStatement(sql);
+
+            s.setString(1, username);
+            s.setString(2, uid);
+            s.executeUpdate();
+
+            super.getConnection().commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            //Rollback changes in case of failure
+            try {
+                super.getConnection().rollback();
+            } catch (SQLException ignored) {
+            }
+        }
+    }
     public User getUserByUsername(String username){
         User user = new User();
         List<String> readableFiles = new ArrayList<>();
@@ -87,7 +138,7 @@ public class UserRepository extends Repository {
         List<String> createdVersions = new ArrayList<>();
         try {
 
-            String sql = "SELECT username,password FROM Users WHERE username = ?";
+            String sql = "SELECT username,password,salt FROM Users WHERE username = ?";
             PreparedStatement statement = super.getConnection().prepareStatement(sql);
 
             //Set parameters
@@ -98,6 +149,7 @@ public class UserRepository extends Repository {
                 //Retrieve by column name
                 user.setUsername(username);
                 user.setPassHash(rs.getBytes("password"));
+                user.setSalt(rs.getBytes("salt"));
             }
 
             //Retrieve owned files
