@@ -272,6 +272,7 @@ public class Client {
                     System.out.println("Sending file to server");
                     PushReply res;
                     PushRequest req;
+                    generateSecureFile();
                     req = PushRequest
                             .newBuilder()
                             .setFile(
@@ -411,6 +412,10 @@ public class Client {
                 }
             } else System.out.println("Username do not exist");
         } else System.out.println("Wrong type of permission inserted");
+
+    }
+
+    public void generateSecureFile() {
 
     }
 

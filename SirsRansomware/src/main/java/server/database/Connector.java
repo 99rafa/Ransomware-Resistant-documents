@@ -16,8 +16,8 @@ public class Connector {
 
     private static final String DB_URL = "jdbc:mysql://localhost:3306/ransomdb";
 
-    private static final String USER = "afonso";
-    private static final String PASSWORD = "password";
+    private static final String USER = "rafael";
+    private static final String PASSWORD = "pass";
 
     public Connection connection;
 
@@ -38,7 +38,6 @@ public class Connector {
         FileVersion v1 = new FileVersion("1","123","Afonso", new Date());
         FileVersion v2 = new FileVersion("2","123","Afonso", new Date());
         FileVersion v3 = new FileVersion("3","123","Afonso", new Date());
-
 
         user.saveInDatabase(c);
         file.saveInDatabase(c);
