@@ -84,8 +84,7 @@ public class UserRepository extends Repository {
     public void setUserPermissionFile(String username, String uid, String mode) {
         switch (mode) {
             case "read" -> addToReadableFiles(username, uid);
-            case "write" -> addToEditableFiles(username, uid);
-            case "both" -> {
+            case "write" -> {
                 addToEditableFiles(username, uid);
                 addToReadableFiles(username, uid);
             }
