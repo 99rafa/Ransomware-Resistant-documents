@@ -310,7 +310,7 @@ public class Client {
         System.out.println("help - displays help message");
         System.out.println("pull - receives files from server");
         System.out.println("push - sends file to server");
-        System.out.println("give_perm - give read/write/both file access permission to a user");
+        System.out.println("give_perm - give read/write file access permission to a user");
         System.out.println("logout - exits client");
         System.out.println("exit - exits client");
     }
@@ -383,7 +383,7 @@ public class Client {
     public void givePermission(){
         Console console = System.console();
         String username = console.readLine("Enter the username to give permission: ");
-        String s = ((System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for write permission\n -> 'both' for read and write permission\n ")));
+        String s = ((System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n")));
         String filename = console.readLine("Enter the filename: ");
         String uid = null;
 
@@ -405,7 +405,6 @@ public class Client {
             if (res.getOkUsername()) {
                 if (res.getOkUid()) {
                     switch (s) {
-                        case "both" -> System.out.println("Write/Read permission of file " + filename + " granted for user " + username);
                         case "read" -> System.out.println("Read permission of file " + filename + " granted for user " + username);
                         case "write" -> System.out.println("Write permission of file " + filename + " granted for user " + username);
                     }

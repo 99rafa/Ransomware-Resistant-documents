@@ -383,7 +383,7 @@ public class Server {
         @Override
         public void givePermission(GivePermissionRequest req, StreamObserver<GivePermissionReply> responseObserver) {
             GivePermissionReply reply = null;
-            if (req.getMode().matches("read|write|both")) {
+            if (req.getMode().matches("read|write")) {
                 if (usernameExists(req.getUsername())) {
                     if (filenameExists(req.getUid())) {
                         giveUserPermission(req.getUsername(), req.getUid(), req.getMode());
