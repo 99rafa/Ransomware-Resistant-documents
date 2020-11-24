@@ -1,16 +1,8 @@
 package server.database;
 
-import server.domain.file.File;
-import server.domain.file.FileRepository;
-import server.domain.fileVersion.FileVersion;
-import server.domain.fileVersion.FileVersionRepository;
-import server.domain.user.User;
-import server.domain.user.UserRepository;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.Date;
 
 public class Connector {
 

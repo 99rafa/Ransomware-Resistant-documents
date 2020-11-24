@@ -16,7 +16,7 @@ public class FileRepository extends Repository {
         super(c);
     }
 
-    public boolean fileExists(String uid){
+    public boolean fileExists(String uid) {
         try {
             String sql = "SELECT uid FROM Files WHERE uid = ?";
             PreparedStatement statement = super.getConnection().prepareStatement(sql);
@@ -25,15 +25,15 @@ public class FileRepository extends Repository {
             statement.setString(1, uid);
 
             ResultSet rs = statement.executeQuery();
-            if(rs.next()) return true;
+            if (rs.next()) return true;
 
-        }catch (SQLException e){
+        } catch (SQLException e) {
             e.printStackTrace();
         }
         return false;
     }
 
-    public File getFileByUID(String uid){
+    public File getFileByUID(String uid) {
         File file = new File();
         List<String> versions = new ArrayList<>();
         try {
@@ -63,13 +63,13 @@ public class FileRepository extends Repository {
             }
             file.setVersions(versions);
 
-        }catch (SQLException e){
+        } catch (SQLException e) {
             e.printStackTrace();
         }
         return file;
     }
 
-    public List<File> getUserReadableFiles(String username){
+    public List<File> getUserReadableFiles(String username) {
         List<File> files = new ArrayList<>();
         try {
             String sql = "SELECT Files.uid,owner,name,part_id FROM Files,ReadableFiles WHERE Files.uid = ReadableFiles.uid AND username = ?";
@@ -88,13 +88,13 @@ public class FileRepository extends Repository {
                 files.add(file);
             }
 
-        }catch (SQLException e){
+        } catch (SQLException e) {
             e.printStackTrace();
         }
         return files;
     }
 
-    public List<File> getUserEditableFiles(String username){
+    public List<File> getUserEditableFiles(String username) {
         List<File> files = new ArrayList<>();
         try {
             String sql = "SELECT Files.uid,owner,name,part_id FROM Files,EditableFiles WHERE Files.uid = EditableFiles.uid AND username = ?";
@@ -113,7 +113,7 @@ public class FileRepository extends Repository {
                 files.add(file);
             }
 
-        }catch (SQLException e){
+        } catch (SQLException e) {
             e.printStackTrace();
         }
         return files;

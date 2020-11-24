@@ -1,5 +1,6 @@
 package client;
 
+import PBKDF2.PBKDF2Main;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
@@ -14,22 +15,24 @@ import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
 import pt.ulisboa.tecnico.sdis.zk.ZKRecord;
 import server.Server;
 
-import java.io.Console;
-import java.io.File;
-import java.io.IOException;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
+import javax.net.ssl.SSLException;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.net.ssl.SSLException;
 
 /**
  * A simple client that requests a greeting from the {@link Server} with TLS.
  */
 public class Client {
+    private final static int ITERATIONS = 10000;
     private static final int INDEX_PATH = 0;
     private static final int INDEX_UID = 1;
     private static final int INDEX_PART_ID = 2;
@@ -42,19 +45,7 @@ public class Client {
     private final ManagedChannel channel;
     private final ServerGrpc.ServerBlockingStub blockingStub;
     private String username = null;
-
-    private static SslContext buildSslContext(String trustCertCollectionFilePath,
-                                              String clientCertChainFilePath,
-                                              String clientPrivateKeyFilePath) throws SSLException {
-        SslContextBuilder builder = GrpcSslContexts.forClient();
-        if (trustCertCollectionFilePath != null) {
-            builder.trustManager(new File(trustCertCollectionFilePath));
-        }
-        if (clientCertChainFilePath != null && clientPrivateKeyFilePath != null) {
-            builder.keyManager(new File(clientCertChainFilePath), new File(clientPrivateKeyFilePath));
-        }
-        return builder.build();
-    }
+    private byte[] salt = null;
 
     /**
      * Construct client connecting to HelloWorld server at {@code host:port}.
@@ -65,7 +56,7 @@ public class Client {
 
         Random random = new Random();
         String path;
-        System.out.println( zooHost+ ":" + zooPort);
+        System.out.println(zooHost + ":" + zooPort);
         ZKNaming zkNaming = new ZKNaming(zooHost, zooPort);
         ArrayList<ZKRecord> recs = null;
         try {
@@ -91,6 +82,58 @@ public class Client {
         blockingStub = ServerGrpc.newBlockingStub(channel);
     }
 
+    private static SslContext buildSslContext(String trustCertCollectionFilePath,
+                                              String clientCertChainFilePath,
+                                              String clientPrivateKeyFilePath) throws SSLException {
+        SslContextBuilder builder = GrpcSslContexts.forClient();
+        if (trustCertCollectionFilePath != null) {
+            builder.trustManager(new File(trustCertCollectionFilePath));
+        }
+        if (clientCertChainFilePath != null && clientPrivateKeyFilePath != null) {
+            builder.keyManager(new File(clientCertChainFilePath), new File(clientPrivateKeyFilePath));
+        }
+        return builder.build();
+    }
+
+    /**
+     * Greet server. If provided, the first element of {@code args} is the name to use in the
+     * greeting.
+     */
+    public static void main(String[] args) throws Exception {
+        if (args.length != 5) {
+            System.out.println("USAGE: HelloWorldClientTls host port file_path [trustCertCollectionFilePath " +
+                    "[clientCertChainFilePath clientPrivateKeyFilePath]]\n  Note: clientCertChainFilePath and " +
+                    "clientPrivateKeyFilePath are only needed if mutual auth is desired.");
+            System.exit(0);
+        }
+
+        /* Use default CA. Only for real server certificates. */
+        Client client = new Client(args[0], args[1],
+                buildSslContext(args[2], args[3], args[4]));
+
+        try {
+            Scanner in = new Scanner(System.in);
+            boolean running = true;
+            while (running) {
+                String cmd = in.nextLine();
+                switch (cmd) {
+                    case "greet" -> client.greet(in.nextLine());
+                    case "login" -> client.login();
+                    case "register" -> client.register();
+                    case "help" -> client.displayHelp();
+                    case "pull" -> client.pull();
+                    case "give_perm" -> client.givePermission();
+                    case "push" -> client.push();
+                    case "logout" -> client.logout();
+                    case "exit" -> running = false;
+                    default -> System.out.println("Command not recognized");
+                }
+            }
+        } finally {
+            client.shutdown();
+        }
+    }
+
     public void shutdown() throws InterruptedException {
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }
@@ -106,15 +149,20 @@ public class Client {
         boolean match = false;
         String passwd = "";
 
-        while (! match) {
-            passwd = new String(console.readPassword("Enter a password: " ));
-            String confirmation = new String(console.readPassword("Confirm your password: " ));
+        while (!match) {
+            passwd = new String(console.readPassword("Enter a password: "));
+            String confirmation = new String(console.readPassword("Confirm your password: "));
             if (passwd.equals(confirmation))
                 match = true;
             else System.out.println("Password don't match. Try again");
         }
+        byte[] salt = PBKDF2Main.getNextSalt();
         System.out.println("Will try to register " + name + " ...");
-        RegisterRequest request = RegisterRequest.newBuilder().setUsername(name).setPassword(passwd).build();
+        RegisterRequest request = RegisterRequest.newBuilder()
+                .setUsername(name)
+                .setPassword(ByteString.copyFrom(generateSecurePassword(passwd,salt)))
+                .setSalt(ByteString.copyFrom(salt))
+                .build();
         RegisterReply response;
         try {
             response = blockingStub.register(request);
@@ -122,7 +170,7 @@ public class Client {
             logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
             return;
         }
-        logger.info("User registered successfully" );
+        logger.info("User registered successfully");
         System.out.println(response.getOk());
         //this.username = name;
     }
@@ -132,9 +180,16 @@ public class Client {
         Console console = System.console();
 
         while (tries < 3) {
+
             String name = console.readLine("Enter your username: ");
             String password = new String(console.readPassword("Enter your password: "));
-            LoginRequest request = LoginRequest.newBuilder().setUsername(name).setPassword(password).build();
+            //Save user salt
+            SaltRequest req = SaltRequest.newBuilder().setUsername(name).build();
+            byte[] salt = blockingStub.salt(req).getSalt().toByteArray();
+            LoginRequest request = LoginRequest.newBuilder()
+                    .setUsername(name)
+                    .setPassword(ByteString.copyFrom(generateSecurePassword(password, salt)))
+                    .build();
 
             LoginReply response;
 
@@ -147,14 +202,14 @@ public class Client {
             if (response.getOkUsername()) {
                 if (response.getOkPassword()) {
                     this.username = name;
+                    this.salt = salt;
                     System.out.println("Successful Authentication. Welcome " + name + "!");
                     break;
                 } else {
                     tries++;
                     System.err.println("Wrong password.Try again");
                 }
-            }
-            else{
+            } else {
                 System.err.println("Username is too long or does not exist. Try again");
             }
         }
@@ -168,6 +223,23 @@ public class Client {
     public void logout() {
 
         this.username = null;
+    }
+
+    private byte[] generateSecurePassword(String password, byte[] salt) {
+        byte[] key = null;
+        try {
+            char[] chars = password.toCharArray();
+            //rafa edit: this is just to demonstrate how to generate a PBKDF2 password-based kdf
+            // because the salt needs to be the same
+            //byte[] salt = PBKDF2Main.getNextSalt();
+
+            PBEKeySpec spec = new PBEKeySpec(chars, salt, Client.ITERATIONS, 256 * 8);
+            SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+            key = skf.generateSecret(spec).getEncoded();
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
+        }
+        return key;
     }
 
     /**
@@ -186,9 +258,8 @@ public class Client {
         System.out.println("Greeting: " + response.getMessage());
     }
 
-
-    public Map<String,String> getUidMap(int index1, int index2) throws FileNotFoundException {
-        Map<String,String> fileMapping = new TreeMap<>();
+    public Map<String, String> getUidMap(int index1, int index2) throws FileNotFoundException {
+        Map<String, String> fileMapping = new TreeMap<>();
         try {
             new FileOutputStream(FILE_MAPPING_PATH, true).close();
         } catch (IOException e) {
@@ -196,16 +267,16 @@ public class Client {
         }
         Scanner sc = new Scanner(new File(FILE_MAPPING_PATH));
 
-        while (sc.hasNextLine()){
+        while (sc.hasNextLine()) {
             String[] s = sc.nextLine().split(" ");
             String path = s[index1];
             String uid = s[index2];
-            fileMapping.put(path,uid);
+            fileMapping.put(path, uid);
         }
         return fileMapping;
     }
 
-    public void appendTextToFile(String text, String filePath){
+    public void appendTextToFile(String text, String filePath) {
         BufferedWriter writer = null;
         try {
             writer = new BufferedWriter(
@@ -218,15 +289,14 @@ public class Client {
     }
 
     public String generateFileUid(String filePath, String partId, String name) throws IOException {
-        if(!getUidMap(INDEX_PATH,INDEX_UID).containsKey(filePath)) {
+        if (!getUidMap(INDEX_PATH, INDEX_UID).containsKey(filePath)) {
             String uid = UUID.randomUUID().toString();
-            String textToAppend = filePath + " " + uid + " " + partId + " " + name +"\n";
+            String textToAppend = filePath + " " + uid + " " + partId + " " + name + "\n";
 
-            appendTextToFile(textToAppend,FILE_MAPPING_PATH);
+            appendTextToFile(textToAppend, FILE_MAPPING_PATH);
 
             return uid;
-        }
-        else return getUidMap(INDEX_PATH,INDEX_UID).get(filePath);
+        } else return getUidMap(INDEX_PATH, INDEX_UID).get(filePath);
     }
 
     public String getUid(String filename) throws FileNotFoundException {
@@ -240,13 +310,13 @@ public class Client {
         return null;
     }
 
-    public void push(){
+    public void push() {
         if (username != null) {
             try {
                 Scanner input = new Scanner(System.in);
                 System.out.print("File path: ");
                 String filePath = input.nextLine();
-                boolean isNew = !getUidMap(INDEX_PATH,INDEX_UID).containsKey(filePath);
+                boolean isNew = !getUidMap(INDEX_PATH, INDEX_UID).containsKey(filePath);
                 File f = new File(filePath);
                 if (!f.exists()) {
                     System.out.println("No such file");
@@ -263,8 +333,8 @@ public class Client {
                     System.out.print("Filename: ");
                     filename = input.nextLine();
                 } else
-                    filename = getUidMap(INDEX_PATH,INDEX_NAME).get(filePath);
-                String uid = generateFileUid(filePath,partId,filename);
+                    filename = getUidMap(INDEX_PATH, INDEX_NAME).get(filePath);
+                String uid = generateFileUid(filePath, partId, filename);
                 int tries = 0;
 
                 while (tries < 3) {
@@ -278,7 +348,7 @@ public class Client {
                                     ByteString.copyFrom(
                                             file_bytes))
                             .setUsername(this.username)
-                            .setPassword(passwd)
+                            .setPassword(ByteString.copyFrom(generateSecurePassword(passwd, this.salt)))
                             .setFileName(filename)
                             .setUid(uid)
                             .setPartId(partId)
@@ -299,11 +369,10 @@ public class Client {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
-        else System.err.println("Error: To push a file, you need to login first");
+        } else System.err.println("Error: To push a file, you need to login first");
     }
 
-    public void displayHelp(){
+    public void displayHelp() {
         System.out.println("greet - sends greet to server");
         System.out.println("login - logins on file server");
         System.out.println("register - registers on file server server");
@@ -316,14 +385,14 @@ public class Client {
     }
 
     public void pull() throws IOException {
-        if(username == null){
+        if (username == null) {
             System.err.println("Error: To pull files, you need to login first");
             return;
         }
         String choice = ((System.console().readLine("Select which files you want to pull, separated by a blank space. 'all' for pulling every file: ")));
 
 
-        Map<String,String> uidMap = getUidMap(INDEX_UID,INDEX_PATH);
+        Map<String, String> uidMap = getUidMap(INDEX_UID, INDEX_PATH);
         String passwd = new String((System.console()).readPassword("Enter a password: "));
 
         PullReply reply;
@@ -331,13 +400,11 @@ public class Client {
             PullAllRequest request = PullAllRequest
                     .newBuilder()
                     .setUsername(this.username)
-                    .setPassword(passwd)
+                    .setPassword(ByteString.copyFrom(generateSecurePassword(passwd, this.salt)))
                     .build();
             reply = blockingStub.pullAll(request);
-        }
-        else {
+        } else {
             String[] fileNames = choice.split(" ");
-           ;
             List<String> uids = new ArrayList<>();
             for (String file : fileNames) {
 
@@ -349,14 +416,14 @@ public class Client {
             PullSelectedRequest request = PullSelectedRequest
                     .newBuilder()
                     .setUsername(this.username)
-                    .setPassword(passwd)
+                    .setPassword(ByteString.copyFrom(generateSecurePassword(passwd, this.salt)))
                     .addAllUids(uids)
                     .build();
             reply = blockingStub.pullSelected(request);
         }
 
 
-        if(!reply.getOk())
+        if (!reply.getOk())
             System.err.println("Wrong password!");
         else {
             for (int i = 0; i < reply.getFilenamesCount(); i++) {
@@ -380,17 +447,17 @@ public class Client {
             }
         }
     }
-    public void givePermission(){
+
+    public void givePermission() {
         Console console = System.console();
         String username = console.readLine("Enter the username to give permission: ");
         String s = ((System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for write permission\n -> 'both' for read and write permission\n ")));
         String filename = console.readLine("Enter the filename: ");
         String uid = null;
 
-        try{
-            uid= getUid(filename);
-        }
-        catch (FileNotFoundException e){
+        try {
+            uid = getUid(filename);
+        } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
         //read/write permissions
@@ -414,48 +481,5 @@ public class Client {
         } else System.out.println("Wrong type of permission inserted");
 
     }
-
-
-
-    /**
-     * Greet server. If provided, the first element of {@code args} is the name to use in the
-     * greeting.
-     */
-    public static void main(String[] args) throws Exception {
-        if (args.length != 5) {
-            System.out.println("USAGE: HelloWorldClientTls host port file_path [trustCertCollectionFilePath " +
-                    "[clientCertChainFilePath clientPrivateKeyFilePath]]\n  Note: clientCertChainFilePath and " +
-                    "clientPrivateKeyFilePath are only needed if mutual auth is desired.");
-            System.exit(0);
-        }
-
-        /* Use default CA. Only for real server certificates. */
-        Client client = new Client(args[0], args[1],
-                buildSslContext(args[2], args[3], args[4]));
-
-        try {
-            Scanner in = new Scanner(System.in);
-            boolean running = true;
-            while(running){
-                String cmd = in.nextLine();
-                switch (cmd) {
-                    case "greet" -> client.greet(in.nextLine());
-                    case "login" -> client.login();
-                    case "register" -> client.register();
-                    case "help" -> client.displayHelp();
-                    case "pull" -> client.pull();
-                    case "give_perm" -> client.givePermission();
-                    case "push" -> client.push();
-                    case "logout" -> client.logout();
-                    case "exit" -> running = false;
-                    default -> System.out.println("Command not recognized");
-                }
-            }
-        } finally {
-            client.shutdown();
-        }
-    }
-
-    static class ClientImp extends ClientGrpc.ClientImplBase {}
 
 }

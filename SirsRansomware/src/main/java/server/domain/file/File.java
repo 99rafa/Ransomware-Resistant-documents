@@ -72,7 +72,7 @@ public class File implements DatabaseObject {
         this.partition = partition;
     }
 
-    public void addVersion(String versionId){
+    public void addVersion(String versionId) {
         this.versions.add(versionId);
     }
 
@@ -84,24 +84,24 @@ public class File implements DatabaseObject {
             PreparedStatement s = connector.connection.prepareStatement(sql);
 
             //Set parameters
-            s.setString(1,this.uid);
-            s.setString(2,this.owner);
-            s.setString(3,this.name);
-            s.setString(4,this.partition);
+            s.setString(1, this.uid);
+            s.setString(2, this.owner);
+            s.setString(3, this.name);
+            s.setString(4, this.partition);
             s.executeUpdate();
 
             sql = "INSERT INTO EditableFiles VALUES (?,?)";
             s = connector.connection.prepareStatement(sql);
 
-            s.setString(1,this.owner);
-            s.setString(2,this.uid);
+            s.setString(1, this.owner);
+            s.setString(2, this.uid);
             s.executeUpdate();
 
             sql = "INSERT INTO ReadableFiles VALUES (?,?)";
             s = connector.connection.prepareStatement(sql);
 
-            s.setString(1,this.owner);
-            s.setString(2,this.uid);
+            s.setString(1, this.owner);
+            s.setString(2, this.uid);
             s.executeUpdate();
 
             connector.connection.commit();
@@ -110,7 +110,8 @@ public class File implements DatabaseObject {
             //Rollback changes in case of failure
             try {
                 connector.connection.rollback();
-            } catch (SQLException ignored) { }
+            } catch (SQLException ignored) {
+            }
         }
     }
 

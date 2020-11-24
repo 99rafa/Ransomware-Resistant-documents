@@ -3,7 +3,7 @@ package server.database;
 import java.sql.Connection;
 
 public class Repository {
-    private Connection connection;
+    private final Connection connection;
 
     public Repository(Connection c) {
         this.connection = c;

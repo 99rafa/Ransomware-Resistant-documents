@@ -2,9 +2,11 @@ package server.domain.user;
 
 import server.database.Repository;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class UserRepository extends Repository {
@@ -14,7 +16,7 @@ public class UserRepository extends Repository {
     }
 
 
-    public byte[] getUserPassword(String username){
+    public byte[] getUserPassword(String username) {
         byte[] userPassword = null;
         try {
             String sql = "SELECT password FROM Users WHERE username = ?";
@@ -26,7 +28,7 @@ public class UserRepository extends Repository {
 
             ResultSet rs = statement.executeQuery();
 
-            if (rs.next()){
+            if (rs.next()) {
                 userPassword = rs.getBytes("password");
             }
         } catch (SQLException e) {
@@ -35,7 +37,7 @@ public class UserRepository extends Repository {
         return userPassword;
     }
 
-    public byte[] getPasswordSalt(String username){
+    public byte[] getPasswordSalt(String username) {
         byte[] passSalt = null;
         try {
 
@@ -48,7 +50,7 @@ public class UserRepository extends Repository {
 
             ResultSet rs = statement.executeQuery();
 
-            if (rs.next()){
+            if (rs.next()) {
                 passSalt = rs.getBytes("salt");
             }
         } catch (SQLException e) {
@@ -57,7 +59,7 @@ public class UserRepository extends Repository {
         return passSalt;
     }
 
-    public int getPasswordIterations(String username){
+    public int getPasswordIterations(String username) {
         int passIterations = 0;
         try {
 
@@ -70,7 +72,7 @@ public class UserRepository extends Repository {
 
             ResultSet rs = statement.executeQuery();
 
-            if (rs.next()){
+            if (rs.next()) {
                 passIterations = rs.getInt("iterations");
             }
         } catch (SQLException e) {
@@ -79,7 +81,7 @@ public class UserRepository extends Repository {
         return passIterations;
     }
 
-    public void setUserPermissionFile(String username, String uid,String mode) {
+    public void setUserPermissionFile(String username, String uid, String mode) {
         switch (mode) {
             case "read" -> addToReadableFiles(username, uid);
             case "write" -> addToEditableFiles(username, uid);
@@ -90,7 +92,8 @@ public class UserRepository extends Repository {
             default -> System.out.println("It should not happen");
         }
     }
-    public void addToEditableFiles(String username, String uid){
+
+    public void addToEditableFiles(String username, String uid) {
         try {
 
             String sql = "INSERT INTO EditableFiles VALUES (?,?)";
@@ -110,7 +113,8 @@ public class UserRepository extends Repository {
             }
         }
     }
-    public void addToReadableFiles(String username, String uid){
+
+    public void addToReadableFiles(String username, String uid) {
         try {
 
             String sql = "INSERT INTO ReadableFiles VALUES (?,?)";
@@ -130,7 +134,8 @@ public class UserRepository extends Repository {
             }
         }
     }
-    public User getUserByUsername(String username){
+
+    public User getUserByUsername(String username) {
         User user = new User();
         List<String> readableFiles = new ArrayList<>();
         List<String> editableFiles = new ArrayList<>();
@@ -142,10 +147,10 @@ public class UserRepository extends Repository {
             PreparedStatement statement = super.getConnection().prepareStatement(sql);
 
             //Set parameters
-            statement.setString(1,username);
+            statement.setString(1, username);
 
             ResultSet rs = statement.executeQuery();
-            while(rs.next()){
+            while (rs.next()) {
                 //Retrieve by column name
                 user.setUsername(username);
                 user.setPassHash(rs.getBytes("password"));
@@ -157,11 +162,11 @@ public class UserRepository extends Repository {
             statement = super.getConnection().prepareStatement(sql);
 
             //Set parameters
-            statement.setString(1,username);
+            statement.setString(1, username);
 
             rs = statement.executeQuery();
 
-            while(rs.next()) ownedFiles.add(rs.getString("uid"));
+            while (rs.next()) ownedFiles.add(rs.getString("uid"));
 
             user.setOwnedFiles(ownedFiles);
 
@@ -171,11 +176,11 @@ public class UserRepository extends Repository {
             statement = super.getConnection().prepareStatement(sql);
 
             //Set parameters
-            statement.setString(1,username);
+            statement.setString(1, username);
 
             rs = statement.executeQuery();
 
-            while(rs.next()) editableFiles.add(rs.getString("uid"));
+            while (rs.next()) editableFiles.add(rs.getString("uid"));
 
             user.setEditableFiles(editableFiles);
 
@@ -184,11 +189,11 @@ public class UserRepository extends Repository {
             statement = super.getConnection().prepareStatement(sql);
 
             //Set parameters
-            statement.setString(1,username);
+            statement.setString(1, username);
 
             rs = statement.executeQuery();
 
-            while(rs.next()) readableFiles.add(rs.getString("uid"));
+            while (rs.next()) readableFiles.add(rs.getString("uid"));
 
             user.setReadableFiles(readableFiles);
 
@@ -197,11 +202,11 @@ public class UserRepository extends Repository {
             statement = super.getConnection().prepareStatement(sql);
 
             //Set parameters
-            statement.setString(1,username);
+            statement.setString(1, username);
 
             rs = statement.executeQuery();
 
-            while(rs.next()) createdVersions.add(rs.getString("version_uid"));
+            while (rs.next()) createdVersions.add(rs.getString("version_uid"));
 
             user.setCreatedVersions(createdVersions);
 
