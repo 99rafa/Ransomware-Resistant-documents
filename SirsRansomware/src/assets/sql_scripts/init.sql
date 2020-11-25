@@ -9,7 +9,8 @@ CREATE TABLE Users
     username   VARCHAR(15) PRIMARY KEY,
     password   VARBINARY(1024) NOT NULL,
     salt       VARBINARY(64)   NOT NULL,
-    iterations INT             NOT NULL
+    iterations INT             NOT NULL,
+    public_key VARBINARY(2048) NOT NULL
 );
 
 CREATE TABLE Files

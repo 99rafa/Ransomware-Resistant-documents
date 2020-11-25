@@ -207,6 +207,7 @@ public class Server {
             e.printStackTrace();
         }
 
+        assert recs != null;
         return recs.stream().map(ZKRecord::getPath).collect(Collectors.toList());
     }
 
@@ -220,6 +221,7 @@ public class Server {
         } catch (ZKNamingException e) {
             e.printStackTrace();
         }
+        assert record != null;
         this.channel = NettyChannelBuilder.forTarget(record.getURI())
                 .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
                 .sslContext(buildSslContext(this.trustCertCollectionFilePath, this.certChainFilePath, this.privateKeyFilePath))
@@ -253,7 +255,7 @@ public class Server {
 
     private void start() throws IOException {
         server = NettyServerBuilder.forAddress(new InetSocketAddress(host, Integer.parseInt(port)))
-                .addService(new ServerImp())
+                .addService(new ServerImp(this.keyStore,this.trustCertStore,this.trustStore))
                 .sslContext(getSslContextBuilder().build())
                 .build()
                 .start();
@@ -340,17 +342,25 @@ public class Server {
 
     static class ServerImp extends ServerGrpc.ServerImplBase {
         private final static int ITERATIONS = 10000;
+        private KeyStore keyStore;
+        private KeyStore trustCertStore;
+        private KeyStore trustStore;
         Connector c;
         UserRepository userRepository;
         FileRepository fileRepository;
         FileVersionRepository fileVersionRepository;
 
-        public ServerImp() {
+        public ServerImp(KeyStore keyStore,
+                KeyStore trustCertStore,
+                KeyStore trustStore) {
             try {
                 c = new Connector();
                 userRepository = new UserRepository(c.getConnection());
                 fileRepository = new FileRepository(c.getConnection());
                 fileVersionRepository = new FileVersionRepository(c.getConnection());
+                this.keyStore = keyStore;
+                this.trustCertStore = trustCertStore;
+                this.trustStore = trustStore;
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -373,7 +383,25 @@ public class Server {
             else if (usernameExists(req.getUsername()))
                 reply = RegisterReply.newBuilder().setOk("Duplicate user with username " + req.getUsername()).build();
             else {
-                registerUser(req.getUsername(), req.getPassword().toByteArray(), req.getSalt().toByteArray());
+                // generate RSA Keys
+                KeyPair keyPair = generateUserKeyPair();
+                PrivateKey privateKey = keyPair.getPrivate();
+                PublicKey publicKey = keyPair.getPublic();
+
+                // Get the bytes of the public and private key
+                byte[] privateKeyBytes = privateKey.getEncoded();
+                byte[] publicKeyBytes = publicKey.getEncoded();
+
+                //Save private key in keystore
+                KeyStore ks = null;
+                try {
+
+                    this.keyStore.setKeyEntry(req.getUsername() + "-privKey", privateKeyBytes, null);
+                } catch (KeyStoreException e) {
+                    e.printStackTrace();
+                }
+
+                registerUser(req.getUsername(), req.getPassword().toByteArray(), req.getSalt().toByteArray(),publicKeyBytes);
                 reply = RegisterReply.newBuilder().setOk("User " + req.getUsername() + " registered successfully").build();
             }
             responseObserver.onNext(reply);
@@ -411,7 +439,7 @@ public class Server {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                //REGISTAR FILE
+                //REGISTER FILE
                 if (!this.fileRepository.fileExists(req.getUid())) {
                     registerFile(req.getUid(), req.getFileName(), req.getUsername(), req.getPartId());
                 }
@@ -521,17 +549,8 @@ public class Server {
 
         }
 
-        private void registerUser(String name, byte[] password, byte[] salt) {
-            User user = new User(name, password, salt, ITERATIONS);
-            // generate RSA Keys
-            KeyPair keyPair = generateUserKeyPair();
-            PrivateKey privateKey = keyPair.getPrivate();
-            PublicKey publicKey = keyPair.getPublic();
-
-            // Get the bytes of the public and private keys
-            byte[] privateKeyBytes = privateKey.getEncoded();
-            byte[] publicKeyBytes = publicKey.getEncoded();
-
+        private void registerUser(String name, byte[] password, byte[] salt,byte[] public_key) {
+            User user = new User(name, password, salt, ITERATIONS, public_key);
             user.saveInDatabase(this.c);
         }
 

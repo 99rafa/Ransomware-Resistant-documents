@@ -23,6 +23,8 @@ public class User implements DatabaseObject {
 
     private int iterations;
 
+    private byte[] public_key;
+
     //MTM
     private List<String> editableFiles = new ArrayList<>();
     //MTM
@@ -32,15 +34,24 @@ public class User implements DatabaseObject {
     //OTM
     private List<String> createdVersions = new ArrayList<>();
 
-    public User(String username, byte[] passHash, byte[] salt, int iterations) {
+    public User(String username, byte[] passHash, byte[] salt, int iterations, byte[] public_key) {
         this.username = username;
         this.passHash = passHash;
         this.salt = salt;
         this.iterations = iterations;
+        this.public_key = public_key;
     }
 
     public User() {
 
+    }
+
+    public byte[] getPublic_key() {
+        return public_key;
+    }
+
+    public void setPublic_key(byte[] public_key) {
+        this.public_key = public_key;
     }
 
     public List<String> getCreatedVersions() {
@@ -123,7 +134,7 @@ public class User implements DatabaseObject {
     public void saveInDatabase(Connector connector) {
         try {
             //Insert user
-            String sql = "INSERT INTO Users VALUES (?,?,?,?)";
+            String sql = "INSERT INTO Users VALUES (?,?,?,?,?)";
             PreparedStatement s = connector.connection.prepareStatement(sql);
 
             //Set parameters
@@ -131,6 +142,7 @@ public class User implements DatabaseObject {
             s.setBinaryStream(2, new ByteArrayInputStream(this.passHash));
             s.setBinaryStream(3, new ByteArrayInputStream(this.salt));
             s.setInt(4, this.iterations);
+            s.setBinaryStream(5,new ByteArrayInputStream(this.public_key));
             s.executeUpdate();
 
             //Commit transaction

@@ -179,7 +179,7 @@ public class UserRepository extends Repository {
         List<String> createdVersions = new ArrayList<>();
         try {
 
-            String sql = "SELECT username,password,salt FROM Users WHERE username = ?";
+            String sql = "SELECT username,password,salt,public_key FROM Users WHERE username = ?";
             PreparedStatement statement = super.getConnection().prepareStatement(sql);
 
             //Set parameters
@@ -191,6 +191,7 @@ public class UserRepository extends Repository {
                 user.setUsername(username);
                 user.setPassHash(rs.getBytes("password"));
                 user.setSalt(rs.getBytes("salt"));
+                user.setPublic_key(rs.getBytes("public_key"));
             }
 
             //Retrieve owned files
