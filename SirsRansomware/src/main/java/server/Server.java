@@ -126,6 +126,7 @@ public class Server {
             e.printStackTrace();
         }
 
+        assert recs != null;
         return recs.stream().map(ZKRecord::getPath).collect(Collectors.toList());
     }
 
@@ -139,6 +140,7 @@ public class Server {
         } catch (ZKNamingException e) {
             e.printStackTrace();
         }
+        assert record != null;
         this.channel = NettyChannelBuilder.forTarget(record.getURI())
                 .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
                 .sslContext(buildSslContext(this.trustCertCollectionFilePath, this.certChainFilePath, this.privateKeyFilePath))
@@ -298,7 +300,7 @@ public class Server {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                //REGISTAR FILE
+                //REGISTER FILE
                 if (!this.fileRepository.fileExists(req.getUid())) {
                     registerFile(req.getUid(), req.getFileName(), req.getUsername(), req.getPartId());
                 }

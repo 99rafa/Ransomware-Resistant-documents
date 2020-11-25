@@ -66,6 +66,7 @@ public class Client {
         }
 
 
+        assert recs != null;
         path = recs.get(random.nextInt(recs.size())).getPath();
         ZKRecord record = null;
         try {
@@ -75,6 +76,7 @@ public class Client {
         }
 
 
+        assert record != null;
         this.channel = NettyChannelBuilder.forTarget(record.getURI())
                 .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
                 .sslContext(sslContext)
@@ -277,8 +279,8 @@ public class Client {
     }
 
     public void appendTextToFile(String text, String filePath) {
-        BufferedWriter writer = null;
         try {
+            BufferedWriter writer;
             writer = new BufferedWriter(
                     new FileWriter(filePath, true));
             writer.write(text);
@@ -328,7 +330,7 @@ public class Client {
                 //TODO PICK RANDOM PARTITION
                 //TODO STATIC FOR NOW
                 String partId = "1";
-                String filename = "";
+                String filename;
                 if (isNew) {
                     System.out.print("Filename: ");
                     filename = input.nextLine();
