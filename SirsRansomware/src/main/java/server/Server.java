@@ -24,6 +24,8 @@ import server.domain.fileVersion.FileVersionRepository;
 import server.domain.user.User;
 import server.domain.user.UserRepository;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLException;
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -170,12 +172,19 @@ public class Server {
         }
         try {
             assert ks != null;
-            ks.load(new FileInputStream("src/assets/keyStores/truststore.p12"), "w?#Sf@ZAL*tY7fVx".toCharArray());
-            CertificateFactory fact = CertificateFactory.getInstance("X.509");
-            FileInputStream is = new FileInputStream(args[5]);
-            X509Certificate cer = (X509Certificate) fact.generateCertificate(is);
-            ks.setCertificateEntry("server-ca-cert",cer);
-            ks.store(new FileOutputStream("src/assets/keyStores/truststore.p12"), "w?#Sf@ZAL*tY7fVx".toCharArray());
+            ks.load(new FileInputStream("src/assets/keyStores/privateKeyServerKeyStore.p12"), "5Xa)^WU_(rw$<}p%".toCharArray());
+            KeyStore.SecretKeyEntry secret = null;
+            try {
+                secret =new KeyStore.SecretKeyEntry(readKey("src/assets/certs/secret.key"));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            KeyStore.ProtectionParameter password
+                    = new KeyStore.PasswordProtection("".toCharArray());
+            assert secret != null;
+            ks.setEntry("db-encryption-secret", secret, password);
+
+            ks.store(new FileOutputStream("src/assets/keyStores/privateKeyServerKeyStore.p12"), "5Xa)^WU_(rw$<}p%".toCharArray());
         } catch (NoSuchAlgorithmException | CertificateException | KeyStoreException e) {
             e.printStackTrace();
         }*/
@@ -195,6 +204,20 @@ public class Server {
         server.blockUntilShutdown();
 
 
+    }
+
+    public static SecretKey readKey(String secretKeyPath) throws Exception {
+        byte[] encoded = readFile(secretKeyPath);
+        SecretKeySpec keySpec = new SecretKeySpec(encoded, "AES");
+        return keySpec;
+    }
+
+    private static byte[] readFile(String path) throws FileNotFoundException, IOException {
+        FileInputStream fis = new FileInputStream(path);
+        byte[] content = new byte[fis.available()];
+        fis.read(content);
+        fis.close();
+        return content;
     }
 
     public List<String> getZooPaths(String zooPath) {
@@ -388,18 +411,7 @@ public class Server {
                 PrivateKey privateKey = keyPair.getPrivate();
                 PublicKey publicKey = keyPair.getPublic();
 
-                // Get the bytes of the public and private key
-                byte[] privateKeyBytes = privateKey.getEncoded();
                 byte[] publicKeyBytes = publicKey.getEncoded();
-
-                //Save private key in keystore
-                KeyStore ks = null;
-                try {
-
-                    this.keyStore.setKeyEntry(req.getUsername() + "-privKey", privateKeyBytes, null);
-                } catch (KeyStoreException e) {
-                    e.printStackTrace();
-                }
 
                 registerUser(req.getUsername(), req.getPassword().toByteArray(), req.getSalt().toByteArray(),publicKeyBytes);
                 reply = RegisterReply.newBuilder().setOk("User " + req.getUsername() + " registered successfully").build();
@@ -597,5 +609,7 @@ public class Server {
             }
             return keyPair;
         }
+
+
     }
 }
