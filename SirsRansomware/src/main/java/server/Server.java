@@ -255,7 +255,7 @@ public class Server {
 
     private void start() throws IOException {
         server = NettyServerBuilder.forAddress(new InetSocketAddress(host, Integer.parseInt(port)))
-                .addService(new ServerImp())
+                .addService(new ServerImp(this.keyStore,this.trustCertStore,this.trustStore))
                 .sslContext(getSslContextBuilder().build())
                 .build()
                 .start();
@@ -342,17 +342,25 @@ public class Server {
 
     static class ServerImp extends ServerGrpc.ServerImplBase {
         private final static int ITERATIONS = 10000;
+        private KeyStore keyStore;
+        private KeyStore trustCertStore;
+        private KeyStore trustStore;
         Connector c;
         UserRepository userRepository;
         FileRepository fileRepository;
         FileVersionRepository fileVersionRepository;
 
-        public ServerImp() {
+        public ServerImp(KeyStore keyStore,
+                KeyStore trustCertStore,
+                KeyStore trustStore) {
             try {
                 c = new Connector();
                 userRepository = new UserRepository(c.getConnection());
                 fileRepository = new FileRepository(c.getConnection());
                 fileVersionRepository = new FileVersionRepository(c.getConnection());
+                this.keyStore = keyStore;
+                this.trustCertStore = trustCertStore;
+                this.trustStore = trustStore;
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -380,16 +388,16 @@ public class Server {
                 PrivateKey privateKey = keyPair.getPrivate();
                 PublicKey publicKey = keyPair.getPublic();
 
-                // Get the bytes of the public
+                // Get the bytes of the public and private key
+                byte[] privateKeyBytes = privateKey.getEncoded();
                 byte[] publicKeyBytes = publicKey.getEncoded();
 
                 //Save private key in keystore
                 KeyStore ks = null;
                 try {
-                    ks = KeyStore.getInstance("JKS");
-                    ks.load(new FileInputStream("newKeyStoreFileName.jks"),);
-                    ks.setKeyEntry(req.getUsername() + "-privKey", privateKey, pwdArray);
-                } catch (IOException | NoSuchAlgorithmException | CertificateException | KeyStoreException e) {
+
+                    this.keyStore.setKeyEntry(req.getUsername() + "-privKey", privateKeyBytes, null);
+                } catch (KeyStoreException e) {
                     e.printStackTrace();
                 }
 
