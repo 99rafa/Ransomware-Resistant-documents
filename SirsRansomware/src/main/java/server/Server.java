@@ -422,11 +422,6 @@ public class Server {
 
         private void registerUser(String name, byte[] password, byte[] salt) {
             User user = new User(name, password, salt, ITERATIONS);
-            user.saveInDatabase(this.c);
-        }
-
-        private void registerFile(String uid, String filename, String owner, String partId) {
-
             // generate RSA Keys
             KeyPair keyPair = generateUserKeyPair();
             PrivateKey privateKey = keyPair.getPrivate();
@@ -436,6 +431,10 @@ public class Server {
             byte[] privateKeyBytes = privateKey.getEncoded();
             byte[] publicKeyBytes = publicKey.getEncoded();
 
+            user.saveInDatabase(this.c);
+        }
+
+        private void registerFile(String uid, String filename, String owner, String partId) {
 
             server.domain.file.File file = new server.domain.file.File(uid, owner, filename, partId);
             file.saveInDatabase(this.c);
