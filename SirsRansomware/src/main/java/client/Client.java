@@ -21,7 +21,7 @@ import javax.net.ssl.SSLException;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.NoSuchAlgorithmException;
+import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -103,9 +103,8 @@ public class Client {
      */
     public static void main(String[] args) throws Exception {
         if (args.length != 5) {
-            System.out.println("USAGE: HelloWorldClientTls host port file_path [trustCertCollectionFilePath " +
-                    "[clientCertChainFilePath clientPrivateKeyFilePath]]\n  Note: clientCertChainFilePath and " +
-                    "clientPrivateKeyFilePath are only needed if mutual auth is desired.");
+            System.out.println("USAGE: host port trustCertCollectionFilePath " +
+                    "clientCertChainFilePath clientPrivateKeyFilePath");
             System.exit(0);
         }
 
@@ -160,6 +159,8 @@ public class Client {
         }
         byte[] salt = PBKDF2Main.getNextSalt();
         System.out.println("Will try to register " + name + " ...");
+
+
         RegisterRequest request = RegisterRequest.newBuilder()
                 .setUsername(name)
                 .setPassword(ByteString.copyFrom(generateSecurePassword(passwd,salt)))
@@ -176,6 +177,8 @@ public class Client {
         System.out.println(response.getOk());
         //this.username = name;
     }
+
+
 
     public void login() {
         int tries = 0;
@@ -344,6 +347,7 @@ public class Client {
                     System.out.println("Sending file to server");
                     PushReply res;
                     PushRequest req;
+                    generateSecureFile();
                     req = PushRequest
                             .newBuilder()
                             .setFile(
@@ -480,6 +484,10 @@ public class Client {
                 }
             } else System.out.println("Username do not exist");
         } else System.out.println("Wrong type of permission inserted");
+
+    }
+
+    public void generateSecureFile() {
 
     }
 

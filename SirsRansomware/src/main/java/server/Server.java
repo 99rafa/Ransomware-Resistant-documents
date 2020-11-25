@@ -25,10 +25,19 @@ import server.domain.user.User;
 import server.domain.user.UserRepository;
 
 import javax.net.ssl.SSLException;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.*;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.logging.Level;
@@ -113,7 +122,10 @@ public class Server {
                 args[7]);
         server.start();
         server.greet("Server");
+
+
         server.blockUntilShutdown();
+
     }
 
     public List<String> getZooPaths(String zooPath) {
@@ -416,8 +428,24 @@ public class Server {
         }
 
         private void registerFile(String uid, String filename, String owner, String partId) {
+
+            // generate RSA Keys
+            KeyPair keyPair = generateUserKeyPair();
+            PrivateKey privateKey = keyPair.getPrivate();
+            PublicKey publicKey = keyPair.getPublic();
+
+            // Get the bytes of the public and private keys
+            byte[] privateKeyBytes = privateKey.getEncoded();
+            byte[] publicKeyBytes = publicKey.getEncoded();
+
+
             server.domain.file.File file = new server.domain.file.File(uid, owner, filename, partId);
             file.saveInDatabase(this.c);
+
+
+
+
+
         }
 
         private void registerFileVersion(String versionId, String fileId, String creator) {
@@ -438,6 +466,20 @@ public class Server {
 
         private void giveUserPermission(String username, String uid, String mode) {
             userRepository.setUserPermissionFile(username, uid, mode);
+        }
+
+        private KeyPair generateUserKeyPair() {
+            KeyPair keyPair = null;
+            try {
+                KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+                SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+                keyGen.initialize(2048, random);
+                keyPair = keyGen.genKeyPair();
+
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            }
+            return keyPair;
         }
     }
 }
