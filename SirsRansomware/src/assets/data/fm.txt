@@ -1,0 +1,1 @@
+/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/certs/server1.key a94d3058-a647-4a57-b706-42f231d90e50 1 key

@@ -7,7 +7,6 @@ import server.database.DatabaseObject;
 import java.io.ByteArrayInputStream;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -33,7 +32,7 @@ public class User implements DatabaseObject {
     //OTM
     private List<String> createdVersions = new ArrayList<>();
 
-    public User(String username, byte[] passHash , byte[] salt, int iterations) {
+    public User(String username, byte[] passHash, byte[] salt, int iterations) {
         this.username = username;
         this.passHash = passHash;
         this.salt = salt;
@@ -50,18 +49,6 @@ public class User implements DatabaseObject {
 
     public void setCreatedVersions(List<String> createdVersions) {
         this.createdVersions = createdVersions;
-    }
-
-    public void setEditableFiles(List<String> editableFiles) {
-        this.editableFiles = editableFiles;
-    }
-
-    public void setReadableFiles(List<String> readableFiles) {
-        this.readableFiles = readableFiles;
-    }
-
-    public void setOwnedFiles(List<String> ownedFiles) {
-        this.ownedFiles = ownedFiles;
     }
 
     public String getUsername() {
@@ -84,8 +71,16 @@ public class User implements DatabaseObject {
         return editableFiles;
     }
 
+    public void setEditableFiles(List<String> editableFiles) {
+        this.editableFiles = editableFiles;
+    }
+
     public List<String> getReadableFiles() {
         return readableFiles;
+    }
+
+    public void setReadableFiles(List<String> readableFiles) {
+        this.readableFiles = readableFiles;
     }
 
     public byte[] getSalt() {
@@ -108,14 +103,19 @@ public class User implements DatabaseObject {
         return ownedFiles;
     }
 
+    public void setOwnedFiles(List<String> ownedFiles) {
+        this.ownedFiles = ownedFiles;
+    }
 
-    public void addEditableFile(String file){
+    public void addEditableFile(String file) {
         this.editableFiles.add(file);
     }
-    public void addReadableFile(String file){
+
+    public void addReadableFile(String file) {
         this.readableFiles.add(file);
     }
-    public void addOwnedFile(String file){
+
+    public void addOwnedFile(String file) {
         this.ownedFiles.add(file);
     }
 
@@ -127,21 +127,21 @@ public class User implements DatabaseObject {
             PreparedStatement s = connector.connection.prepareStatement(sql);
 
             //Set parameters
-            s.setString(1,this.username);
-            s.setBinaryStream(2,new ByteArrayInputStream(this.passHash));
+            s.setString(1, this.username);
+            s.setBinaryStream(2, new ByteArrayInputStream(this.passHash));
             s.setBinaryStream(3, new ByteArrayInputStream(this.salt));
             s.setInt(4, this.iterations);
             s.executeUpdate();
 
             //Commit transaction
             connector.connection.commit();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
             //Rollback changes in case of failure
             try {
                 connector.connection.rollback();
-            } catch (SQLException ignored) { }
+            } catch (SQLException ignored) {
+            }
         }
     }
 

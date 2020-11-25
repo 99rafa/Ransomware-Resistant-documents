@@ -75,10 +75,10 @@ public class FileVersion implements DatabaseObject {
             PreparedStatement s = connector.connection.prepareStatement(sql);
 
             //Set parameters
-            s.setString(1,this.versionUid);
-            s.setString(2,this.fileUid);
-            s.setString(3,this.creator);
-            s.setTimestamp(4,new Timestamp(this.date.getTime()));
+            s.setString(1, this.versionUid);
+            s.setString(2, this.fileUid);
+            s.setString(3, this.creator);
+            s.setTimestamp(4, new Timestamp(this.date.getTime()));
             s.executeUpdate();
 
             connector.connection.commit();
@@ -87,7 +87,8 @@ public class FileVersion implements DatabaseObject {
             //Rollback changes in case of failure
             try {
                 connector.connection.rollback();
-            } catch (SQLException ignored) { }
+            } catch (SQLException ignored) {
+            }
         }
     }
 

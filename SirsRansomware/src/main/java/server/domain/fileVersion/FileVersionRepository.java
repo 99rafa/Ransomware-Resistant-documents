@@ -1,14 +1,11 @@
 package server.domain.fileVersion;
 
 import server.database.Repository;
-import server.domain.file.File;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 
 public class FileVersionRepository extends Repository {
 
@@ -16,7 +13,7 @@ public class FileVersionRepository extends Repository {
         super(c);
     }
 
-    public FileVersion getFileVersionByUID(String uid){
+    public FileVersion getFileVersionByUID(String uid) {
 
         FileVersion version = new FileVersion();
         try {
@@ -34,7 +31,7 @@ public class FileVersionRepository extends Repository {
                 version.setDate(rs.getDate("date"));
             }
 
-        }catch (SQLException e){
+        } catch (SQLException e) {
             e.printStackTrace();
         }
         return version;
@@ -57,7 +54,7 @@ public class FileVersionRepository extends Repository {
                 version.setDate(rs.getDate("date"));
             }
 
-        }catch (SQLException e){
+        } catch (SQLException e) {
             e.printStackTrace();
         }
         return version;
