@@ -17,3 +17,4 @@ SirsRansomware/src/.DS_Store
 .DS_Store
 SirsRansomware/zookeeper.log
 .idea/
+SirsRansomware/main/java/server/database/Connector
