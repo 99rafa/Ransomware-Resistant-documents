@@ -83,16 +83,16 @@ public class UserRepository extends Repository {
 
     public void setUserPermissionFile(String username, String uid, String mode) {
         switch (mode) {
-            case "read" -> addToReadableFiles(username, uid);
+            case "read" -> addUserToReadableFiles(username, uid);
             case "write" -> {
-                addToEditableFiles(username, uid);
-                addToReadableFiles(username, uid);
+                addUserToEditableFiles(username, uid);
+                addUserToReadableFiles(username, uid);
             }
             default -> System.out.println("It should not happen");
         }
     }
 
-    public void addToEditableFiles(String username, String uid) {
+    public void addUserToEditableFiles(String username, String uid) {
         try {
 
             String sql = "INSERT INTO EditableFiles VALUES (?,?)";
@@ -108,12 +108,11 @@ public class UserRepository extends Repository {
             //Rollback changes in case of failure
             try {
                 super.getConnection().rollback();
-            } catch (SQLException ignored) {
-            }
+            } catch (SQLException ignored) {}
         }
     }
 
-    public void addToReadableFiles(String username, String uid) {
+    public void addUserToReadableFiles(String username, String uid) {
         try {
 
             String sql = "INSERT INTO ReadableFiles VALUES (?,?)";
@@ -133,6 +132,44 @@ public class UserRepository extends Repository {
             }
         }
     }
+    public List<String> getUsersWithPermissions(String uid, String mode) {
+        List<String> usernames= new ArrayList<>();
+        if (mode.equals("read")) {
+            try {
+
+                String sql = "SELECT username FROM ReadableFiles WHERE uid = ?";
+                PreparedStatement s = super.getConnection().prepareStatement(sql);
+                s.setString(1, uid);
+
+                ResultSet rs = s.executeQuery();
+                while (rs.next()) {
+                    usernames.add(rs.getString("username"));
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        else if (mode.equals("write")) {
+            try {
+
+                String sql = "SELECT username FROM EditableFiles WHERE uid = ?";
+                PreparedStatement s = super.getConnection().prepareStatement(sql);
+                s.setString(1, uid);
+
+                ResultSet rs = s.executeQuery();
+                while (rs.next()) {
+                    usernames.add(rs.getString("username"));
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        else {
+            System.out.println("Não pode acontecer");
+        }
+        return usernames;
+    }
+
 
     public User getUserByUsername(String username) {
         User user = new User();
