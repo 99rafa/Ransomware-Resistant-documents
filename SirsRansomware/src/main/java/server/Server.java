@@ -24,7 +24,7 @@ import server.domain.fileVersion.FileVersionRepository;
 import server.domain.user.User;
 import server.domain.user.UserRepository;
 
-import javax.crypto.SecretKey;
+import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLException;
 import java.io.*;
@@ -163,31 +163,6 @@ public class Server {
                             "to enable Mutual TLS.");
             System.exit(0);
         }
-
-        /*KeyStore ks = null;
-        try {
-            ks = KeyStore.getInstance("PKCS12");
-        } catch (KeyStoreException e) {
-            e.printStackTrace();
-        }
-        try {
-            assert ks != null;
-            ks.load(new FileInputStream("src/assets/keyStores/privateKeyServerKeyStore.p12"), "5Xa)^WU_(rw$<}p%".toCharArray());
-            KeyStore.SecretKeyEntry secret = null;
-            try {
-                secret =new KeyStore.SecretKeyEntry(readKey("src/assets/certs/secret.key"));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            KeyStore.ProtectionParameter password
-                    = new KeyStore.PasswordProtection("".toCharArray());
-            assert secret != null;
-            ks.setEntry("db-encryption-secret", secret, password);
-
-            ks.store(new FileOutputStream("src/assets/keyStores/privateKeyServerKeyStore.p12"), "5Xa)^WU_(rw$<}p%".toCharArray());
-        } catch (NoSuchAlgorithmException | CertificateException | KeyStoreException e) {
-            e.printStackTrace();
-        }*/
 
         final Server server = new Server(
                 args[0],
@@ -411,9 +386,25 @@ public class Server {
                 PrivateKey privateKey = keyPair.getPrivate();
                 PublicKey publicKey = keyPair.getPublic();
 
+                byte[] privateKeyBytes = privateKey.getEncoded();
                 byte[] publicKeyBytes = publicKey.getEncoded();
 
-                registerUser(req.getUsername(), req.getPassword().toByteArray(), req.getSalt().toByteArray(),publicKeyBytes);
+                // cipher data
+                final String CIPHER_ALGO = "AES/CBC/PKCS5Padding";
+                System.out.println("Ciphering with " + CIPHER_ALGO + "...");
+
+                byte[] cipherBytes = null;
+
+                try {
+                    Cipher cipher = Cipher.getInstance(CIPHER_ALGO);
+                    cipher.init(Cipher.ENCRYPT_MODE,retrieveStoredKey() );
+                    cipherBytes = cipher.doFinal(privateKeyBytes);
+                } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+                    e.printStackTrace();
+                }
+
+
+                registerUser(req.getUsername(), req.getPassword().toByteArray(), req.getSalt().toByteArray(),publicKeyBytes, cipherBytes);
                 reply = RegisterReply.newBuilder().setOk("User " + req.getUsername() + " registered successfully").build();
             }
             responseObserver.onNext(reply);
@@ -561,8 +552,8 @@ public class Server {
 
         }
 
-        private void registerUser(String name, byte[] password, byte[] salt,byte[] public_key) {
-            User user = new User(name, password, salt, ITERATIONS, public_key);
+        private void registerUser(String name, byte[] password, byte[] salt,byte[] public_key, byte[] private_key) {
+            User user = new User(name, password, salt, ITERATIONS, public_key, private_key);
             user.saveInDatabase(this.c);
         }
 
@@ -610,6 +601,17 @@ public class Server {
             return keyPair;
         }
 
+        private SecretKey retrieveStoredKey() {
+            SecretKey secretKey = null;
+            try {
+                //TODO provide a password
+                secretKey = (SecretKey) this.keyStore.getKey("db-encryption-secret", "".toCharArray());
+                System.out.println(keyStore.containsAlias("db-encryption-secret"));
+            } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException e) {
+                e.printStackTrace();
+            }
+            return secretKey;
+        }
 
     }
 }
