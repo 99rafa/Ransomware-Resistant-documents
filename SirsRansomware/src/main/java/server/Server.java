@@ -274,7 +274,25 @@ public class Server {
             else if (usernameExists(req.getUsername()))
                 reply = RegisterReply.newBuilder().setOk("Duplicate user with username " + req.getUsername()).build();
             else {
-                registerUser(req.getUsername(), req.getPassword().toByteArray(), req.getSalt().toByteArray());
+                // generate RSA Keys
+                KeyPair keyPair = generateUserKeyPair();
+                PrivateKey privateKey = keyPair.getPrivate();
+                PublicKey publicKey = keyPair.getPublic();
+
+                // Get the bytes of the public
+                byte[] publicKeyBytes = publicKey.getEncoded();
+
+                //Save private key in keystore
+                KeyStore ks = null;
+                try {
+                    ks = KeyStore.getInstance("JKS");
+                    ks.load(new FileInputStream("newKeyStoreFileName.jks"),);
+                    ks.setKeyEntry(req.getUsername() + "-privKey", privateKey, pwdArray);
+                } catch (IOException | NoSuchAlgorithmException | CertificateException | KeyStoreException e) {
+                    e.printStackTrace();
+                }
+
+                registerUser(req.getUsername(), req.getPassword().toByteArray(), req.getSalt().toByteArray(),publicKeyBytes);
                 reply = RegisterReply.newBuilder().setOk("User " + req.getUsername() + " registered successfully").build();
             }
             responseObserver.onNext(reply);
@@ -422,17 +440,8 @@ public class Server {
 
         }
 
-        private void registerUser(String name, byte[] password, byte[] salt) {
-            User user = new User(name, password, salt, ITERATIONS);
-            // generate RSA Keys
-            KeyPair keyPair = generateUserKeyPair();
-            PrivateKey privateKey = keyPair.getPrivate();
-            PublicKey publicKey = keyPair.getPublic();
-
-            // Get the bytes of the public and private keys
-            byte[] privateKeyBytes = privateKey.getEncoded();
-            byte[] publicKeyBytes = publicKey.getEncoded();
-
+        private void registerUser(String name, byte[] password, byte[] salt,byte[] public_key) {
+            User user = new User(name, password, salt, ITERATIONS, public_key);
             user.saveInDatabase(this.c);
         }
 
