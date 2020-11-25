@@ -97,7 +97,7 @@ public class Server {
         }
         try {
             assert ks != null;
-            ks.load(new FileInputStream("src/assets/keyStores/privateKeyServerKeyStore.p12"), passwd.toCharArray());
+            ks.load(new FileInputStream("src/assets/keyStores/privateKeyServerKeyStore.p12"), "5Xa)^WU_(rw$<}p%".toCharArray());
             this.keyStore = ks;
         } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
             e.printStackTrace();
@@ -112,7 +112,7 @@ public class Server {
         }
         try {
             assert trustCertKeyStore != null;
-            trustCertKeyStore.load(new FileInputStream("src/assets/keyStores/trustCertsServerKeyStore.p12"), passwd.toCharArray());
+            trustCertKeyStore.load(new FileInputStream("src/assets/keyStores/trustCertsServerKeyStore.p12"), "w7my3n,~yvF-;Py3".toCharArray());
             this.trustCertStore = trustCertKeyStore;
         } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
             e.printStackTrace();
@@ -127,7 +127,7 @@ public class Server {
         }
         try {
             assert trustStore != null;
-            trustStore.load(new FileInputStream("src/assets/keyStores/trustStore.p12"), passwd.toCharArray());
+            trustStore.load(new FileInputStream("src/assets/keyStores/trustStore.p12"), "w?#Sf@ZAL*tY7fVx".toCharArray());
             this.trustStore = trustStore;
         } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
             e.printStackTrace();
