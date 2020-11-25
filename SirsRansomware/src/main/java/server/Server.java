@@ -440,10 +440,6 @@ public class Server {
             server.domain.file.File file = new server.domain.file.File(uid, owner, filename, partId);
             file.saveInDatabase(this.c);
 
-
-
-
-
         }
 
         private void registerFileVersion(String versionId, String fileId, String creator) {
@@ -464,6 +460,10 @@ public class Server {
 
         private void giveUserPermission(String username, String uid, String mode) {
             userRepository.setUserPermissionFile(username, uid, mode);
+        }
+        private List<String> getUsersWithPermission(String uid, String mode){
+            List<String> usernames =userRepository.getUsersWithPermissions(uid,mode);
+            return usernames;
         }
 
         private KeyPair generateUserKeyPair() {
