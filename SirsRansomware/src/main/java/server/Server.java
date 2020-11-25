@@ -25,11 +25,9 @@ import server.domain.user.User;
 import server.domain.user.UserRepository;
 
 import javax.net.ssl.SSLException;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
@@ -37,6 +35,8 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.sql.SQLException;
 import java.util.*;
@@ -65,6 +65,9 @@ public class Server {
     private ZKNaming zkNaming;
     private ManagedChannel channel;
     private ServerGrpc.ServerBlockingStub blockingStub;
+    private KeyStore keyStore;
+    private KeyStore trustCertStore;
+    private KeyStore trustStore;
 
     public Server(String id,
                   String zooPort,
@@ -83,6 +86,54 @@ public class Server {
         this.certChainFilePath = certChainFilePath;
         this.privateKeyFilePath = privateKeyFilePath;
         this.trustCertCollectionFilePath = trustCertCollectionFilePath;
+
+        Console console = System.console();
+        String passwd = new String(console.readPassword("Enter private Key keyStore password: "));
+        KeyStore ks = null;
+        try {
+            ks = KeyStore.getInstance("PKCS12");
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+        try {
+            assert ks != null;
+            ks.load(new FileInputStream("src/assets/keyStores/privateKeyServerKeyStore.p12"), passwd.toCharArray());
+            this.keyStore = ks;
+        } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
+            e.printStackTrace();
+        }
+
+        passwd = new String(console.readPassword("Enter trust cert keyStore password: "));
+        KeyStore trustCertKeyStore = null;
+        try {
+            trustCertKeyStore = KeyStore.getInstance("PKCS12");
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+        try {
+            assert trustCertKeyStore != null;
+            trustCertKeyStore.load(new FileInputStream("src/assets/keyStores/trustCertsServerKeyStore.p12"), passwd.toCharArray());
+            this.trustCertStore = trustCertKeyStore;
+        } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
+            e.printStackTrace();
+        }
+
+        passwd = new String(console.readPassword("Enter trustStore password: "));
+        KeyStore trustStore = null;
+        try {
+            trustStore = KeyStore.getInstance("PKCS12");
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+        try {
+            assert trustStore != null;
+            trustStore.load(new FileInputStream("src/assets/keyStores/trustStore.p12"), passwd.toCharArray());
+            this.trustStore = trustStore;
+        } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
+            e.printStackTrace();
+        }
+
+
     }
 
     private static SslContext buildSslContext(String trustCertCollectionFilePath,
@@ -111,6 +162,24 @@ public class Server {
             System.exit(0);
         }
 
+        /*KeyStore ks = null;
+        try {
+            ks = KeyStore.getInstance("PKCS12");
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+        try {
+            assert ks != null;
+            ks.load(new FileInputStream("src/assets/keyStores/truststore.p12"), "w?#Sf@ZAL*tY7fVx".toCharArray());
+            CertificateFactory fact = CertificateFactory.getInstance("X.509");
+            FileInputStream is = new FileInputStream(args[5]);
+            X509Certificate cer = (X509Certificate) fact.generateCertificate(is);
+            ks.setCertificateEntry("server-ca-cert",cer);
+            ks.store(new FileOutputStream("src/assets/keyStores/truststore.p12"), "w?#Sf@ZAL*tY7fVx".toCharArray());
+        } catch (NoSuchAlgorithmException | CertificateException | KeyStoreException e) {
+            e.printStackTrace();
+        }*/
+
         final Server server = new Server(
                 args[0],
                 args[1],
@@ -121,10 +190,10 @@ public class Server {
                 args[6],
                 args[7]);
         server.start();
+
         server.greet("Server");
-
-
         server.blockUntilShutdown();
+
 
     }
 
@@ -228,6 +297,38 @@ public class Server {
                 e.printStackTrace();
             }
         }
+    }
+
+    private static PrivateKey readPrivateKey(String privateKeyPath) {
+        String key = null;
+        try {
+            key = Files.readString(Paths.get(privateKeyPath), Charset.defaultCharset());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        assert key != null;
+        String privateKeyPEM = key
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replaceAll(System.lineSeparator(), "")
+                .replace("-----END PRIVATE KEY-----", "");
+
+        byte[] encoded = Base64.getDecoder().decode(privateKeyPEM);
+
+        KeyFactory keyFactory = null;
+        try {
+            keyFactory = KeyFactory.getInstance("RSA");
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
+        try {
+            assert keyFactory != null;
+            return keyFactory.generatePrivate(keySpec);
+        } catch (InvalidKeySpecException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     /**
@@ -449,7 +550,6 @@ public class Server {
 
             server.domain.file.File file = new server.domain.file.File(uid, owner, filename, partId);
             file.saveInDatabase(this.c);
-
         }
 
         private void registerFileVersion(String versionId, String fileId, String creator) {
