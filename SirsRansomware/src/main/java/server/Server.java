@@ -54,6 +54,7 @@ public class Server {
 
     private static final Logger logger = Logger.getLogger(Server.class.getName());
     private static final String SIRS_DIR = System.getProperty("user.dir");
+    private final String partId;
     private final String id;
     private final String zooPort;
     private final String zooHost;
@@ -72,6 +73,7 @@ public class Server {
     private KeyStore trustStore;
 
     public Server(String id,
+                  String partId,
                   String zooPort,
                   String zooHost,
                   String port,
@@ -80,9 +82,10 @@ public class Server {
                   String privateKeyFilePath,
                   String trustCertCollectionFilePath) {
         this.id = id;
+        this.partId = partId;
         this.zooPort = zooPort;
         this.zooHost = zooHost;
-        this.zooPath = "/sirs/ransomware/servers/" + id;
+        this.zooPath = "/sirs/ransomware/servers/" + partId + "_" + id;
         this.host = host;
         this.port = port;
         this.certChainFilePath = certChainFilePath;
@@ -157,9 +160,9 @@ public class Server {
      */
     public static void main(String[] args) throws IOException, InterruptedException {
 
-        if (args.length != 8) {
+        if (args.length != 9) {
             System.out.println(
-                    "USAGE: ServerTls id zooHost zooPort host port certChainFilePath privateKeyFilePath " +
+                    "USAGE: ServerTls id partId zooHost zooPort host port certChainFilePath privateKeyFilePath " +
                             "trustCertCollectionFilePath\n  Note: You only need to supply trustCertCollectionFilePath if you want " +
                             "to enable Mutual TLS.");
             System.exit(0);
@@ -173,10 +176,11 @@ public class Server {
                 args[4],
                 args[5],
                 args[6],
-                args[7]);
+                args[7],
+                args[8]);
         server.start();
 
-        server.greet("Server");
+        //server.greet("Server");
         server.blockUntilShutdown();
 
 
@@ -499,6 +503,7 @@ public class Server {
                         file_bytes));
                 reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(file.getUid())));
                 reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
+                reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),mostRecentVersion.getUid())));
             }
             responseObserver.onNext(reply.build());
             responseObserver.onCompleted();
@@ -533,6 +538,7 @@ public class Server {
                                 file_bytes));
                         reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(file.getUid())));
                         reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
+                        reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),mostRecentVersion.getUid())));
                         break;
                     }
                 }
@@ -552,15 +558,15 @@ public class Server {
         public void givePermission(GivePermissionRequest req, StreamObserver<GivePermissionReply> responseObserver) {
             GivePermissionReply reply = null;
             if (req.getMode().matches("read|write")) {
-                if (usernameExists(req.getOther())) {
+                if (allUsernamesExist(req.getOthersNamesList())) {
                     if (filenameExists(req.getUid())) {
-                        giveUserPermission(req.getOther(), req.getUid(), req.getMode(),req.getOtherAESEncrypted().toByteArray());
-                        reply = GivePermissionReply.newBuilder().setOkOther(true).setOkUid(true).setOkMode(true).build();
+                        giveUsersPermission(req.getOthersNamesList(), req.getUid(), req.getMode(),req.getOtherAESEncryptedList().stream().map(ByteString::toByteArray).collect(Collectors.toList()));
+                        reply = GivePermissionReply.newBuilder().setOkOthers(true).setOkUid(true).setOkMode(true).build();
                     }
                 } else
-                    reply = GivePermissionReply.newBuilder().setOkOther(false).setOkUid(false).setOkMode(true).build();
+                    reply = GivePermissionReply.newBuilder().setOkOthers(false).setOkUid(false).setOkMode(true).build();
             } else
-                reply = GivePermissionReply.newBuilder().setOkOther(false).setOkUid(false).setOkMode(false).build();
+                reply = GivePermissionReply.newBuilder().setOkOthers(false).setOkUid(false).setOkMode(false).build();
 
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -570,10 +576,15 @@ public class Server {
             GetAESEncryptedReply reply;
 
             if (isOwner(req.getUsername(), req.getUid())){
+
                 byte[] aes = getAESEncrypted(req.getUsername(),req.getUid());
-                byte[] pk = getPublicKey(req.getOther());
-                reply = GetAESEncryptedReply.newBuilder().setAESEncrypted(ByteString.copyFrom(aes)).setOtherPublicKey(ByteString.copyFrom(pk)).setIsOwner(true).build();
-            } else reply = GetAESEncryptedReply.newBuilder().setIsOwner(false).setAESEncrypted(null).setOtherPublicKey(null).build();
+
+                List<byte[]> pk = userRepository.getPublicKeysByUsernames(req.getOthersNamesList());
+                reply = GetAESEncryptedReply.newBuilder().setAESEncrypted(ByteString.copyFrom(aes))
+                        .addAllOthersPublicKeys(pk.stream().map(ByteString::copyFrom).collect(Collectors.toList())).setIsOwner(true).build();
+
+            } else reply = GetAESEncryptedReply.newBuilder().setIsOwner(false).setAESEncrypted(null).addAllOthersPublicKeys(null).build();
+
 
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -605,14 +616,27 @@ public class Server {
             User user = userRepository.getUserByUsername(name);
             return user.getUsername() != null && user.getPassHash() != null && user.getSalt() != null;
         }
+        private boolean allUsernamesExist(List<String> names) {
+            boolean bool=true;
+            for(String name : names) {
+                User user = userRepository.getUserByUsername(name);
+                if (user.getUsername() == null || user.getPassHash() == null || user.getSalt() == null || user.getPublicKey() == null) {
+                    bool = false;
+                }
+            }
+            return bool;
+
+        }
 
         private boolean filenameExists(String uid) {
             File file = fileRepository.getFileByUID(uid);
             return file.getUid() != null && file.getName() != null && file.getPartition() != null && file.getOwner() != null;
         }
 
-        private void giveUserPermission(String username, String uid, String mode, byte[] AESEncrypted ) {
-            userRepository.setUserPermissionFile(username, uid, mode,AESEncrypted);
+        private void giveUsersPermission(List<String> usernames, String uid, String mode, List<byte[]> AESEncrypted ) {
+            for (int i=0; i < usernames.size();i++) {
+                userRepository.setUserPermissionFile(usernames.get(i), uid, mode, AESEncrypted.get(i));
+            }
         }
         private List<String> getUsersWithPermission(String uid, String mode){
             return userRepository.getUsersWithPermissions(uid,mode);

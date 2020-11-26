@@ -8,13 +8,10 @@ SirsRansomware/zookeeper.log
 
 SirsRansomware/SirsRansomware.iml
 grpc-java/
-
 SirsRansomware/target/
 SirsRansomware/.idea/
-
 SirsRansomware/.DS_Store
 SirsRansomware/src/.DS_Store
 .DS_Store
-SirsRansomware/zookeeper.log
 .idea/
-SirsRansomware/main/java/server/database/Connector
+SirsRansomware/src/main/java/server/database/Connector.java

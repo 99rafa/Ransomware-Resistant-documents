@@ -18,6 +18,7 @@ import server.Server;
 
 import javax.crypto.*;
 import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLException;
 import java.io.*;
 import java.nio.file.Files;
@@ -31,6 +32,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * A simple client that requests a greeting from the {@link Server} with TLS.
@@ -46,12 +48,16 @@ public class Client {
     private static final String FILE_MAPPING_PATH = SIRS_DIR + "/src/assets/data/fm.txt";
     private static final String PULLS_DIR = SIRS_DIR + "/src/assets/clientPulls/";
 
-    private final ManagedChannel channel;
-    private final ServerGrpc.ServerBlockingStub blockingStub;
+    private ManagedChannel channel;
+    private ServerGrpc.ServerBlockingStub blockingStub;
     private String username = null;
     private byte[] salt = null;
     KeyStore keyStore;
     private Cipher cipher;
+    private final String zooHost;
+    private final String zooPort;
+    private final SslContext sslContext;
+    private String currentPartition;
 
     /**
      * Construct client connecting to HelloWorld server at {@code host:port}.
@@ -60,6 +66,9 @@ public class Client {
                   String zooPort,
                   SslContext sslContext) {
 
+        this.zooHost = zooHost;
+        this.zooPort = zooPort;
+        this.sslContext = sslContext;
         Random random = new Random();
         String path;
 
@@ -88,9 +97,9 @@ public class Client {
             e.printStackTrace();
         }
 
-
         assert recs != null;
         path = recs.get(random.nextInt(recs.size())).getPath();
+        this.currentPartition = path.split("/")[path.split("/").length - 1].split("_")[0];
         ZKRecord record = null;
         try {
             record = zkNaming.lookup(path);
@@ -434,6 +443,59 @@ public class Client {
         return sign.verify(signature);
     }
 
+    public String getRandomPartition(){
+        Random random = new Random();
+        ZKNaming zkNaming = new ZKNaming(this.zooHost,this.zooPort);
+        ArrayList<ZKRecord> recs = null;
+        try {
+            recs = new ArrayList<>(zkNaming.listRecords("/sirs/ransomware/servers"));
+        } catch (ZKNamingException e) {
+            e.printStackTrace();
+        }
+        assert recs != null;
+
+        String[] split = recs.get(random.nextInt(recs.size())).getPath().split("/");
+        return split[split.length - 1].split("_")[0];
+    }
+
+    public void connectToRandomPartitionServer(String partId) throws InterruptedException {
+        shutdown();
+        Random random = new Random();
+        String path;
+        ZKNaming zkNaming = new ZKNaming(zooHost, zooPort);
+        ArrayList<ZKRecord> recs = null;
+        try {
+            recs = new ArrayList<>(zkNaming.listRecords("/sirs/ransomware/servers"));
+        } catch (ZKNamingException e) {
+            e.printStackTrace();
+        }
+
+
+
+        assert recs != null;
+
+        List<String> paths = recs.stream().map(ZKRecord::getPath)
+                .filter(p -> p.split("/")[p.split("/").length - 1].startsWith(partId))
+                .collect(Collectors.toList());
+
+        path = paths.get(random.nextInt(paths.size()));
+        this.currentPartition = path.split("/")[path.split("/").length - 1].split("_")[0];
+        ZKRecord record = null;
+        try {
+            record = zkNaming.lookup(path);
+        } catch (ZKNamingException e) {
+            e.printStackTrace();
+        }
+
+
+        assert record != null;
+        this.channel = NettyChannelBuilder.forTarget(record.getURI())
+                .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
+                .sslContext(sslContext)
+                .build();
+        this.blockingStub = ServerGrpc.newBlockingStub(channel);
+    }
+
     public void push() {
         if (username != null) {
             try {
@@ -449,17 +511,22 @@ public class Client {
                 byte[] file_bytes = Files.readAllBytes(
                         Paths.get(filePath)
                 );
-                //TODO PICK RANDOM PARTITION
-                //TODO STATIC FOR NOW
-                String partId = "1";
+
                 String filename;
                 SecretKey fileSecretKey = null;
+                String partId;
                 if (isNew) {
+                    partId = getRandomPartition();
                     System.out.print("Filename: ");
                     filename = input.nextLine();
                     fileSecretKey = generateSecretKey();
-                } else
+                } else{
                     filename = getUidMap(INDEX_PATH, INDEX_NAME).get(filePath);
+                    partId = getUidMap(INDEX_PATH, INDEX_PART_ID).get(filePath);
+                }
+                System.out.println(partId);
+                if(!this.currentPartition.equals(partId))
+                    connectToRandomPartitionServer(partId);
                 String uid = generateFileUid(filePath, partId, filename);
 
                 byte[] digitalSignature = createDigitalSignature(file_bytes, getPrivateKey() );
@@ -502,7 +569,7 @@ public class Client {
                     System.err.println("Exceeded the number of tries. Client logged out.");
                     logout();
                 }
-            } catch (IOException | NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+            } catch (IOException | NoSuchAlgorithmException | InvalidKeyException | SignatureException | InterruptedException e) {
                 e.printStackTrace();
             }
         } else System.err.println("Error: To push a file, you need to login first");
@@ -515,7 +582,7 @@ public class Client {
         System.out.println("help - displays help message");
         System.out.println("pull - receives files from server");
         System.out.println("push - sends file to server");
-        System.out.println("give_perm - give read/write file access permission to a user");
+        System.out.println("give_perm - give read/write file access permission to user/s");
         System.out.println("logout - exits client");
         System.out.println("exit - exits client");
     }
@@ -543,7 +610,6 @@ public class Client {
             String[] fileNames = choice.split(" ");
             List<String> uids = new ArrayList<>();
             for (String file : fileNames) {
-
                 if (getUid(file) != null)
                     uids.add(getUid(file));
                 else
@@ -557,7 +623,6 @@ public class Client {
                     .build();
             reply = blockingStub.pullSelected(request);
         }
-
 
         if (!reply.getOk())
             System.err.println("Wrong password!");
@@ -580,29 +645,42 @@ public class Client {
                                 .build()
                 ).getPublicKey().toByteArray();*/
 
-                X509EncodedKeySpec X509publicKey = new X509EncodedKeySpec(ownerPublicKey);
-                KeyFactory kf = KeyFactory.getInstance("RSA");
 
-                PublicKey pk = kf.generatePublic(X509publicKey);
+                PublicKey pk = getPublicKey(ownerPublicKey);
                 //VERIFY SIGNATURE
                 if(!verifyDigitalSignature(file_data,digitalSignature,pk))
-                    System.out.println("TA MAU DE SAL");
+                    System.err.println("Signature verification failed");
                     //TODO RETRIEVE HEALTHY VERSION
                 else
-                    System.out.println("TA BOM DE SAL");
+                    System.out.println("Signature correctly verified");
 
                 //IF FILE EXISTS OVERWRITE IT
+
+                byte[] decipheredFileData = decipherSecureFile(file_data, reply.getAESEncrypted(i).toByteArray());
+
                 if (uidMap.containsKey(uid))
-                    FileUtils.writeByteArrayToFile(new File(uidMap.get(uid)), file_data);
+                    FileUtils.writeByteArrayToFile(new File(uidMap.get(uid)), decipheredFileData);
                     //ELSE CREATE IT
                 else {
                     FileUtils.writeByteArrayToFile(new File(PULLS_DIR + filename), file_data);
-                    String text = PULLS_DIR + filename + " " + uid + " " + partId + " " + filename;
+                    String text = PULLS_DIR + filename + " " + uid + " " + partId + " " + filename + "\n";
                     appendTextToFile(text, FILE_MAPPING_PATH);
                 }
 
             }
         }
+    }
+    private PublicKey getPublicKey(byte[] ownerPublicKey){
+        PublicKey pk = null;
+        try {
+            X509EncodedKeySpec X509publicKey = new X509EncodedKeySpec(ownerPublicKey);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+
+            pk = kf.generatePublic(X509publicKey);
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
+        }
+        return pk;
     }
 
     private PrivateKey getPrivateKey() {
@@ -618,12 +696,15 @@ public class Client {
 
     public void givePermission() {
         Console console = System.console();
-        String other = console.readLine("Enter the username to give permission: ");
+        String others = console.readLine("Enter the username/s to give permission, separated by a blank space: ");
         String s = ((System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n")));
         String filename = console.readLine("Enter the filename: ");
         String uid = null;
 
-        String instance="RSA"; //change to append mode and padding
+        String[] othersNames = others.split(" ");
+
+
+
         try {
             uid = getUid(filename);
         } catch (FileNotFoundException e) {
@@ -632,40 +713,32 @@ public class Client {
         GetAESEncryptedRequest req = GetAESEncryptedRequest
                 .newBuilder()
                 .setUsername(this.username)
-                .setOther(other)
+                .addAllOthersNames(Arrays.asList(othersNames))
                 .setUid(uid)
                 .build();
+
         GetAESEncryptedReply reply = blockingStub.getAESEncrypted(req);
         byte[] aesEncrypted= reply.getAESEncrypted().toByteArray();
-        byte[] otherPubKey = reply.getOtherPublicKey().toByteArray();
-        byte[] encryptedSecret = null;
+        List<byte[]> othersPubKeys = reply.getOthersPublicKeysList().stream().map(ByteString::toByteArray).collect(Collectors.toList());
+        byte[] aesKey = null;
+
         if(reply.getIsOwner()){
-
-            try{
-                //decrypt with private key in order to obtain symmetric key
-                PrivateKey privkey = getPrivateKey();
-                this.cipher = Cipher.getInstance(instance);
-                this.cipher.init(Cipher.DECRYPT_MODE, privkey);
-                byte[] aesKey= this.cipher.doFinal(aesEncrypted);
-
-                encryptedSecret = secureSecretKey(otherPubKey,aesKey);
-
-            } catch (InvalidKeyException | BadPaddingException | IllegalBlockSizeException | NoSuchPaddingException | NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            }
-
+            //decrypt with private key in order to obtain symmetric key
+            aesKey = getAESKey(aesEncrypted);
+            //encrypt AES with "others" public keys to send to the server
+            List<byte[]> othersAesEncrypted = getOthersAESEncrypted(othersPubKeys,aesKey);
             //read/write permissions
             GivePermissionRequest request = GivePermissionRequest
                     .newBuilder()
-                    .setOther(other)
+                    .addAllOthersNames(Arrays.asList(othersNames))
                     .setUid(uid)
                     .setMode(s)
-                    .setOtherAESEncrypted(ByteString.copyFrom(Objects.requireNonNull(encryptedSecret)))
+                    .addAllOtherAESEncrypted(othersAesEncrypted.stream().map(ByteString::copyFrom).collect(Collectors.toList()))
                     .build();
             GivePermissionReply res = blockingStub.givePermission(request);
 
             if (res.getOkMode()) {
-                if (res.getOkOther()) {
+                if (res.getOkOthers()) {
                     if (res.getOkUid()) {
                         switch (s) {
                             case "read" -> System.out.println("Read permission of file " + filename + " granted for user " + username);
@@ -696,6 +769,38 @@ public class Client {
 
     }
 
+    public List<byte[]> getOthersAESEncrypted(List<byte[]> othersPubKeys, byte[] aesKey){
+        List<byte[]> othersAESEncrypted = new ArrayList<>();
+        for (byte[] bytes : othersPubKeys) {
+            try {
+                Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+                KeyFactory kf = KeyFactory.getInstance("RSA");
+                PublicKey otherPublicKey = kf.generatePublic(new X509EncodedKeySpec(bytes));
+                cipher.init(Cipher.ENCRYPT_MODE, otherPublicKey);
+                byte[] otherAESEncrypted = cipher.doFinal(aesKey);
+                othersAESEncrypted.add(otherAESEncrypted);
+
+            } catch (InvalidKeyException | BadPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException | InvalidKeySpecException | NoSuchPaddingException e) {
+                e.printStackTrace();
+            }
+        }
+        return othersAESEncrypted;
+    }
+
+    public byte[] getAESKey( byte[] aesEncrypted){
+        byte[] aesKey = null;
+        try {
+            PrivateKey privkey = getPrivateKey();
+            Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            cipher.init(Cipher.DECRYPT_MODE, privkey);
+            aesKey = cipher.doFinal(aesEncrypted);
+
+        } catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException e) {
+            e.printStackTrace();
+        }
+        return aesKey;
+    }
+
     public SecretKey generateSecretKey() {
 
         KeyGenerator keyGen = null;
@@ -715,7 +820,7 @@ public class Client {
 
     public byte[] generateSecureFile(byte[] file_bytes, SecretKey secretKey) {
 
-        Cipher cipher = null;
+        Cipher cipher;
         byte[] encryptedBytes = null;
         try {
             cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
@@ -726,6 +831,41 @@ public class Client {
         }
         return encryptedBytes;
 
+    }
+
+    private byte[] decrypt(Key decryptionKey, byte[] buffer) {
+        try {
+            Cipher rsa;
+            rsa = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            rsa.init(Cipher.DECRYPT_MODE, decryptionKey);
+            return rsa.doFinal(buffer);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+
+
+    public byte[] decipherSecureFile (byte[] file_bytes, byte[] cipheredSecretKey) {
+        Cipher cipher;
+        byte[] encryptedBytes = null;
+        try {
+
+            PrivateKey privKey = getPrivateKey();
+
+            byte[] symmetricKey = decrypt(privKey, file_bytes);
+
+            assert symmetricKey != null;
+            SecretKey originalKey = new SecretKeySpec(symmetricKey, 0, symmetricKey.length, "AES");
+
+            cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.DECRYPT_MODE, originalKey);
+            encryptedBytes = cipher.doFinal(file_bytes);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+            e.printStackTrace();
+        }
+        return encryptedBytes;
 
     }
 

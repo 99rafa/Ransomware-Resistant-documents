@@ -114,7 +114,8 @@ message PullReply{
   repeated string partIds = 5;
   repeated bytes publicKeys = 6;
   repeated bytes digital_signatures = 7;
-  bool ok = 8;
+  repeated bytes AESEncrypted = 8;
+  bool ok = 9;
 }
 
 
@@ -145,27 +146,27 @@ message HelloReply {
 }
 //Give read/write or both file access permission to a person
 message GivePermissionRequest{
-  string other = 1;
+  repeated string othersNames = 1;
   string uid = 2;
   string mode = 3;
-  bytes OtherAESEncrypted= 4;
+  repeated bytes OtherAESEncrypted= 4;
 }
 
 message GivePermissionReply{
-  bool ok_other = 2;
+  bool ok_others = 2;
   bool ok_uid = 3;
   bool ok_mode = 4;
 }
 message GetAESEncryptedRequest{
   string username=1;
-  string other=2;
+  repeated string othersNames=2;
   string uid=3;
 }
 
 message GetAESEncryptedReply{
   bool is_owner =1;
   bytes AESEncrypted=2;
-  bytes otherPublicKey=3;
+  repeated bytes othersPublicKeys=3;
 }
 
 
