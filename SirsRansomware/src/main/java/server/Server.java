@@ -54,6 +54,7 @@ public class Server {
 
     private static final Logger logger = Logger.getLogger(Server.class.getName());
     private static final String SIRS_DIR = System.getProperty("user.dir");
+    private final String partId;
     private final String id;
     private final String zooPort;
     private final String zooHost;
@@ -72,6 +73,7 @@ public class Server {
     private KeyStore trustStore;
 
     public Server(String id,
+                  String partId,
                   String zooPort,
                   String zooHost,
                   String port,
@@ -80,9 +82,10 @@ public class Server {
                   String privateKeyFilePath,
                   String trustCertCollectionFilePath) {
         this.id = id;
+        this.partId = partId;
         this.zooPort = zooPort;
         this.zooHost = zooHost;
-        this.zooPath = "/sirs/ransomware/servers/" + id;
+        this.zooPath = "/sirs/ransomware/servers/" + partId + "_" + id;
         this.host = host;
         this.port = port;
         this.certChainFilePath = certChainFilePath;
@@ -157,9 +160,9 @@ public class Server {
      */
     public static void main(String[] args) throws IOException, InterruptedException {
 
-        if (args.length != 8) {
+        if (args.length != 9) {
             System.out.println(
-                    "USAGE: ServerTls id zooHost zooPort host port certChainFilePath privateKeyFilePath " +
+                    "USAGE: ServerTls id partId zooHost zooPort host port certChainFilePath privateKeyFilePath " +
                             "trustCertCollectionFilePath\n  Note: You only need to supply trustCertCollectionFilePath if you want " +
                             "to enable Mutual TLS.");
             System.exit(0);
@@ -173,10 +176,11 @@ public class Server {
                 args[4],
                 args[5],
                 args[6],
-                args[7]);
+                args[7],
+                args[8]);
         server.start();
 
-        server.greet("Server");
+        //server.greet("Server");
         server.blockUntilShutdown();
 
 
