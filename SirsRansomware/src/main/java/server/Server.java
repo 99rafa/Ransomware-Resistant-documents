@@ -89,6 +89,7 @@ public class Server {
         this.privateKeyFilePath = privateKeyFilePath;
         this.trustCertCollectionFilePath = trustCertCollectionFilePath;
 
+
         Console console = System.console();
         String passwd = new String(console.readPassword("Enter private Key keyStore password: "));
         KeyStore ks = null;
@@ -638,6 +639,5 @@ public class Server {
             }
             return secretKey;
         }
-
     }
 }

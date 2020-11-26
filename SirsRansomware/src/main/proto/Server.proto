@@ -159,6 +159,7 @@ message GetAESEncryptedRequest{
   string other=2;
   string uid=3;
 }
+
 message GetAESEncryptedReply{
   bool is_owner =1;
   bytes AESEncrypted=2;
