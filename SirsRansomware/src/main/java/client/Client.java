@@ -16,8 +16,7 @@ import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
 import pt.ulisboa.tecnico.sdis.zk.ZKRecord;
 import server.Server;
 
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
+import javax.crypto.*;
 import javax.crypto.spec.PBEKeySpec;
 import javax.net.ssl.SSLException;
 import java.io.*;
@@ -52,6 +51,7 @@ public class Client {
     private String username = null;
     private byte[] salt = null;
     KeyStore keyStore;
+    private Cipher cipher;
 
     /**
      * Construct client connecting to HelloWorld server at {@code host:port}.
@@ -202,11 +202,10 @@ public class Client {
     /**
      * Say hello to server.
      */
-    public void register() {
+    public void register() throws NoSuchPaddingException, NoSuchAlgorithmException {
 
         Console console = System.console();
         String name = console.readLine("Enter a username: ");
-
         boolean match = false;
         String passwd = "";
 
@@ -616,6 +615,8 @@ public class Client {
         String s = ((System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n")));
         String filename = console.readLine("Enter the filename: ");
         String uid = null;
+        String instance="RSA"; //change to append mode and padding
+
 
         try {
             uid = getUid(filename);
@@ -631,11 +632,25 @@ public class Client {
         GetAESEncryptedReply reply = blockingStub.getAESEncrypted(req);
         byte[] aesEncrypted= reply.getAESEncrypted().toByteArray();
         byte[] otherPubKey = reply.getOtherPublicKey().toByteArray();
-
+        byte[] otherPubKeyEncrypted = null;
         if(reply.getIsOwner()){
-            //desencriptar com a privada, encriptar com a publica do outro e mandar para o server
-            PrivateKey privkey = getPrivateKey();
+            try{
+                //decrypt with private key in order to obtain symmetric key
+                PrivateKey privkey = getPrivateKey();
+                this.cipher = Cipher.getInstance(instance);
+                this.cipher.init(Cipher.DECRYPT_MODE, privkey);
+                byte[] aesKey= this.cipher.doFinal(aesEncrypted);
 
+                //encrypt AES with "other" public key to send to the server
+                KeyFactory kf = KeyFactory.getInstance(instance);
+                PublicKey otherPublicKey = kf.generatePublic(new X509EncodedKeySpec(otherPubKey));
+                this.cipher.init(Cipher.ENCRYPT_MODE,otherPublicKey);
+                otherPubKeyEncrypted = this.cipher.doFinal(otherPubKey);
+
+
+            } catch (InvalidKeyException | BadPaddingException | IllegalBlockSizeException | NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+                e.printStackTrace();
+            }
 
 
             //read/write permissions
@@ -644,7 +659,7 @@ public class Client {
                     .setOther(other)
                     .setUid(uid)
                     .setMode(s)
-                    .setOtherAESEncrypted(null)
+                    .setOtherAESEncrypted(ByteString.copyFrom(otherPubKeyEncrypted))
                     .build();
             GivePermissionReply res = blockingStub.givePermission(request);
 
@@ -665,6 +680,22 @@ public class Client {
 
     public void generateSecureFile() {
 
+    }
+    public static SecretKey createAESKey() throws Exception {
+
+        // Creating a new instance of
+        // SecureRandom class.
+        SecureRandom securerandom
+                = new SecureRandom();
+
+        // Passing the string to
+        // KeyGenerator
+        KeyGenerator keygenerator
+                = KeyGenerator.getInstance("AES");
+
+        keygenerator.init(2048, securerandom);
+        SecretKey key = keygenerator.generateKey();
+        return key;
     }
 
 }
