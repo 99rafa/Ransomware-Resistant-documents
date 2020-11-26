@@ -506,16 +506,31 @@ public class Server {
         @Override
         public void givePermission(GivePermissionRequest req, StreamObserver<GivePermissionReply> responseObserver) {
             GivePermissionReply reply = null;
-            if (req.getMode().matches("read|write")) {
-                if (usernameExists(req.getUsername())) {
-                    if (filenameExists(req.getUid())) {
-                        giveUserPermission(req.getUsername(), req.getUid(), req.getMode());
-                        reply = GivePermissionReply.newBuilder().setOkUsername(true).setOkUid(true).setOkMode(true).build();
-                    }
+            if (isOwner(req.getUsername(),req.getUid())) {
+                if (req.getMode().matches("read|write")) {
+                    if (usernameExists(req.getUsername())) {
+                        if (filenameExists(req.getUid())) {
+                            giveUserPermission(req.getUsername(), req.getUid(), req.getMode());
+                            reply = GivePermissionReply.newBuilder().setOkUsername(true).setOkUid(true).setOkMode(true).build();
+                        }
+                    } else
+                        reply = GivePermissionReply.newBuilder().setOkUsername(false).setOkUid(false).setOkMode(true).build();
                 } else
-                    reply = GivePermissionReply.newBuilder().setOkUsername(false).setOkUid(false).setOkMode(true).build();
-            } else
+                    reply = GivePermissionReply.newBuilder().setOkUsername(false).setOkUid(false).setOkMode(false).build();
+            }else
                 reply = GivePermissionReply.newBuilder().setOkUsername(false).setOkUid(false).setOkMode(false).build();
+
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        }
+        @Override
+        public void getAESEncrypted(GetAESEncryptedRequest req, StreamObserver<GetAESEncryptedReply> responseObserver){
+            GetAESEncryptedReply reply=null;
+            byte[] aes;
+            if (isOwner(req.getUsername(), req.getUid())){
+                aes = getAESEncrypted(req.getUsername(),req.getUid());
+                reply = GetAESEncryptedReply.newBuilder().setAESEncrypted(ByteString.copyFrom(aes)).build();
+            } else reply = GetAESEncryptedReply.newBuilder().setIsOwner(false).setAESEncrypted(null).build();
 
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -564,6 +579,13 @@ public class Server {
         private byte[] getPublicKey(String username){
             return userRepository.getPublicKey(username);
         }
+        private byte[] getAESEncrypted(String username, String uid){
+            return fileRepository.getAESEncrypted(username,uid);
+        }
+        private boolean isOwner(String username, String uid){
+            return userRepository.isOwner(username,uid);
+        }
+
 
         private SecretKey retrieveStoredKey() {
             SecretKey secretKey = null;

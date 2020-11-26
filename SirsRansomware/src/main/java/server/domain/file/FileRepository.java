@@ -94,6 +94,28 @@ public class FileRepository extends Repository {
         return files;
     }
 
+
+
+    public byte[] getAESEncrypted(String username, String uid){
+        byte[] aes=null;
+        try{
+            String sql = "SELECT AESEncrypted FROM EditableFiles WHERE username= ? AND uid= ? ";
+            PreparedStatement statement = super.getConnection().prepareStatement(sql);
+            statement.setString(1, username);
+            statement.setString(2, uid);
+
+            ResultSet rs = statement.executeQuery();
+
+            while (rs.next()) {
+                aes = rs.getBytes("AESEncrypted");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return aes;
+    }
+
     public List<File> getUserEditableFiles(String username) {
         List<File> files = new ArrayList<>();
         try {

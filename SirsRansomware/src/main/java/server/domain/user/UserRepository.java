@@ -130,6 +130,29 @@ public class UserRepository extends Repository {
             } catch (SQLException ignored) {}
         }
     }
+    public boolean isOwner(String username, String uid){
+        boolean bool =false;
+        try {
+            String sql = "SELECT owner FROM Files WHERE uid = ?";
+            PreparedStatement statement = super.getConnection().prepareStatement(sql);
+
+            //Set parameters
+            statement.setString(1, uid);
+
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                if(rs.getString("owner").equals(username)){
+                    bool=true;
+                }
+            }
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return bool;
+
+    }
 
     public void addUserToReadableFiles(String username, String uid) {
         try {

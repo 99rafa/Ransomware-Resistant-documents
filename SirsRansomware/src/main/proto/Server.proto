@@ -31,7 +31,7 @@ service Server {
   rpc PullSelected (PullSelectedRequest) returns (PullReply) {}
   rpc GivePermission (GivePermissionRequest) returns (GivePermissionReply) {}
   rpc Salt(SaltRequest) returns (SaltReply) {}
-
+  rpc GetAESEncrypted(GetAESEncryptedRequest) returns (GetAESEncryptedReply){}
 }
 
 message SaltRequest {
@@ -115,12 +115,22 @@ message GivePermissionRequest{
   string username = 1;
   string uid = 2;
   string mode = 3;
+  bytes AESEncrypted= 4;
 }
 
 message GivePermissionReply{
-  bool ok_username = 1;
-  bool ok_uid = 2;
-  bool ok_mode = 3;
+  bool ok_username = 2;
+  bool ok_uid = 3;
+  bool ok_mode = 4;
+}
+message GetAESEncryptedRequest{
+  string username=1;
+  string other=2;
+  string uid=3;
+}
+message GetAESEncryptedReply{
+  bool is_owner =1;
+  bytes AESEncrypted=2;
 }
 
 
