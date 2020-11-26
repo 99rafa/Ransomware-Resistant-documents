@@ -15,6 +15,7 @@ import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
 import pt.ulisboa.tecnico.sdis.zk.ZKRecord;
 import server.Server;
 
+import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.net.ssl.SSLException;
@@ -22,6 +23,8 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -46,6 +49,7 @@ public class Client {
     private final ServerGrpc.ServerBlockingStub blockingStub;
     private String username = null;
     private byte[] salt = null;
+    KeyStore keyStore;
 
     /**
      * Construct client connecting to HelloWorld server at {@code host:port}.
@@ -56,6 +60,23 @@ public class Client {
 
         Random random = new Random();
         String path;
+
+        Console console = System.console();
+        String passwd = new String(console.readPassword("Enter private Key keyStore password: "));
+        KeyStore ks = null;
+        try {
+            ks = KeyStore.getInstance("PKCS12");
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+        try {
+            assert ks != null;
+            ks.load(new FileInputStream("src/assets/keyStores/clientStore.p12"), "vjZx~R::Vr=s7]bz#".toCharArray());
+            this.keyStore = ks;
+        } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
+            e.printStackTrace();
+        }
+
         System.out.println(zooHost + ":" + zooPort);
         ZKNaming zkNaming = new ZKNaming(zooHost, zooPort);
         ArrayList<ZKRecord> recs = null;
@@ -82,6 +103,32 @@ public class Client {
                 .sslContext(sslContext)
                 .build();
         blockingStub = ServerGrpc.newBlockingStub(channel);
+    }
+
+    private KeyPair generateUserKeyPair() {
+        KeyPair keyPair = null;
+        try {
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+            SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+            keyGen.initialize(2048, random);
+            keyPair = keyGen.genKeyPair();
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return keyPair;
+    }
+
+    private SecretKey retrieveStoredKey() {
+        SecretKey secretKey = null;
+        try {
+            //TODO provide a password
+            secretKey = (SecretKey) this.keyStore.getKey("db-encryption-secret", "".toCharArray());
+            System.out.println(keyStore.containsAlias("db-encryption-secret"));
+        } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException e) {
+            e.printStackTrace();
+        }
+        return secretKey;
     }
 
     private static SslContext buildSslContext(String trustCertCollectionFilePath,
@@ -158,6 +205,26 @@ public class Client {
             else System.out.println("Password don't match. Try again");
         }
         byte[] salt = PBKDF2Main.getNextSalt();
+
+        // generate RSA Keys
+        KeyPair keyPair = generateUserKeyPair();
+        PrivateKey privateKey = keyPair.getPrivate();
+        PublicKey publicKey = keyPair.getPublic();
+
+        byte[] privateKeyBytes = privateKey.getEncoded();
+
+        //save secret Key to key store
+        X509Certificate[] certificateChain = new X509Certificate[1];
+        certificateChain[0] = null;
+        try {
+            this.keyStore.setKeyEntry(username + "privKey", privateKeyBytes, certificateChain);
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+
+
+        byte[] publicKeyBytes = publicKey.getEncoded();
+
         System.out.println("Will try to register " + name + " ...");
 
 
@@ -165,7 +232,9 @@ public class Client {
                 .setUsername(name)
                 .setPassword(ByteString.copyFrom(generateSecurePassword(passwd,salt)))
                 .setSalt(ByteString.copyFrom(salt))
+                .setPublicKey(ByteString.copyFrom(publicKeyBytes))
                 .build();
+
         RegisterReply response;
         try {
             response = blockingStub.register(request);
@@ -177,6 +246,8 @@ public class Client {
         System.out.println(response.getOk());
         //this.username = name;
     }
+
+
 
 
 

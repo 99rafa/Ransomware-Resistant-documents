@@ -89,6 +89,7 @@ public class Server {
         this.privateKeyFilePath = privateKeyFilePath;
         this.trustCertCollectionFilePath = trustCertCollectionFilePath;
 
+
         Console console = System.console();
         String passwd = new String(console.readPassword("Enter private Key keyStore password: "));
         KeyStore ks = null;
@@ -381,30 +382,9 @@ public class Server {
             else if (usernameExists(req.getUsername()))
                 reply = RegisterReply.newBuilder().setOk("Duplicate user with username " + req.getUsername()).build();
             else {
-                // generate RSA Keys
-                KeyPair keyPair = generateUserKeyPair();
-                PrivateKey privateKey = keyPair.getPrivate();
-                PublicKey publicKey = keyPair.getPublic();
-
-                byte[] privateKeyBytes = privateKey.getEncoded();
-                byte[] publicKeyBytes = publicKey.getEncoded();
-
-                // cipher data
-                final String CIPHER_ALGO = "AES/CBC/PKCS5Padding";
-                System.out.println("Ciphering with " + CIPHER_ALGO + "...");
-
-                byte[] cipherBytes = null;
-
-                try {
-                    Cipher cipher = Cipher.getInstance(CIPHER_ALGO);
-                    cipher.init(Cipher.ENCRYPT_MODE,retrieveStoredKey() );
-                    cipherBytes = cipher.doFinal(privateKeyBytes);
-                } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
-                    e.printStackTrace();
-                }
 
 
-                registerUser(req.getUsername(), req.getPassword().toByteArray(), req.getSalt().toByteArray(),publicKeyBytes, cipherBytes);
+                registerUser(req.getUsername(), req.getPassword().toByteArray(), req.getSalt().toByteArray(),req.getPublicKey().toByteArray());
                 reply = RegisterReply.newBuilder().setOk("User " + req.getUsername() + " registered successfully").build();
             }
             responseObserver.onNext(reply);
@@ -585,32 +565,6 @@ public class Server {
         private List<String> getUsersWithPermission(String uid, String mode){
             List<String> usernames =userRepository.getUsersWithPermissions(uid,mode);
             return usernames;
-        }
-
-        private KeyPair generateUserKeyPair() {
-            KeyPair keyPair = null;
-            try {
-                KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-                SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
-                keyGen.initialize(2048, random);
-                keyPair = keyGen.genKeyPair();
-
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            }
-            return keyPair;
-        }
-
-        private SecretKey retrieveStoredKey() {
-            SecretKey secretKey = null;
-            try {
-                //TODO provide a password
-                secretKey = (SecretKey) this.keyStore.getKey("db-encryption-secret", "".toCharArray());
-                System.out.println(keyStore.containsAlias("db-encryption-secret"));
-            } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException e) {
-                e.printStackTrace();
-            }
-            return secretKey;
         }
 
     }
