@@ -47,12 +47,16 @@ public class Client {
     private static final String FILE_MAPPING_PATH = SIRS_DIR + "/src/assets/data/fm.txt";
     private static final String PULLS_DIR = SIRS_DIR + "/src/assets/clientPulls/";
 
-    private final ManagedChannel channel;
-    private final ServerGrpc.ServerBlockingStub blockingStub;
+    private ManagedChannel channel;
+    private ServerGrpc.ServerBlockingStub blockingStub;
     private String username = null;
     private byte[] salt = null;
     KeyStore keyStore;
     private Cipher cipher;
+    private final String zooHost;
+    private final String zooPort;
+    private final SslContext sslContext;
+    private String currentPartition;
 
     /**
      * Construct client connecting to HelloWorld server at {@code host:port}.
@@ -61,6 +65,9 @@ public class Client {
                   String zooPort,
                   SslContext sslContext) {
 
+        this.zooHost = zooHost;
+        this.zooPort = zooPort;
+        this.sslContext = sslContext;
         Random random = new Random();
         String path;
 
@@ -89,9 +96,9 @@ public class Client {
             e.printStackTrace();
         }
 
-
         assert recs != null;
         path = recs.get(random.nextInt(recs.size())).getPath();
+        this.currentPartition = path.split("/")[path.split("/").length - 1].split("_")[0];
         ZKRecord record = null;
         try {
             record = zkNaming.lookup(path);
@@ -435,6 +442,59 @@ public class Client {
         return sign.verify(signature);
     }
 
+    public String getRandomPartition(){
+        Random random = new Random();
+        ZKNaming zkNaming = new ZKNaming(this.zooHost,this.zooPort);
+        ArrayList<ZKRecord> recs = null;
+        try {
+            recs = new ArrayList<>(zkNaming.listRecords("/sirs/ransomware/servers"));
+        } catch (ZKNamingException e) {
+            e.printStackTrace();
+        }
+        assert recs != null;
+
+        String[] split = recs.get(random.nextInt(recs.size())).getPath().split("/");
+        return split[split.length - 1].split("_")[0];
+    }
+
+    public void connectToRandomPartitionServer(String partId) throws InterruptedException {
+        shutdown();
+        Random random = new Random();
+        String path;
+        ZKNaming zkNaming = new ZKNaming(zooHost, zooPort);
+        ArrayList<ZKRecord> recs = null;
+        try {
+            recs = new ArrayList<>(zkNaming.listRecords("/sirs/ransomware/servers"));
+        } catch (ZKNamingException e) {
+            e.printStackTrace();
+        }
+
+
+
+        assert recs != null;
+
+        List<String> paths = recs.stream().map(ZKRecord::getPath)
+                .filter(p -> p.split("/")[p.split("/").length - 1].startsWith(partId))
+                .collect(Collectors.toList());
+
+        path = paths.get(random.nextInt(paths.size()));
+        this.currentPartition = path.split("/")[path.split("/").length - 1].split("_")[0];
+        ZKRecord record = null;
+        try {
+            record = zkNaming.lookup(path);
+        } catch (ZKNamingException e) {
+            e.printStackTrace();
+        }
+
+
+        assert record != null;
+        this.channel = NettyChannelBuilder.forTarget(record.getURI())
+                .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
+                .sslContext(sslContext)
+                .build();
+        this.blockingStub = ServerGrpc.newBlockingStub(channel);
+    }
+
     public void push() {
         if (username != null) {
             try {
@@ -450,15 +510,21 @@ public class Client {
                 byte[] file_bytes = Files.readAllBytes(
                         Paths.get(filePath)
                 );
-                //TODO PICK RANDOM PARTITION
-                //TODO STATIC FOR NOW
-                String partId = "1";
+
+
                 String filename;
+                String partId;
                 if (isNew) {
+                    partId = getRandomPartition();
                     System.out.print("Filename: ");
                     filename = input.nextLine();
-                } else
+                } else{
                     filename = getUidMap(INDEX_PATH, INDEX_NAME).get(filePath);
+                    partId = getUidMap(INDEX_PATH, INDEX_PART_ID).get(filePath);
+                }
+                System.out.println(partId);
+                if(!this.currentPartition.equals(partId))
+                    connectToRandomPartitionServer(partId);
                 String uid = generateFileUid(filePath, partId, filename);
 
                 byte[] digitalSignature = createDigitalSignature(file_bytes, getPrivateKey() );
@@ -495,7 +561,7 @@ public class Client {
                     System.err.println("Exceeded the number of tries. Client logged out.");
                     logout();
                 }
-            } catch (IOException | NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+            } catch (IOException | NoSuchAlgorithmException | InvalidKeyException | SignatureException | InterruptedException e) {
                 e.printStackTrace();
             }
         } else System.err.println("Error: To push a file, you need to login first");
@@ -586,7 +652,7 @@ public class Client {
                     //ELSE CREATE IT
                 else {
                     FileUtils.writeByteArrayToFile(new File(PULLS_DIR + filename), file_data);
-                    String text = PULLS_DIR + filename + " " + uid + " " + partId + " " + filename;
+                    String text = PULLS_DIR + filename + " " + uid + " " + partId + " " + filename + "\n";
                     appendTextToFile(text, FILE_MAPPING_PATH);
                 }
 

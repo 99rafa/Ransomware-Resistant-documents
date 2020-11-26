@@ -1,2 +1,4 @@
 /home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/certs/server1.key d0a79ee8-e9c8-4646-be50-e5b8e38410c8 1 oi
-/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/clientPulls/oi 32a910af-3674-496d-b1ab-f9f6b394b192 1 oi
+/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/clientPulls/oi 32a910af-3674-496d-b1ab-f9f6b394b192 1 oi/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/certs/server0.key 22ed8593-d95a-4c48-88a5-9610ae57d80a 1 lol
+/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/certs/server0.key 6d674785-3708-4ee3-b004-5e1d2b8face0 2 loi
+/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/certs/server0.pem 12fbb36e-a417-45b9-87bc-b2664bd38876 1 kl
