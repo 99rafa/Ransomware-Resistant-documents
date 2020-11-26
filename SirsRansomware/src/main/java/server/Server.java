@@ -490,7 +490,7 @@ public class Server {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                reply.addUids(file.getUid());
+                reply.addUids(mostRecentVersion.getUid());
                 reply.addFilenames(file.getName());
                 reply.addOwners(file.getOwner());
                 reply.addPartIds(file.getPartition());
