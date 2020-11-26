@@ -634,8 +634,7 @@ public class Client {
         byte[] aesEncrypted = reply.getAESEncrypted().toByteArray();
         if(reply.getIsOwner()){
             //desencriptar com a privada, encriptar com a publica do outro e mandar para o server
-
-
+            
             //read/write permissions
             GivePermissionRequest request = GivePermissionRequest
                     .newBuilder()
