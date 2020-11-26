@@ -1,6 +1,7 @@
 package client;
 
 import PBKDF2.PBKDF2Main;
+import SelfSignedCertificate.SelfSignedCertificate;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
@@ -26,6 +27,7 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -155,6 +157,7 @@ public class Client {
             System.exit(0);
         }
 
+
         /* Use default CA. Only for real server certificates. */
         Client client = new Client(args[0], args[1],
                 buildSslContext(args[2], args[3], args[4]));
@@ -186,6 +189,16 @@ public class Client {
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }
 
+    private static byte[] readPrivateKey(Key privateKey) {
+        String encodedString = "-----BEGIN PRIVATE KEY-----\n";
+        encodedString = encodedString+Base64.getEncoder().encodeToString(privateKey.getEncoded())+"\n";
+        encodedString = encodedString+"-----END PRIVATE KEY-----\n";
+
+        return  Base64.getDecoder().decode(encodedString);
+
+
+    }
+
     /**
      * Say hello to server.
      */
@@ -206,26 +219,20 @@ public class Client {
         }
         byte[] salt = PBKDF2Main.getNextSalt();
 
+
+
+        System.out.println("Will try to register " + name + " ...");
         // generate RSA Keys
         KeyPair keyPair = generateUserKeyPair();
         PrivateKey privateKey = keyPair.getPrivate();
         PublicKey publicKey = keyPair.getPublic();
 
+
+
+        // Get the bytes of the public and private keys
         byte[] privateKeyBytes = privateKey.getEncoded();
-
-        //save secret Key to key store
-        X509Certificate[] certificateChain = new X509Certificate[1];
-        certificateChain[0] = null;
-        try {
-            this.keyStore.setKeyEntry(username + "privKey", privateKeyBytes, certificateChain);
-        } catch (KeyStoreException e) {
-            e.printStackTrace();
-        }
-
-
         byte[] publicKeyBytes = publicKey.getEncoded();
 
-        System.out.println("Will try to register " + name + " ...");
 
 
         RegisterRequest request = RegisterRequest.newBuilder()
@@ -234,6 +241,22 @@ public class Client {
                 .setSalt(ByteString.copyFrom(salt))
                 .setPublicKey(ByteString.copyFrom(publicKeyBytes))
                 .build();
+
+        //save secret Key to key store
+        X509Certificate[] certificateChain = new X509Certificate[1];
+        SelfSignedCertificate certificate = new SelfSignedCertificate();
+        try {
+            certificateChain[0] = certificate.createCertificate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try {
+            this.keyStore.setKeyEntry(name + "privKey", privateKey, "".toCharArray(), certificateChain);
+            this.keyStore.store(new FileOutputStream("src/assets/keyStores/clientStore.p12"), "vjZx~R::Vr=s7]bz#".toCharArray());
+        } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException e) {
+            e.printStackTrace();
+        }
+
 
         RegisterReply response;
         try {

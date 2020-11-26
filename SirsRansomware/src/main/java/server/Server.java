@@ -382,8 +382,6 @@ public class Server {
             else if (usernameExists(req.getUsername()))
                 reply = RegisterReply.newBuilder().setOk("Duplicate user with username " + req.getUsername()).build();
             else {
-
-
                 registerUser(req.getUsername(), req.getPassword().toByteArray(), req.getSalt().toByteArray(),req.getPublicKey().toByteArray());
                 reply = RegisterReply.newBuilder().setOk("User " + req.getUsername() + " registered successfully").build();
             }
@@ -514,7 +512,6 @@ public class Server {
                     if (filenameExists(req.getUid())) {
                         giveUserPermission(req.getUsername(), req.getUid(), req.getMode());
                         reply = GivePermissionReply.newBuilder().setOkUsername(true).setOkUid(true).setOkMode(true).build();
-
                     }
                 } else
                     reply = GivePermissionReply.newBuilder().setOkUsername(false).setOkUid(false).setOkMode(true).build();
@@ -532,13 +529,12 @@ public class Server {
 
         }
 
-        private void registerUser(String name, byte[] password, byte[] salt,byte[] public_key, byte[] private_key) {
-            User user = new User(name, password, salt, ITERATIONS, public_key, private_key);
+        private void registerUser(String name, byte[] password, byte[] salt, byte[] publicKeyBytes) {
+            User user = new User(name, password, salt, ITERATIONS, publicKeyBytes);
             user.saveInDatabase(this.c);
         }
 
         private void registerFile(String uid, String filename, String owner, String partId) {
-
             server.domain.file.File file = new server.domain.file.File(uid, owner, filename, partId);
             file.saveInDatabase(this.c);
         }
@@ -550,7 +546,6 @@ public class Server {
 
         private boolean usernameExists(String name) {
             User user = userRepository.getUserByUsername(name);
-
             return user.getUsername() != null && user.getPassHash() != null && user.getSalt() != null;
         }
 
@@ -561,10 +556,10 @@ public class Server {
 
         private void giveUserPermission(String username, String uid, String mode) {
             userRepository.setUserPermissionFile(username, uid, mode);
+            //depending on the mode, set on the database the symmetric key encrypted with the public key of the people who have permission to access the file
         }
         private List<String> getUsersWithPermission(String uid, String mode){
-            List<String> usernames =userRepository.getUsersWithPermissions(uid,mode);
-            return usernames;
+            return userRepository.getUsersWithPermissions(uid,mode);
         }
 
     }

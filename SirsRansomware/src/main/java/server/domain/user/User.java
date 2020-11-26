@@ -23,9 +23,8 @@ public class User implements DatabaseObject {
 
     private int iterations;
 
-    private byte[] public_key;
+    private byte[] publicKey;
 
-    private byte[] private_key;
 
     //MTM
     private List<String> editableFiles = new ArrayList<>();
@@ -36,25 +35,18 @@ public class User implements DatabaseObject {
     //OTM
     private List<String> createdVersions = new ArrayList<>();
 
-    public User(String username, byte[] passHash, byte[] salt, int iterations, byte[] public_key, byte[] private_key) {
+
+    public User(String username, byte[] passHash, byte[] salt, int iterations, byte[] publicKey) {
+
         this.username = username;
         this.passHash = passHash;
         this.salt = salt;
         this.iterations = iterations;
-        this.public_key = public_key;
-        this.private_key = private_key;
+        this.publicKey = publicKey;
     }
 
     public User() {
 
-    }
-
-    public byte[] getPublic_key() {
-        return public_key;
-    }
-
-    public void setPublic_key(byte[] public_key) {
-        this.public_key = public_key;
     }
 
     public List<String> getCreatedVersions() {
@@ -133,19 +125,17 @@ public class User implements DatabaseObject {
         this.ownedFiles.add(file);
     }
 
-    public byte[] getPrivate_key() {
-        return private_key;
-    }
+    public byte[] getPublicKey() { return publicKey; }
 
-    public void setPrivate_key(byte[] private_key) {
-        this.private_key = private_key;
-    }
+    public void setPublicKey(byte[] publicKey) { this.publicKey = publicKey; }
+
 
     @Override
     public void saveInDatabase(Connector connector) {
         try {
             //Insert user
-            String sql = "INSERT INTO Users VALUES (?,?,?,?,?,?)";
+            String sql = "INSERT INTO Users VALUES (?,?,?,?,?)";
+
             PreparedStatement s = connector.connection.prepareStatement(sql);
 
             //Set parameters
@@ -153,9 +143,8 @@ public class User implements DatabaseObject {
             s.setBinaryStream(2, new ByteArrayInputStream(this.passHash));
             s.setBinaryStream(3, new ByteArrayInputStream(this.salt));
             s.setInt(4, this.iterations);
-            s.setBinaryStream(5,new ByteArrayInputStream(this.public_key));
-            s.setBinaryStream(6, new ByteArrayInputStream(this.private_key));
-            s.executeUpdate();
+            s.setBinaryStream(5, new ByteArrayInputStream(this.publicKey));
+
 
             //Commit transaction
             connector.connection.commit();
@@ -174,6 +163,7 @@ public class User implements DatabaseObject {
         return "User{" +
                 "username='" + username + '\'' +
                 ", passHash=" + Arrays.toString(passHash) +
+                ", publicKey=" + Arrays.toString(publicKey) +
                 ", editableFiles=" + editableFiles +
                 ", readableFiles=" + readableFiles +
                 ", ownedFiles=" + ownedFiles +
