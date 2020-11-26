@@ -23,7 +23,7 @@ public class User implements DatabaseObject {
 
     private int iterations;
 
-    private byte[] public_key;
+    private byte[] publicKey;
 
 
     //MTM
@@ -35,24 +35,17 @@ public class User implements DatabaseObject {
     //OTM
     private List<String> createdVersions = new ArrayList<>();
 
-    public User(String username, byte[] passHash, byte[] salt, int iterations, byte[] public_key) {
+    public User(String username, byte[] passHash, byte[] salt, int iterations, byte[] publicKey) {
+
         this.username = username;
         this.passHash = passHash;
         this.salt = salt;
         this.iterations = iterations;
-        this.public_key = public_key;
+        this.publicKey = publicKey;
     }
 
     public User() {
 
-    }
-
-    public byte[] getPublic_key() {
-        return public_key;
-    }
-
-    public void setPublic_key(byte[] public_key) {
-        this.public_key = public_key;
     }
 
     public List<String> getCreatedVersions() {
@@ -131,6 +124,11 @@ public class User implements DatabaseObject {
         this.ownedFiles.add(file);
     }
 
+    public byte[] getPublicKey() { return publicKey; }
+
+    public void setPublicKey(byte[] publicKey) { this.publicKey = publicKey; }
+
+
     @Override
     public void saveInDatabase(Connector connector) {
         try {
@@ -143,9 +141,7 @@ public class User implements DatabaseObject {
             s.setBinaryStream(2, new ByteArrayInputStream(this.passHash));
             s.setBinaryStream(3, new ByteArrayInputStream(this.salt));
             s.setInt(4, this.iterations);
-            s.setBinaryStream(5,new ByteArrayInputStream(this.public_key));
-            s.executeUpdate();
-
+            s.setBinaryStream(5, new ByteArrayInputStream(this.publicKey));
             //Commit transaction
             connector.connection.commit();
         } catch (SQLException e) {
@@ -163,6 +159,7 @@ public class User implements DatabaseObject {
         return "User{" +
                 "username='" + username + '\'' +
                 ", passHash=" + Arrays.toString(passHash) +
+                ", publicKey=" + Arrays.toString(publicKey) +
                 ", editableFiles=" + editableFiles +
                 ", readableFiles=" + readableFiles +
                 ", ownedFiles=" + ownedFiles +

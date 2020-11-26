@@ -159,12 +159,20 @@ public class Client {
         }
         byte[] salt = PBKDF2Main.getNextSalt();
         System.out.println("Will try to register " + name + " ...");
+        // generate RSA Keys
+        KeyPair keyPair = generateUserKeyPair();
+        PrivateKey privateKey = keyPair.getPrivate();
+        PublicKey publicKey = keyPair.getPublic();
 
+        // Get the bytes of the public and private keys
+        byte[] privateKeyBytes = privateKey.getEncoded();
+        byte[] publicKeyBytes = publicKey.getEncoded();
 
         RegisterRequest request = RegisterRequest.newBuilder()
                 .setUsername(name)
                 .setPassword(ByteString.copyFrom(generateSecurePassword(passwd,salt)))
                 .setSalt(ByteString.copyFrom(salt))
+                .setPublicKey(ByteString.copyFrom(publicKeyBytes))
                 .build();
         RegisterReply response;
         try {
@@ -489,6 +497,19 @@ public class Client {
 
     public void generateSecureFile() {
 
+    }
+    private KeyPair generateUserKeyPair() {
+        KeyPair keyPair = null;
+        try {
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+            SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+            keyGen.initialize(2048, random);
+            keyPair = keyGen.genKeyPair();
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return keyPair;
     }
 
 }

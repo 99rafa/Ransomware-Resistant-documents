@@ -10,7 +10,12 @@ CREATE TABLE Users
     password   VARBINARY(1024) NOT NULL,
     salt       VARBINARY(64)   NOT NULL,
     iterations INT             NOT NULL,
+<<<<<<< HEAD
     public_key VARBINARY(2048) NOT NULL
+=======
+    publicKey  VARBINARY(2048) NOT NULL
+
+>>>>>>> 56593a94399adda05e8fa2d8fc258386db28043b
 );
 
 CREATE TABLE Files
@@ -36,6 +41,7 @@ CREATE TABLE EditableFiles
 (
     username VARCHAR(15),
     uid      VARCHAR(100),
+    AESEncrypted VARBINARY (2048),
     FOREIGN KEY (username) REFERENCES Users (username),
     FOREIGN KEY (uid) REFERENCES Files (uid)
 );
@@ -44,6 +50,7 @@ CREATE TABLE ReadableFiles
 (
     username VARCHAR(15),
     uid      VARCHAR(100),
+    AESEncrypted VARBINARY (2048),
     FOREIGN KEY (username) REFERENCES Users (username),
     FOREIGN KEY (uid) REFERENCES Files (uid)
 );

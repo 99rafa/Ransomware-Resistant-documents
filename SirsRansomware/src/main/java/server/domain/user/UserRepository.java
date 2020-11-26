@@ -15,7 +15,6 @@ public class UserRepository extends Repository {
         super(c);
     }
 
-
     public byte[] getUserPassword(String username) {
         byte[] userPassword = null;
         try {
@@ -170,6 +169,29 @@ public class UserRepository extends Repository {
         return usernames;
     }
 
+    public List<byte[]> getPublicKeysByUsernames(List<String> usernames){
+        List<byte[]> publicKeys = new ArrayList<>();
+        for(String username : usernames){
+            try {
+
+                String sql = "SELECT public_key FROM Users WHERE username = ?";
+                PreparedStatement statement = super.getConnection().prepareStatement(sql);
+
+                //Set parameters
+
+                statement.setString(1, username);
+
+                ResultSet rs = statement.executeQuery();
+
+                if (rs.next()) {
+                    publicKeys.add(rs.getBytes("public_key"));
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return publicKeys;
+    }
 
     public User getUserByUsername(String username) {
         User user = new User();
@@ -191,7 +213,7 @@ public class UserRepository extends Repository {
                 user.setUsername(username);
                 user.setPassHash(rs.getBytes("password"));
                 user.setSalt(rs.getBytes("salt"));
-                user.setPublic_key(rs.getBytes("public_key"));
+                user.setPublicKey(rs.getBytes("public_key"));
             }
 
             //Retrieve owned files

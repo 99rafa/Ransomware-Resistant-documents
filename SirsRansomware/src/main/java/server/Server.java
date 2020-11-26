@@ -381,26 +381,7 @@ public class Server {
             else if (usernameExists(req.getUsername()))
                 reply = RegisterReply.newBuilder().setOk("Duplicate user with username " + req.getUsername()).build();
             else {
-                // generate RSA Keys
-                KeyPair keyPair = generateUserKeyPair();
-                PublicKey publicKey = keyPair.getPublic();
-
-                byte[] publicKeyBytes = publicKey.getEncoded();
-
-                // cipher data
-                final String CIPHER_ALGO = "AES/CBC/PKCS5Padding";
-                System.out.println("Ciphering with " + CIPHER_ALGO + "...");
-
-
-                try {
-                    Cipher cipher = Cipher.getInstance(CIPHER_ALGO);
-                    cipher.init(Cipher.ENCRYPT_MODE,retrieveStoredKey() );
-                } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
-                    e.printStackTrace();
-                }
-
-
-                registerUser(req.getUsername(), req.getPassword().toByteArray(), req.getSalt().toByteArray(),publicKeyBytes);
+                registerUser(req.getUsername(), req.getPassword().toByteArray(), req.getSalt().toByteArray(),req.getPublicKey().toByteArray());
                 reply = RegisterReply.newBuilder().setOk("User " + req.getUsername() + " registered successfully").build();
             }
             responseObserver.onNext(reply);
@@ -424,12 +405,32 @@ public class Server {
 
         @Override
         public void getPublicKeysByFile(GetPublicKeysByFileRequest request, StreamObserver<GetPublicKeysByFileReply> responseObserver) {
-            super.getPublicKeysByFile(request, responseObserver);
+            GetPublicKeysByFileReply reply = GetPublicKeysByFileReply
+                    .newBuilder()
+                    .addAllKeys(
+                            fileRepository.getPublicKeysByFile(request.getFileUid())
+                                    .stream()
+                                    .map(ByteString::copyFrom)
+                                    .collect(Collectors.toList())
+                    )
+                    .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
         }
 
         @Override
         public void getPublicKeysByUsernames(GetPublicKeysByUsernamesRequest request, StreamObserver<GetPublicKeysByUsernamesReply> responseObserver) {
-            super.getPublicKeysByUsernames(request, responseObserver);
+            GetPublicKeysByUsernamesReply reply = GetPublicKeysByUsernamesReply
+                    .newBuilder()
+                    .addAllKeys(
+                            userRepository.getPublicKeysByUsernames(request.getUsernamesList())
+                                    .stream()
+                                    .map(ByteString::copyFrom)
+                                    .collect(Collectors.toList())
+                    )
+                    .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
         }
 
         @Override
@@ -539,7 +540,6 @@ public class Server {
                     if (filenameExists(req.getUid())) {
                         giveUserPermission(req.getUsername(), req.getUid(), req.getMode());
                         reply = GivePermissionReply.newBuilder().setOkUsername(true).setOkUid(true).setOkMode(true).build();
-
                     }
                 } else
                     reply = GivePermissionReply.newBuilder().setOkUsername(false).setOkUid(false).setOkMode(true).build();
@@ -557,13 +557,12 @@ public class Server {
 
         }
 
-        private void registerUser(String name, byte[] password, byte[] salt,byte[] public_key) {
-            User user = new User(name, password, salt, ITERATIONS, public_key);
+        private void registerUser(String name, byte[] password, byte[] salt, byte[] publicKeyBytes) {
+            User user = new User(name, password, salt, ITERATIONS, publicKeyBytes);
             user.saveInDatabase(this.c);
         }
 
         private void registerFile(String uid, String filename, String owner, String partId) {
-
             server.domain.file.File file = new server.domain.file.File(uid, owner, filename, partId);
             file.saveInDatabase(this.c);
         }
@@ -575,7 +574,6 @@ public class Server {
 
         private boolean usernameExists(String name) {
             User user = userRepository.getUserByUsername(name);
-
             return user.getUsername() != null && user.getPassHash() != null && user.getSalt() != null;
         }
 
@@ -586,24 +584,10 @@ public class Server {
 
         private void giveUserPermission(String username, String uid, String mode) {
             userRepository.setUserPermissionFile(username, uid, mode);
+            //depending on the mode, set on the database the symmetric key encrypted with the public key of the people who have permission to access the file
         }
         private List<String> getUsersWithPermission(String uid, String mode){
-            List<String> usernames =userRepository.getUsersWithPermissions(uid,mode);
-            return usernames;
-        }
-
-        private KeyPair generateUserKeyPair() {
-            KeyPair keyPair = null;
-            try {
-                KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-                SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
-                keyGen.initialize(2048, random);
-                keyPair = keyGen.genKeyPair();
-
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            }
-            return keyPair;
+            return userRepository.getUsersWithPermissions(uid,mode);
         }
 
         private SecretKey retrieveStoredKey() {
