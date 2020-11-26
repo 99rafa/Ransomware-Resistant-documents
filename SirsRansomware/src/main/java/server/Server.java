@@ -24,12 +24,12 @@ import server.domain.fileVersion.FileVersionRepository;
 import server.domain.user.User;
 import server.domain.user.UserRepository;
 
+import javax.crypto.*;
+import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLException;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
@@ -37,6 +37,8 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.sql.SQLException;
 import java.util.*;
@@ -65,6 +67,9 @@ public class Server {
     private ZKNaming zkNaming;
     private ManagedChannel channel;
     private ServerGrpc.ServerBlockingStub blockingStub;
+    private KeyStore keyStore;
+    private KeyStore trustCertStore;
+    private KeyStore trustStore;
 
     public Server(String id,
                   String zooPort,
@@ -83,6 +88,54 @@ public class Server {
         this.certChainFilePath = certChainFilePath;
         this.privateKeyFilePath = privateKeyFilePath;
         this.trustCertCollectionFilePath = trustCertCollectionFilePath;
+
+        Console console = System.console();
+        String passwd = new String(console.readPassword("Enter private Key keyStore password: "));
+        KeyStore ks = null;
+        try {
+            ks = KeyStore.getInstance("PKCS12");
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+        try {
+            assert ks != null;
+            ks.load(new FileInputStream("src/assets/keyStores/privateKeyServerKeyStore.p12"), "5Xa)^WU_(rw$<}p%".toCharArray());
+            this.keyStore = ks;
+        } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
+            e.printStackTrace();
+        }
+
+        passwd = new String(console.readPassword("Enter trust cert keyStore password: "));
+        KeyStore trustCertKeyStore = null;
+        try {
+            trustCertKeyStore = KeyStore.getInstance("PKCS12");
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+        try {
+            assert trustCertKeyStore != null;
+            trustCertKeyStore.load(new FileInputStream("src/assets/keyStores/trustCertsServerKeyStore.p12"), "w7my3n,~yvF-;Py3".toCharArray());
+            this.trustCertStore = trustCertKeyStore;
+        } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
+            e.printStackTrace();
+        }
+
+        passwd = new String(console.readPassword("Enter trustStore password: "));
+        KeyStore trustStore = null;
+        try {
+            trustStore = KeyStore.getInstance("PKCS12");
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+        try {
+            assert trustStore != null;
+            trustStore.load(new FileInputStream("src/assets/keyStores/trustStore.p12"), "w?#Sf@ZAL*tY7fVx".toCharArray());
+            this.trustStore = trustStore;
+        } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
+            e.printStackTrace();
+        }
+
+
     }
 
     private static SslContext buildSslContext(String trustCertCollectionFilePath,
@@ -121,11 +174,25 @@ public class Server {
                 args[6],
                 args[7]);
         server.start();
+
         server.greet("Server");
-
-
         server.blockUntilShutdown();
 
+
+    }
+
+    public static SecretKey readKey(String secretKeyPath) throws Exception {
+        byte[] encoded = readFile(secretKeyPath);
+        SecretKeySpec keySpec = new SecretKeySpec(encoded, "AES");
+        return keySpec;
+    }
+
+    private static byte[] readFile(String path) throws FileNotFoundException, IOException {
+        FileInputStream fis = new FileInputStream(path);
+        byte[] content = new byte[fis.available()];
+        fis.read(content);
+        fis.close();
+        return content;
     }
 
     public List<String> getZooPaths(String zooPath) {
@@ -138,6 +205,7 @@ public class Server {
             e.printStackTrace();
         }
 
+        assert recs != null;
         return recs.stream().map(ZKRecord::getPath).collect(Collectors.toList());
     }
 
@@ -151,6 +219,7 @@ public class Server {
         } catch (ZKNamingException e) {
             e.printStackTrace();
         }
+        assert record != null;
         this.channel = NettyChannelBuilder.forTarget(record.getURI())
                 .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
                 .sslContext(buildSslContext(this.trustCertCollectionFilePath, this.certChainFilePath, this.privateKeyFilePath))
@@ -184,7 +253,7 @@ public class Server {
 
     private void start() throws IOException {
         server = NettyServerBuilder.forAddress(new InetSocketAddress(host, Integer.parseInt(port)))
-                .addService(new ServerImp())
+                .addService(new ServerImp(this.keyStore,this.trustCertStore,this.trustStore))
                 .sslContext(getSslContextBuilder().build())
                 .build()
                 .start();
@@ -228,6 +297,38 @@ public class Server {
         }
     }
 
+    private static PrivateKey readPrivateKey(String privateKeyPath) {
+        String key = null;
+        try {
+            key = Files.readString(Paths.get(privateKeyPath), Charset.defaultCharset());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        assert key != null;
+        String privateKeyPEM = key
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replaceAll(System.lineSeparator(), "")
+                .replace("-----END PRIVATE KEY-----", "");
+
+        byte[] encoded = Base64.getDecoder().decode(privateKeyPEM);
+
+        KeyFactory keyFactory = null;
+        try {
+            keyFactory = KeyFactory.getInstance("RSA");
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
+        try {
+            assert keyFactory != null;
+            return keyFactory.generatePrivate(keySpec);
+        } catch (InvalidKeySpecException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     /**
      * Await termination on the main thread since the grpc library uses daemon threads.
      */
@@ -239,17 +340,25 @@ public class Server {
 
     static class ServerImp extends ServerGrpc.ServerImplBase {
         private final static int ITERATIONS = 10000;
+        private KeyStore keyStore;
+        private KeyStore trustCertStore;
+        private KeyStore trustStore;
         Connector c;
         UserRepository userRepository;
         FileRepository fileRepository;
         FileVersionRepository fileVersionRepository;
 
-        public ServerImp() {
+        public ServerImp(KeyStore keyStore,
+                KeyStore trustCertStore,
+                KeyStore trustStore) {
             try {
                 c = new Connector();
                 userRepository = new UserRepository(c.getConnection());
                 fileRepository = new FileRepository(c.getConnection());
                 fileVersionRepository = new FileVersionRepository(c.getConnection());
+                this.keyStore = keyStore;
+                this.trustCertStore = trustCertStore;
+                this.trustStore = trustStore;
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -310,7 +419,7 @@ public class Server {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                //REGISTAR FILE
+                //REGISTER FILE
                 if (!this.fileRepository.fileExists(req.getUid())) {
                     registerFile(req.getUid(), req.getFileName(), req.getUsername(), req.getPartId());
                 }
@@ -421,14 +530,12 @@ public class Server {
 
         private void registerUser(String name, byte[] password, byte[] salt, byte[] publicKeyBytes) {
             User user = new User(name, password, salt, ITERATIONS, publicKeyBytes);
-
             user.saveInDatabase(this.c);
         }
 
         private void registerFile(String uid, String filename, String owner, String partId) {
             server.domain.file.File file = new server.domain.file.File(uid, owner, filename, partId);
             file.saveInDatabase(this.c);
-
         }
 
         private void registerFileVersion(String versionId, String fileId, String creator) {
@@ -438,7 +545,6 @@ public class Server {
 
         private boolean usernameExists(String name) {
             User user = userRepository.getUserByUsername(name);
-
             return user.getUsername() != null && user.getPassHash() != null && user.getSalt() != null;
         }
 
@@ -459,7 +565,17 @@ public class Server {
             return userRepository.getPublicKey(username);
         }
 
-
+        private SecretKey retrieveStoredKey() {
+            SecretKey secretKey = null;
+            try {
+                //TODO provide a password
+                secretKey = (SecretKey) this.keyStore.getKey("db-encryption-secret", "".toCharArray());
+                System.out.println(keyStore.containsAlias("db-encryption-secret"));
+            } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException e) {
+                e.printStackTrace();
+            }
+            return secretKey;
+        }
 
     }
 }

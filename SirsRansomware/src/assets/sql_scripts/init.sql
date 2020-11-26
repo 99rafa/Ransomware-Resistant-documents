@@ -11,6 +11,7 @@ CREATE TABLE Users
     salt       VARBINARY(64)   NOT NULL,
     iterations INT             NOT NULL,
     publicKey  VARBINARY(2048) NOT NULL
+
 );
 
 CREATE TABLE Files
