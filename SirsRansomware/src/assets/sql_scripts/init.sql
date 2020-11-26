@@ -10,12 +10,7 @@ CREATE TABLE Users
     password   VARBINARY(1024) NOT NULL,
     salt       VARBINARY(64)   NOT NULL,
     iterations INT             NOT NULL,
-<<<<<<< HEAD
-    public_key VARBINARY(2048) NOT NULL
-=======
     publicKey  VARBINARY(2048) NOT NULL
-
->>>>>>> 56593a94399adda05e8fa2d8fc258386db28043b
 );
 
 CREATE TABLE Files
@@ -33,6 +28,7 @@ CREATE TABLE FileVersions
     file_uid    VARCHAR(100) NOT NULL,
     creator     VARCHAR(30)  NOT NULL,
     date        DATETIME     NOT NULL,
+    digital_signature VARBINARY(2048) NOT NULL ,
     FOREIGN KEY (file_uid) REFERENCES Files (uid),
     FOREIGN KEY (creator) REFERENCES Users (username)
 );
