@@ -230,7 +230,7 @@ public class Client {
 
 
         // Get the bytes of the public and private keys
-        byte[] privateKeyBytes = privateKey.getEncoded();
+        byte[] privateKeyBytes = privateKey.getEncoded(); //keep privatekey in Keystore
         byte[] publicKeyBytes = publicKey.getEncoded();
 
 
@@ -409,6 +409,32 @@ public class Client {
         return null;
     }
 
+    public byte[] createDigitalSignature(byte[] fileBytes, PrivateKey privateKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+        //Creating a Signature object
+        Signature sign = Signature.getInstance("SHA256withDSA");
+
+        //Initialize the signature
+        sign.initSign(privateKey);
+
+        //Adding data to the signature
+        sign.update(fileBytes);
+        //Calculating the signature
+
+        return sign.sign();
+    }
+
+    public boolean verifyDigitalSignature(byte[] signature, PublicKey publicKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+        //Creating a Signature object
+        Signature sign = Signature.getInstance("SHA256withDSA");
+        //Initializing the signature
+
+        sign.initVerify(publicKey);
+        sign.update(signature);
+
+        //Verifying the signature
+        return sign.verify(signature);
+    }
+
     public void push() {
         if (username != null) {
             try {
@@ -550,34 +576,53 @@ public class Client {
 
     public void givePermission() {
         Console console = System.console();
-        String username = console.readLine("Enter the username to give permission: ");
+        String other = console.readLine("Enter the username to give permission: ");
         String s = ((System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n")));
         String filename = console.readLine("Enter the filename: ");
         String uid = null;
+
+
 
         try {
             uid = getUid(filename);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
-        //read/write permissions
-        GivePermissionRequest request = GivePermissionRequest
+        GetAESEncryptedRequest req = GetAESEncryptedRequest
                 .newBuilder()
-                .setUsername(username)
+                .setUsername(this.username)
+                .setOther(other)
                 .setUid(uid)
-                .setMode(s)
                 .build();
-        GivePermissionReply res = blockingStub.givePermission(request);
-        if (res.getOkMode()) {
-            if (res.getOkUsername()) {
-                if (res.getOkUid()) {
-                    switch (s) {
-                        case "read" -> System.out.println("Read permission of file " + filename + " granted for user " + username);
-                        case "write" -> System.out.println("Write permission of file " + filename + " granted for user " + username);
+        GetAESEncryptedReply reply = blockingStub.getAESEncrypted(req);
+        byte[] aesEncrypted= reply.getAESEncrypted().toByteArray();
+        if(reply.getIsOwner()){
+            //desencriptar com a privada, encriptar com a publica do outro e mandar para o server
+
+
+
+            //read/write permissions
+            GivePermissionRequest request = GivePermissionRequest
+                    .newBuilder()
+                    .setOther(other)
+                    .setUid(uid)
+                    .setMode(s)
+                    .setAESEncrypted(null)
+                    .build();
+            GivePermissionReply res = blockingStub.givePermission(request);
+
+            if (res.getOkMode()) {
+                if (res.getOkOther()) {
+                    if (res.getOkUid()) {
+                        switch (s) {
+                            case "read" -> System.out.println("Read permission of file " + filename + " granted for user " + username);
+                            case "write" -> System.out.println("Write permission of file " + filename + " granted for user " + username);
+                        }
                     }
-                }
-            } else System.out.println("Username do not exist");
-        } else System.out.println("Wrong type of permission inserted");
+                } else System.out.println("Username do not exist");
+            } else System.out.println("Wrong type of permission inserted");
+
+        }else System.out.println("You are not the owner of this file, you cannot give permission");
 
     }
 

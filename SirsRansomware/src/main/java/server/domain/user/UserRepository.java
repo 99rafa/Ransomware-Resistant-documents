@@ -15,26 +15,6 @@ public class UserRepository extends Repository {
         super(c);
     }
 
-    public byte[] getPublicKey(String username){
-        byte[] publicKey = null;
-        try {
-            String sql = "SELECT publicKey FROM Users WHERE username = ?";
-            PreparedStatement statement = super.getConnection().prepareStatement(sql);
-
-            //Set parameters
-
-            statement.setString(1, username);
-
-            ResultSet rs = statement.executeQuery();
-
-            if (rs.next()) {
-                publicKey = rs.getBytes("publicKey");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return publicKey;
-    }
     public byte[] getUserPassword(String username) {
         byte[] userPassword = null;
         try {
@@ -130,6 +110,29 @@ public class UserRepository extends Repository {
             } catch (SQLException ignored) {}
         }
     }
+    public boolean isOwner(String username, String uid){
+        boolean bool =false;
+        try {
+            String sql = "SELECT owner FROM Files WHERE uid = ?";
+            PreparedStatement statement = super.getConnection().prepareStatement(sql);
+
+            //Set parameters
+            statement.setString(1, uid);
+
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                if(rs.getString("owner").equals(username)){
+                    bool=true;
+                }
+            }
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return bool;
+
+    }
 
     public void addUserToReadableFiles(String username, String uid) {
         try {
@@ -189,6 +192,29 @@ public class UserRepository extends Repository {
         return usernames;
     }
 
+    public List<byte[]> getPublicKeysByUsernames(List<String> usernames){
+        List<byte[]> publicKeys = new ArrayList<>();
+        for(String username : usernames){
+            try {
+
+                String sql = "SELECT public_key FROM Users WHERE username = ?";
+                PreparedStatement statement = super.getConnection().prepareStatement(sql);
+
+                //Set parameters
+
+                statement.setString(1, username);
+
+                ResultSet rs = statement.executeQuery();
+
+                if (rs.next()) {
+                    publicKeys.add(rs.getBytes("public_key"));
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        return publicKeys;
+    }
 
     public User getUserByUsername(String username) {
         User user = new User();

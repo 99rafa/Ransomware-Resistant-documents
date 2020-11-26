@@ -31,7 +31,36 @@ service Server {
   rpc PullSelected (PullSelectedRequest) returns (PullReply) {}
   rpc GivePermission (GivePermissionRequest) returns (GivePermissionReply) {}
   rpc Salt(SaltRequest) returns (SaltReply) {}
+  rpc GetAESEncrypted(GetAESEncryptedRequest) returns (GetAESEncryptedReply){}
+  rpc GetPublicKeysByFile(GetPublicKeysByFileRequest) returns (GetPublicKeysByFileReply){}
+  rpc GetPublicKeysByUsernames(GetPublicKeysByUsernamesRequest) returns (GetPublicKeysByUsernamesReply){}
+  rpc GetFileOwnerPublicKey(GetFileOwnerPublicKeyRequest) returns  (GetFileOwnerPublicKeyReply){}
+}
 
+message GetFileOwnerPublicKeyRequest{
+  string uid = 1;
+}
+
+message GetFileOwnerPublicKeyReply{
+  bytes public_key = 1;
+}
+
+message GetPublicKeysByFileRequest{
+  string file_uid = 1;
+}
+
+message GetPublicKeysByFileReply{
+  repeated string usernames = 1;
+  repeated bytes keys = 2;
+}
+
+message GetPublicKeysByUsernamesRequest{
+  repeated string usernames = 1;
+}
+
+message GetPublicKeysByUsernamesReply{
+  repeated string usernames = 1;
+  repeated bytes keys = 2;
 }
 
 message SaltRequest {
@@ -112,15 +141,25 @@ message HelloReply {
 }
 //Give read/write or both file access permission to a person
 message GivePermissionRequest{
-  string username = 1;
+  string other = 1;
   string uid = 2;
   string mode = 3;
+  bytes AESEncrypted= 4;
 }
 
 message GivePermissionReply{
-  bool ok_username = 1;
-  bool ok_uid = 2;
-  bool ok_mode = 3;
+  bool ok_other = 2;
+  bool ok_uid = 3;
+  bool ok_mode = 4;
+}
+message GetAESEncryptedRequest{
+  string username=1;
+  string other=2;
+  string uid=3;
+}
+message GetAESEncryptedReply{
+  bool is_owner =1;
+  bytes AESEncrypted=2;
 }
 
 
