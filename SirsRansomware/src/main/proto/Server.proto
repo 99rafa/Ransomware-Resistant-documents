@@ -31,7 +31,26 @@ service Server {
   rpc PullSelected (PullSelectedRequest) returns (PullReply) {}
   rpc GivePermission (GivePermissionRequest) returns (GivePermissionReply) {}
   rpc Salt(SaltRequest) returns (SaltReply) {}
+  rpc GetPublicKeysByFile(GetPublicKeysByFileRequest) returns (GetPublicKeysByFileReply){}
+  rpc GetPublicKeysByUsernames(GetPublicKeysByUsernamesRequest) returns (GetPublicKeysByUsernamesReply){}
+}
 
+message GetPublicKeysByFileRequest{
+  string file_uid = 1;
+}
+
+message GetPublicKeysByFileReply{
+  repeated string usernames = 1;
+  repeated bytes keys = 2;
+}
+
+message GetPublicKeysByUsernamesRequest{
+  repeated string usernames = 1;
+}
+
+message GetPublicKeysByUsernamesReply{
+  repeated string usernames = 1;
+  repeated bytes keys = 2;
 }
 
 message SaltRequest {

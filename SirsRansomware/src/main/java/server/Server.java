@@ -129,7 +129,7 @@ public class Server {
         }
         try {
             assert trustStore != null;
-            trustStore.load(new FileInputStream("src/assets/keyStores/trustStore.p12"), "w?#Sf@ZAL*tY7fVx".toCharArray());
+            trustStore.load(new FileInputStream("src/assets/keyStores/truststore.p12"), "w?#Sf@ZAL*tY7fVx".toCharArray());
             this.trustStore = trustStore;
         } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
             e.printStackTrace();
@@ -383,28 +383,24 @@ public class Server {
             else {
                 // generate RSA Keys
                 KeyPair keyPair = generateUserKeyPair();
-                PrivateKey privateKey = keyPair.getPrivate();
                 PublicKey publicKey = keyPair.getPublic();
 
-                byte[] privateKeyBytes = privateKey.getEncoded();
                 byte[] publicKeyBytes = publicKey.getEncoded();
 
                 // cipher data
                 final String CIPHER_ALGO = "AES/CBC/PKCS5Padding";
                 System.out.println("Ciphering with " + CIPHER_ALGO + "...");
 
-                byte[] cipherBytes = null;
 
                 try {
                     Cipher cipher = Cipher.getInstance(CIPHER_ALGO);
                     cipher.init(Cipher.ENCRYPT_MODE,retrieveStoredKey() );
-                    cipherBytes = cipher.doFinal(privateKeyBytes);
-                } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+                } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
                     e.printStackTrace();
                 }
 
 
-                registerUser(req.getUsername(), req.getPassword().toByteArray(), req.getSalt().toByteArray(),publicKeyBytes, cipherBytes);
+                registerUser(req.getUsername(), req.getPassword().toByteArray(), req.getSalt().toByteArray(),publicKeyBytes);
                 reply = RegisterReply.newBuilder().setOk("User " + req.getUsername() + " registered successfully").build();
             }
             responseObserver.onNext(reply);
@@ -426,6 +422,15 @@ public class Server {
             responseObserver.onCompleted();
         }
 
+        @Override
+        public void getPublicKeysByFile(GetPublicKeysByFileRequest request, StreamObserver<GetPublicKeysByFileReply> responseObserver) {
+            super.getPublicKeysByFile(request, responseObserver);
+        }
+
+        @Override
+        public void getPublicKeysByUsernames(GetPublicKeysByUsernamesRequest request, StreamObserver<GetPublicKeysByUsernamesReply> responseObserver) {
+            super.getPublicKeysByUsernames(request, responseObserver);
+        }
 
         @Override
         public void push(PushRequest req, StreamObserver<PushReply> responseObserver) {
@@ -552,8 +557,8 @@ public class Server {
 
         }
 
-        private void registerUser(String name, byte[] password, byte[] salt,byte[] public_key, byte[] private_key) {
-            User user = new User(name, password, salt, ITERATIONS, public_key, private_key);
+        private void registerUser(String name, byte[] password, byte[] salt,byte[] public_key) {
+            User user = new User(name, password, salt, ITERATIONS, public_key);
             user.saveInDatabase(this.c);
         }
 
