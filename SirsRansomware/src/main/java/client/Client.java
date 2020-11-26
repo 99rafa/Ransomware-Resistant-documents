@@ -27,7 +27,7 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -460,6 +460,8 @@ public class Client {
                 } else
                     filename = getUidMap(INDEX_PATH, INDEX_NAME).get(filePath);
                 String uid = generateFileUid(filePath, partId, filename);
+
+                byte[] digitalSignature = createDigitalSignature(file_bytes, getPrivateKey() );
                 int tries = 0;
 
                 while (tries < 3) {
@@ -474,6 +476,7 @@ public class Client {
                                     ByteString.copyFrom(
                                             file_bytes))
                             .setUsername(this.username)
+                            .setDigitalSignature(ByteString.copyFrom(digitalSignature))
                             .setPassword(ByteString.copyFrom(generateSecurePassword(passwd, this.salt)))
                             .setFileName(filename)
                             .setUid(uid)
@@ -492,7 +495,7 @@ public class Client {
                     System.err.println("Exceeded the number of tries. Client logged out.");
                     logout();
                 }
-            } catch (IOException e) {
+            } catch (IOException | NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
                 e.printStackTrace();
             }
         } else System.err.println("Error: To push a file, you need to login first");
@@ -510,7 +513,7 @@ public class Client {
         System.out.println("exit - exits client");
     }
 
-    public void pull() throws IOException {
+    public void pull() throws IOException, InvalidKeySpecException, NoSuchAlgorithmException, SignatureException, InvalidKeyException {
         if (username == null) {
             System.err.println("Error: To pull files, you need to login first");
             return;
@@ -559,6 +562,27 @@ public class Client {
                 String owner = reply.getOwners(i);
                 String partId = reply.getPartIds(i);
                 byte[] file_data = reply.getFiles(i).toByteArray();
+                byte[] digitalSignature = reply.getDigitalSignatures(i).toByteArray();
+
+                //VERIFY FILE DATA
+                //GET FILE OWNER PUBLIC KEY
+                byte[] ownerPublicKey = blockingStub.getFileOwnerPublicKey(
+                        GetFileOwnerPublicKeyRequest
+                                .newBuilder()
+                                .setUid(uid)
+                                .build()
+                ).getPublicKey().toByteArray();
+
+                X509EncodedKeySpec X509publicKey = new X509EncodedKeySpec(ownerPublicKey);
+                KeyFactory kf = KeyFactory.getInstance("RSA");
+
+                PublicKey pk = kf.generatePublic(X509publicKey);
+                //VERIFY SIGNATURE
+                if(!verifyDigitalSignature(digitalSignature,pk))
+                    System.out.println("TA MAU DE SAL");
+                    //TODO RETRIEVE HEALTHY VERSION
+                else
+                    System.out.println("TA BOM DE SAL");
 
                 //IF FILE EXISTS OVERWRITE IT
                 if (uidMap.containsKey(uid))
@@ -572,6 +596,18 @@ public class Client {
 
             }
         }
+    }
+
+    private PrivateKey getPrivateKey() {
+        PrivateKey privateKey = null;
+        try {
+            //TODO provide a password
+            privateKey = (PrivateKey) this.keyStore.getKey(this.username + "privkey", "".toCharArray());
+            System.out.println(keyStore.containsAlias("db-encryption-secret"));
+        } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException e) {
+            e.printStackTrace();
+        }
+        return privateKey;
     }
 
     public void givePermission() {
@@ -595,10 +631,9 @@ public class Client {
                 .setUid(uid)
                 .build();
         GetAESEncryptedReply reply = blockingStub.getAESEncrypted(req);
-        byte[] aesEncrypted= reply.getAESEncrypted().toByteArray();
+        byte[] aesEncrypted = reply.getAESEncrypted().toByteArray();
         if(reply.getIsOwner()){
             //desencriptar com a privada, encriptar com a publica do outro e mandar para o server
-
 
 
             //read/write permissions

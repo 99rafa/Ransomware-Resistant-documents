@@ -16,12 +16,14 @@ public class FileVersion implements DatabaseObject {
     private String fileUid;
     private String creator;
     private Date date;
+    private byte[] digitalSignature;
 
-    public FileVersion(String versionUid, String fileUid, String creator, Date date) {
+    public FileVersion(String versionUid, String fileUid, String creator, Date date, byte[] digitalSignature) {
         this.versionUid = versionUid;
         this.fileUid = fileUid;
         this.creator = creator;
         this.date = date;
+        this.digitalSignature = digitalSignature;
     }
 
     public FileVersion() {
@@ -71,7 +73,7 @@ public class FileVersion implements DatabaseObject {
     public void saveInDatabase(Connector connector) {
         try {
             //Prepared statement
-            String sql = "INSERT INTO FileVersions VALUES (?,?,?,?)";
+            String sql = "INSERT INTO FileVersions VALUES (?,?,?,?,?)";
             PreparedStatement s = connector.connection.prepareStatement(sql);
 
             //Set parameters
@@ -79,6 +81,7 @@ public class FileVersion implements DatabaseObject {
             s.setString(2, this.fileUid);
             s.setString(3, this.creator);
             s.setTimestamp(4, new Timestamp(this.date.getTime()));
+            s.setBytes(5,this.digitalSignature);
             s.executeUpdate();
 
             connector.connection.commit();
@@ -100,5 +103,13 @@ public class FileVersion implements DatabaseObject {
                 ", creator='" + creator + '\'' +
                 ", date=" + date +
                 '}';
+    }
+
+    public byte[] getDigitalSignature() {
+        return digitalSignature;
+    }
+
+    public void setDigitalSignature(byte[] digitalSignature) {
+        this.digitalSignature = digitalSignature;
     }
 }

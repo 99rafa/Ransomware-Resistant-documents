@@ -464,7 +464,7 @@ public class Server {
                 if (!this.fileRepository.fileExists(req.getUid())) {
                     registerFile(req.getUid(), req.getFileName(), req.getUsername(), req.getPartId());
                 }
-                registerFileVersion(versionId, req.getUid(), req.getUsername());
+                registerFileVersion(versionId, req.getUid(), req.getUsername(),req.getDigitalSignature().toByteArray());
 
             } else reply = PushReply.newBuilder().setOk(false).build();
 
@@ -497,6 +497,7 @@ public class Server {
                 reply.addPartIds(file.getPartition());
                 reply.addFiles(ByteString.copyFrom(
                         file_bytes));
+                reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
             }
             responseObserver.onNext(reply.build());
             responseObserver.onCompleted();
@@ -529,6 +530,7 @@ public class Server {
                         reply.addPartIds(file.getPartition());
                         reply.addFiles(ByteString.copyFrom(
                                 file_bytes));
+                        reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
                         break;
                     }
                 }
@@ -591,8 +593,8 @@ public class Server {
             file.saveInDatabase(this.c);
         }
 
-        private void registerFileVersion(String versionId, String fileId, String creator) {
-            FileVersion fileVersion = new FileVersion(versionId, fileId, creator, new Date(System.currentTimeMillis()));
+        private void registerFileVersion(String versionId, String fileId, String creator, byte[] digitalSignature) {
+            FileVersion fileVersion = new FileVersion(versionId, fileId, creator, new Date(System.currentTimeMillis()),digitalSignature);
             fileVersion.saveInDatabase(this.c);
         }
 
