@@ -8,8 +8,8 @@ public class Connector {
 
     private static final String DB_URL = "jdbc:mysql://localhost:3306/ransomdb";
 
-    private static final String USER = "rafael";
-    private static final String PASSWORD = "pass";
+    private static final String USER = "afonso";
+    private static final String PASSWORD = "password";
 
     public Connection connection;
 

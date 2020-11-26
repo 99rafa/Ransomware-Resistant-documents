@@ -35,7 +35,6 @@ public class User implements DatabaseObject {
     //OTM
     private List<String> createdVersions = new ArrayList<>();
 
-
     public User(String username, byte[] passHash, byte[] salt, int iterations, byte[] publicKey) {
 
         this.username = username;
@@ -135,7 +134,6 @@ public class User implements DatabaseObject {
         try {
             //Insert user
             String sql = "INSERT INTO Users VALUES (?,?,?,?,?)";
-
             PreparedStatement s = connector.connection.prepareStatement(sql);
 
             //Set parameters
@@ -144,8 +142,6 @@ public class User implements DatabaseObject {
             s.setBinaryStream(3, new ByteArrayInputStream(this.salt));
             s.setInt(4, this.iterations);
             s.setBinaryStream(5, new ByteArrayInputStream(this.publicKey));
-
-
             //Commit transaction
             connector.connection.commit();
         } catch (SQLException e) {

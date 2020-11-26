@@ -129,7 +129,7 @@ public class Server {
         }
         try {
             assert trustStore != null;
-            trustStore.load(new FileInputStream("src/assets/keyStores/trustStore.p12"), "w?#Sf@ZAL*tY7fVx".toCharArray());
+            trustStore.load(new FileInputStream("src/assets/keyStores/truststore.p12"), "w?#Sf@ZAL*tY7fVx".toCharArray());
             this.trustStore = trustStore;
         } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
             e.printStackTrace();
@@ -403,6 +403,46 @@ public class Server {
             responseObserver.onCompleted();
         }
 
+        @Override
+        public void getPublicKeysByFile(GetPublicKeysByFileRequest request, StreamObserver<GetPublicKeysByFileReply> responseObserver) {
+            GetPublicKeysByFileReply reply = GetPublicKeysByFileReply
+                    .newBuilder()
+                    .addAllKeys(
+                            fileRepository.getPublicKeysByFile(request.getFileUid())
+                                    .stream()
+                                    .map(ByteString::copyFrom)
+                                    .collect(Collectors.toList())
+                    )
+                    .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        }
+
+        @Override
+        public void getPublicKeysByUsernames(GetPublicKeysByUsernamesRequest request, StreamObserver<GetPublicKeysByUsernamesReply> responseObserver) {
+            GetPublicKeysByUsernamesReply reply = GetPublicKeysByUsernamesReply
+                    .newBuilder()
+                    .addAllKeys(
+                            userRepository.getPublicKeysByUsernames(request.getUsernamesList())
+                                    .stream()
+                                    .map(ByteString::copyFrom)
+                                    .collect(Collectors.toList())
+                    )
+                    .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        }
+
+        @Override
+        public void getFileOwnerPublicKey(GetFileOwnerPublicKeyRequest request, StreamObserver<GetFileOwnerPublicKeyReply> responseObserver) {
+            GetFileOwnerPublicKeyReply reply = GetFileOwnerPublicKeyReply
+                    .newBuilder()
+                    .setPublicKey(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(request.getUid())))
+                    .build();
+
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        }
 
         @Override
         public void push(PushRequest req, StreamObserver<PushReply> responseObserver) {
@@ -576,9 +616,6 @@ public class Server {
             return userRepository.getUsersWithPermissions(uid,mode);
         }
 
-        private byte[] getPublicKey(String username){
-            return userRepository.getPublicKey(username);
-        }
         private byte[] getAESEncrypted(String username, String uid){
             return fileRepository.getAESEncrypted(username,uid);
         }

@@ -10,8 +10,12 @@ CREATE TABLE Users
     password   VARBINARY(1024) NOT NULL,
     salt       VARBINARY(64)   NOT NULL,
     iterations INT             NOT NULL,
+<<<<<<< HEAD
+    public_key VARBINARY(2048) NOT NULL
+=======
     publicKey  VARBINARY(2048) NOT NULL
 
+>>>>>>> 56593a94399adda05e8fa2d8fc258386db28043b
 );
 
 CREATE TABLE Files
