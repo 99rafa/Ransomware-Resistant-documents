@@ -37,7 +37,7 @@ CREATE TABLE EditableFiles
 (
     username VARCHAR(15),
     uid      VARCHAR(100),
-    AESEncrypted VARBINARY (2048),
+    #AESEncrypted VARBINARY (2048),
     FOREIGN KEY (username) REFERENCES Users (username),
     FOREIGN KEY (uid) REFERENCES Files (uid)
 );
@@ -46,7 +46,7 @@ CREATE TABLE ReadableFiles
 (
     username VARCHAR(15),
     uid      VARCHAR(100),
-    AESEncrypted VARBINARY (2048),
+    #AESEncrypted VARBINARY (2048),
     FOREIGN KEY (username) REFERENCES Users (username),
     FOREIGN KEY (uid) REFERENCES Files (uid)
 );

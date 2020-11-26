@@ -124,7 +124,7 @@ public class FileRepository extends Repository {
             ResultSet rs = statement.executeQuery();
 
             if (rs.next()) {
-                owner = rs.getString("owner");
+                owner = rs.getString("creator");
             }
 
             sql = "SELECT public_key FROM Users WHERE username = ?";

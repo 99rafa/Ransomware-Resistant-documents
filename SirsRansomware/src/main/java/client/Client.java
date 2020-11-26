@@ -411,7 +411,7 @@ public class Client {
 
     public byte[] createDigitalSignature(byte[] fileBytes, PrivateKey privateKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
         //Creating a Signature object
-        Signature sign = Signature.getInstance("SHA256withDSA");
+        Signature sign = Signature.getInstance("SHA256withRSA");
 
         //Initialize the signature
         sign.initSign(privateKey);
@@ -423,13 +423,13 @@ public class Client {
         return sign.sign();
     }
 
-    public boolean verifyDigitalSignature(byte[] signature, PublicKey publicKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+    public boolean verifyDigitalSignature(byte[] message, byte[] signature, PublicKey publicKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
         //Creating a Signature object
-        Signature sign = Signature.getInstance("SHA256withDSA");
+        Signature sign = Signature.getInstance("SHA256withRSA");
         //Initializing the signature
 
         sign.initVerify(publicKey);
-        sign.update(signature);
+        sign.update(message);
 
         //Verifying the signature
         return sign.verify(signature);
@@ -578,7 +578,7 @@ public class Client {
 
                 PublicKey pk = kf.generatePublic(X509publicKey);
                 //VERIFY SIGNATURE
-                if(!verifyDigitalSignature(digitalSignature,pk))
+                if(!verifyDigitalSignature(file_data,digitalSignature,pk))
                     System.out.println("TA MAU DE SAL");
                     //TODO RETRIEVE HEALTHY VERSION
                 else
