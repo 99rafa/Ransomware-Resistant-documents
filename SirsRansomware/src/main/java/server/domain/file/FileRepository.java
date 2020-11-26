@@ -174,7 +174,7 @@ public class FileRepository extends Repository {
     public byte[] getAESEncrypted(String username, String uid){
         byte[] aes=null;
         try{
-            String sql = "SELECT AESEncrypted FROM EditableFiles WHERE username= ? AND uid= ? ";
+            String sql = "SELECT AESEncrypted FROM ReadableFiles WHERE username= ? AND uid= ? ";
             PreparedStatement statement = super.getConnection().prepareStatement(sql);
             statement.setString(1, username);
             statement.setString(2, uid);

@@ -98,11 +98,10 @@ public class UserRepository extends Repository {
 
             String sql = "INSERT INTO EditableFiles VALUES (?,?,?)";
             PreparedStatement s = super.getConnection().prepareStatement(sql);
-            InputStream aes = new ByteArrayInputStream(AESEncrypted);
 
             s.setString(1, username);
             s.setString(2, uid);
-            s.setBinaryStream(3,aes);
+            s.setBytes(3,AESEncrypted);
             s.executeUpdate();
 
             super.getConnection().commit();
@@ -140,11 +139,11 @@ public class UserRepository extends Repository {
 
             String sql = "INSERT INTO ReadableFiles VALUES (?,?,?)";
             PreparedStatement s = super.getConnection().prepareStatement(sql);
-            InputStream aes = new ByteArrayInputStream(AESEncrypted);
+
 
             s.setString(1, username);
             s.setString(2, uid);
-            s.setBinaryStream(3,aes);
+            s.setBytes(3,AESEncrypted);
             s.executeUpdate();
 
             super.getConnection().commit();

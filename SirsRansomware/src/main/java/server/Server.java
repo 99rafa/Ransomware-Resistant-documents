@@ -466,7 +466,7 @@ public class Server {
                 }
                 //REGISTER FILE
                 if (!this.fileRepository.fileExists(req.getUid())) {
-                    registerFile(req.getUid(), req.getFileName(), req.getUsername(), req.getPartId());
+                    registerFile(req.getUid(), req.getFileName(), req.getUsername(), req.getPartId(), req.getAESEncrypted().toByteArray());
                 }
                 registerFileVersion(versionId, req.getUid(), req.getUsername(),req.getDigitalSignature().toByteArray());
 
@@ -501,7 +501,9 @@ public class Server {
                 reply.addPartIds(file.getPartition());
                 reply.addFiles(ByteString.copyFrom(
                         file_bytes));
+                reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(file.getUid())));
                 reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
+                reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),mostRecentVersion.getUid())));
             }
             responseObserver.onNext(reply.build());
             responseObserver.onCompleted();
@@ -534,7 +536,9 @@ public class Server {
                         reply.addPartIds(file.getPartition());
                         reply.addFiles(ByteString.copyFrom(
                                 file_bytes));
+                        reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(file.getUid())));
                         reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
+                        reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),mostRecentVersion.getUid())));
                         break;
                     }
                 }
@@ -579,7 +583,9 @@ public class Server {
                 reply = GetAESEncryptedReply.newBuilder().setIsOwner(true).setAESEncrypted(ByteString.copyFrom(aes))
                         .addAllOthersPublicKeys(pk.stream().map(ByteString::copyFrom).collect(Collectors.toList())).build();
 
+
             } else reply = GetAESEncryptedReply.newBuilder().setIsOwner(false).setAESEncrypted(null).addAllOthersPublicKeys(null).build();
+
 
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -597,8 +603,8 @@ public class Server {
             user.saveInDatabase(this.c);
         }
 
-        private void registerFile(String uid, String filename, String owner, String partId) {
-            server.domain.file.File file = new server.domain.file.File(uid, owner, filename, partId);
+        private void registerFile(String uid, String filename, String owner, String partId, byte[] AESEncrypted) {
+            server.domain.file.File file = new server.domain.file.File(uid, owner, filename, partId, AESEncrypted);
             file.saveInDatabase(this.c);
         }
 
