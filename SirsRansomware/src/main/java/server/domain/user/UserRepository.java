@@ -2,6 +2,8 @@ package server.domain.user;
 
 import server.database.Repository;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -80,25 +82,27 @@ public class UserRepository extends Repository {
         return passIterations;
     }
 
-    public void setUserPermissionFile(String username, String uid, String mode) {
+    public void setUserPermissionFile(String username, String uid, String mode,byte[] AESEncrypted) {
         switch (mode) {
-            case "read" -> addUserToReadableFiles(username, uid);
+            case "read" -> addUserToReadableFiles(username, uid,AESEncrypted);
             case "write" -> {
-                addUserToEditableFiles(username, uid);
-                addUserToReadableFiles(username, uid);
+                addUserToEditableFiles(username, uid,AESEncrypted);
+                addUserToReadableFiles(username, uid,AESEncrypted);
             }
             default -> System.out.println("It should not happen");
         }
     }
 
-    public void addUserToEditableFiles(String username, String uid) {
+    public void addUserToEditableFiles(String username, String uid,byte[] AESEncrypted) {
         try {
 
-            String sql = "INSERT INTO EditableFiles VALUES (?,?)";
+            String sql = "INSERT INTO EditableFiles VALUES (?,?,?)";
             PreparedStatement s = super.getConnection().prepareStatement(sql);
+            InputStream aes = new ByteArrayInputStream(AESEncrypted);
 
             s.setString(1, username);
             s.setString(2, uid);
+            s.setBinaryStream(3,aes);
             s.executeUpdate();
 
             super.getConnection().commit();
@@ -108,6 +112,49 @@ public class UserRepository extends Repository {
             try {
                 super.getConnection().rollback();
             } catch (SQLException ignored) {}
+        }
+    }
+    public byte[] getPublicKey(String username){
+        byte[] publicKey = null;
+        try {
+            String sql = "SELECT publicKey FROM Users WHERE username = ?";
+            PreparedStatement statement = super.getConnection().prepareStatement(sql);
+
+            //Set parameters
+
+            statement.setString(1, username);
+
+            ResultSet rs = statement.executeQuery();
+
+            if (rs.next()) {
+                publicKey = rs.getBytes("publicKey");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return publicKey;
+    }
+
+    public void addUserToReadableFiles(String username, String uid,byte[] AESEncrypted) {
+        try {
+
+            String sql = "INSERT INTO ReadableFiles VALUES (?,?,?)";
+            PreparedStatement s = super.getConnection().prepareStatement(sql);
+            InputStream aes = new ByteArrayInputStream(AESEncrypted);
+
+            s.setString(1, username);
+            s.setString(2, uid);
+            s.setBinaryStream(3,aes);
+            s.executeUpdate();
+
+            super.getConnection().commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            //Rollback changes in case of failure
+            try {
+                super.getConnection().rollback();
+            } catch (SQLException ignored) {
+            }
         }
     }
     public boolean isOwner(String username, String uid){
@@ -134,26 +181,6 @@ public class UserRepository extends Repository {
 
     }
 
-    public void addUserToReadableFiles(String username, String uid) {
-        try {
-
-            String sql = "INSERT INTO ReadableFiles VALUES (?,?)";
-            PreparedStatement s = super.getConnection().prepareStatement(sql);
-
-            s.setString(1, username);
-            s.setString(2, uid);
-            s.executeUpdate();
-
-            super.getConnection().commit();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            //Rollback changes in case of failure
-            try {
-                super.getConnection().rollback();
-            } catch (SQLException ignored) {
-            }
-        }
-    }
     public List<String> getUsersWithPermissions(String uid, String mode) {
         List<String> usernames= new ArrayList<>();
         if (mode.equals("read")) {

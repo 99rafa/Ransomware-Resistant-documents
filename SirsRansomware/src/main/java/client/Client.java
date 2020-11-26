@@ -521,7 +521,7 @@ public class Client {
                     .setOther(other)
                     .setUid(uid)
                     .setMode(s)
-                    .setAESEncrypted(null)
+                    .setOtherAESEncrypted(null)
                     .build();
             GivePermissionReply res = blockingStub.givePermission(request);
 
