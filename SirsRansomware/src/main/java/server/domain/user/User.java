@@ -143,6 +143,8 @@ public class User implements DatabaseObject {
             s.setInt(4, this.iterations);
             s.setBinaryStream(5, new ByteArrayInputStream(this.publicKey));
             //Commit transaction
+            s.executeUpdate();
+
             connector.connection.commit();
         } catch (SQLException e) {
             e.printStackTrace();
