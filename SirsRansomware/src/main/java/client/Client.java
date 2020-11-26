@@ -31,6 +31,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * A simple client that requests a greeting from the {@link Server} with TLS.
@@ -611,11 +612,12 @@ public class Client {
 
     public void givePermission() {
         Console console = System.console();
-        String other = console.readLine("Enter the username to give permission: ");
+        String others = console.readLine("Enter the username/s to give permission, separated by a blank space.: ");
         String s = ((System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n")));
         String filename = console.readLine("Enter the filename: ");
         String uid = null;
-        String instance="RSA"; //change to append mode and padding
+        String instance="RSA/CBC"; //change to append mode and padding
+        String[] othersNames = others.split(" ");
 
 
         try {
@@ -626,45 +628,50 @@ public class Client {
         GetAESEncryptedRequest req = GetAESEncryptedRequest
                 .newBuilder()
                 .setUsername(this.username)
-                .setOther(other)
+                .addAllOthersNames(Arrays.asList(othersNames))
                 .setUid(uid)
                 .build();
+
         GetAESEncryptedReply reply = blockingStub.getAESEncrypted(req);
         byte[] aesEncrypted= reply.getAESEncrypted().toByteArray();
-        byte[] otherPubKey = reply.getOtherPublicKey().toByteArray();
+        List<byte[]> othersPubKeys = reply.getOthersPublicKeysList().stream().map(ByteString::toByteArray).collect(Collectors.toList());
         byte[] otherPubKeyEncrypted = null;
+
         if(reply.getIsOwner()){
-            try{
-                //decrypt with private key in order to obtain symmetric key
-                PrivateKey privkey = getPrivateKey();
-                this.cipher = Cipher.getInstance(instance);
-                this.cipher.init(Cipher.DECRYPT_MODE, privkey);
-                byte[] aesKey= this.cipher.doFinal(aesEncrypted);
+            List<byte[]> othersAesEncrypted = null;
+            for (byte[] bytes : othersPubKeys) {
+                try {
+                    //decrypt with private key in order to obtain symmetric key
+                    PrivateKey privkey = getPrivateKey();
+                    this.cipher = Cipher.getInstance(instance);
+                    this.cipher.init(Cipher.DECRYPT_MODE, privkey);
+                    byte[] aesKey = this.cipher.doFinal(aesEncrypted);
 
-                //encrypt AES with "other" public key to send to the server
-                KeyFactory kf = KeyFactory.getInstance(instance);
-                PublicKey otherPublicKey = kf.generatePublic(new X509EncodedKeySpec(otherPubKey));
-                this.cipher.init(Cipher.ENCRYPT_MODE,otherPublicKey);
-                otherPubKeyEncrypted = this.cipher.doFinal(otherPubKey);
+                    //encrypt AES with "other" public key to send to the server
+                    KeyFactory kf = KeyFactory.getInstance(instance);
+                    PublicKey otherPublicKey = kf.generatePublic(new X509EncodedKeySpec(bytes));
+                    this.cipher.init(Cipher.ENCRYPT_MODE, otherPublicKey);
+                    otherPubKeyEncrypted = this.cipher.doFinal(aesKey);
+                    othersAesEncrypted.add(otherPubKeyEncrypted);
 
 
-            } catch (InvalidKeyException | BadPaddingException | IllegalBlockSizeException | NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-                e.printStackTrace();
+                } catch (InvalidKeyException | BadPaddingException | IllegalBlockSizeException | NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+                    e.printStackTrace();
+                }
             }
-
 
             //read/write permissions
             GivePermissionRequest request = GivePermissionRequest
                     .newBuilder()
-                    .setOther(other)
+                    .addAllOthersNames(Arrays.asList(othersNames))
                     .setUid(uid)
                     .setMode(s)
-                    .setOtherAESEncrypted(ByteString.copyFrom(otherPubKeyEncrypted))
+                    .addAllOtherAESEncrypted(othersAesEncrypted.stream().map(ByteString::copyFrom).collect(Collectors.toList()))
                     .build();
             GivePermissionReply res = blockingStub.givePermission(request);
 
             if (res.getOkMode()) {
-                if (res.getOkOther()) {
+                if (res.getOkOthers()) {
                     if (res.getOkUid()) {
                         switch (s) {
                             case "read" -> System.out.println("Read permission of file " + filename + " granted for user " + username);
