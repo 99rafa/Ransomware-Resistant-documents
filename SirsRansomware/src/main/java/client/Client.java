@@ -545,14 +545,15 @@ public class Client {
             //read/write permissions
             GivePermissionRequest request = GivePermissionRequest
                     .newBuilder()
-                    .setUsername(other)
+                    .setOther(other)
                     .setUid(uid)
                     .setMode(s)
+                    .setAESEncrypted(null)
                     .build();
             GivePermissionReply res = blockingStub.givePermission(request);
 
             if (res.getOkMode()) {
-                if (res.getOkUsername()) {
+                if (res.getOkOther()) {
                     if (res.getOkUid()) {
                         switch (s) {
                             case "read" -> System.out.println("Read permission of file " + filename + " granted for user " + username);

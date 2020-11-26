@@ -548,19 +548,16 @@ public class Server {
         @Override
         public void givePermission(GivePermissionRequest req, StreamObserver<GivePermissionReply> responseObserver) {
             GivePermissionReply reply = null;
-            if (isOwner(req.getUsername(),req.getUid())) {
-                if (req.getMode().matches("read|write")) {
-                    if (usernameExists(req.getUsername())) {
-                        if (filenameExists(req.getUid())) {
-                            giveUserPermission(req.getUsername(), req.getUid(), req.getMode());
-                            reply = GivePermissionReply.newBuilder().setOkUsername(true).setOkUid(true).setOkMode(true).build();
-                        }
-                    } else
-                        reply = GivePermissionReply.newBuilder().setOkUsername(false).setOkUid(false).setOkMode(true).build();
+            if (req.getMode().matches("read|write")) {
+                if (usernameExists(req.getOther())) {
+                    if (filenameExists(req.getUid())) {
+                        giveUserPermission(req.getOther(), req.getUid(), req.getMode());
+                        reply = GivePermissionReply.newBuilder().setOkOther(true).setOkUid(true).setOkMode(true).build();
+                    }
                 } else
-                    reply = GivePermissionReply.newBuilder().setOkUsername(false).setOkUid(false).setOkMode(false).build();
-            }else
-                reply = GivePermissionReply.newBuilder().setOkUsername(false).setOkUid(false).setOkMode(false).build();
+                    reply = GivePermissionReply.newBuilder().setOkOther(false).setOkUid(false).setOkMode(true).build();
+            } else
+                reply = GivePermissionReply.newBuilder().setOkOther(false).setOkUid(false).setOkMode(false).build();
 
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
