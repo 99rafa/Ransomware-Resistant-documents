@@ -141,14 +141,14 @@ message HelloReply {
 }
 //Give read/write or both file access permission to a person
 message GivePermissionRequest{
-  string username = 1;
+  string other = 1;
   string uid = 2;
   string mode = 3;
   bytes AESEncrypted= 4;
 }
 
 message GivePermissionReply{
-  bool ok_username = 2;
+  bool ok_other = 2;
   bool ok_uid = 3;
   bool ok_mode = 4;
 }
