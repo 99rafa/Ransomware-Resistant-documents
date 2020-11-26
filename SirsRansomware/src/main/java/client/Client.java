@@ -323,6 +323,32 @@ public class Client {
         return null;
     }
 
+    public byte[] createDigitalSignature(byte[] fileBytes, PrivateKey privateKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+        //Creating a Signature object
+        Signature sign = Signature.getInstance("SHA256withDSA");
+
+        //Initialize the signature
+        sign.initSign(privateKey);
+
+        //Adding data to the signature
+        sign.update(fileBytes);
+        //Calculating the signature
+
+        return sign.sign();
+    }
+
+    public boolean verifyDigitalSignature(byte[] signature, PublicKey publicKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+        //Creating a Signature object
+        Signature sign = Signature.getInstance("SHA256withDSA");
+        //Initializing the signature
+
+        sign.initVerify(publicKey);
+        sign.update(signature);
+
+        //Verifying the signature
+        return sign.verify(signature);
+    }
+
     public void push() {
         if (username != null) {
             try {

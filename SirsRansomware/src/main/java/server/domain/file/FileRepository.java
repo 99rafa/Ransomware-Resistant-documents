@@ -111,6 +111,40 @@ public class FileRepository extends Repository {
         return publicKeys;
     }
 
+    public byte[] getFileOwnerPublicKey(String uid){
+        try {
+            String owner = "";
+            String sql = "SELECT owner FROM Files WHERE uid = ?";
+            PreparedStatement statement = super.getConnection().prepareStatement(sql);
+
+            //Set parameters
+
+            statement.setString(1, uid);
+
+            ResultSet rs = statement.executeQuery();
+
+            if (rs.next()) {
+                owner = rs.getString("owner");
+            }
+
+            sql = "SELECT public_key FROM Users WHERE username = ?";
+            statement = super.getConnection().prepareStatement(sql);
+
+            //Set parameters
+
+            statement.setString(1, owner);
+
+            rs = statement.executeQuery();
+
+            if (rs.next()) {
+                return rs.getBytes("public_key");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public List<File> getUserReadableFiles(String username) {
         List<File> files = new ArrayList<>();
         try {

@@ -434,6 +434,17 @@ public class Server {
         }
 
         @Override
+        public void getFileOwnerPublicKey(GetFileOwnerPublicKeyRequest request, StreamObserver<GetFileOwnerPublicKeyReply> responseObserver) {
+            GetFileOwnerPublicKeyReply reply = GetFileOwnerPublicKeyReply
+                    .newBuilder()
+                    .setPublicKey(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(request.getUid())))
+                    .build();
+
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        }
+
+        @Override
         public void push(PushRequest req, StreamObserver<PushReply> responseObserver) {
 
             ByteString bs = req.getFile();
