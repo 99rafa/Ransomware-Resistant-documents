@@ -1,6 +1,7 @@
 package client;
 
 import PBKDF2.PBKDF2Main;
+import SelfSignedCertificate.SelfSignedCertificate;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
 import io.grpc.StatusRuntimeException;
@@ -15,6 +16,7 @@ import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
 import pt.ulisboa.tecnico.sdis.zk.ZKRecord;
 import server.Server;
 
+import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.net.ssl.SSLException;
@@ -22,6 +24,8 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
@@ -47,6 +51,7 @@ public class Client {
     private final ServerGrpc.ServerBlockingStub blockingStub;
     private String username = null;
     private byte[] salt = null;
+    KeyStore keyStore;
 
     /**
      * Construct client connecting to HelloWorld server at {@code host:port}.
@@ -57,6 +62,23 @@ public class Client {
 
         Random random = new Random();
         String path;
+
+        Console console = System.console();
+        String passwd = new String(console.readPassword("Enter private Key keyStore password: "));
+        KeyStore ks = null;
+        try {
+            ks = KeyStore.getInstance("PKCS12");
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+        try {
+            assert ks != null;
+            ks.load(new FileInputStream("src/assets/keyStores/clientStore.p12"), "vjZx~R::Vr=s7]bz#".toCharArray());
+            this.keyStore = ks;
+        } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
+            e.printStackTrace();
+        }
+
         System.out.println(zooHost + ":" + zooPort);
         ZKNaming zkNaming = new ZKNaming(zooHost, zooPort);
         ArrayList<ZKRecord> recs = null;
@@ -85,6 +107,32 @@ public class Client {
         blockingStub = ServerGrpc.newBlockingStub(channel);
     }
 
+    private KeyPair generateUserKeyPair() {
+        KeyPair keyPair = null;
+        try {
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+            SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+            keyGen.initialize(2048, random);
+            keyPair = keyGen.genKeyPair();
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return keyPair;
+    }
+
+    private SecretKey retrieveStoredKey() {
+        SecretKey secretKey = null;
+        try {
+            //TODO provide a password
+            secretKey = (SecretKey) this.keyStore.getKey("db-encryption-secret", "".toCharArray());
+            System.out.println(keyStore.containsAlias("db-encryption-secret"));
+        } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException e) {
+            e.printStackTrace();
+        }
+        return secretKey;
+    }
+
     private static SslContext buildSslContext(String trustCertCollectionFilePath,
                                               String clientCertChainFilePath,
                                               String clientPrivateKeyFilePath) throws SSLException {
@@ -108,6 +156,7 @@ public class Client {
                     "clientCertChainFilePath clientPrivateKeyFilePath");
             System.exit(0);
         }
+
 
         /* Use default CA. Only for real server certificates. */
         Client client = new Client(args[0], args[1],
@@ -140,6 +189,16 @@ public class Client {
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }
 
+    private static byte[] readPrivateKey(Key privateKey) {
+        String encodedString = "-----BEGIN PRIVATE KEY-----\n";
+        encodedString = encodedString+Base64.getEncoder().encodeToString(privateKey.getEncoded())+"\n";
+        encodedString = encodedString+"-----END PRIVATE KEY-----\n";
+
+        return  Base64.getDecoder().decode(encodedString);
+
+
+    }
+
     /**
      * Say hello to server.
      */
@@ -159,15 +218,22 @@ public class Client {
             else System.out.println("Password don't match. Try again");
         }
         byte[] salt = PBKDF2Main.getNextSalt();
+
+
+
         System.out.println("Will try to register " + name + " ...");
         // generate RSA Keys
         KeyPair keyPair = generateUserKeyPair();
         PrivateKey privateKey = keyPair.getPrivate();
         PublicKey publicKey = keyPair.getPublic();
 
+
+
         // Get the bytes of the public and private keys
         byte[] privateKeyBytes = privateKey.getEncoded(); //keep privatekey in Keystore
         byte[] publicKeyBytes = publicKey.getEncoded();
+
+
 
         RegisterRequest request = RegisterRequest.newBuilder()
                 .setUsername(name)
@@ -175,6 +241,23 @@ public class Client {
                 .setSalt(ByteString.copyFrom(salt))
                 .setPublicKey(ByteString.copyFrom(publicKeyBytes))
                 .build();
+
+        //save secret Key to key store
+        X509Certificate[] certificateChain = new X509Certificate[1];
+        SelfSignedCertificate certificate = new SelfSignedCertificate();
+        try {
+            certificateChain[0] = certificate.createCertificate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        try {
+            this.keyStore.setKeyEntry(name + "privKey", privateKey, "".toCharArray(), certificateChain);
+            this.keyStore.store(new FileOutputStream("src/assets/keyStores/clientStore.p12"), "vjZx~R::Vr=s7]bz#".toCharArray());
+        } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException e) {
+            e.printStackTrace();
+        }
+
+
         RegisterReply response;
         try {
             response = blockingStub.register(request);
@@ -186,6 +269,8 @@ public class Client {
         System.out.println(response.getOk());
         //this.username = name;
     }
+
+
 
 
 
@@ -376,8 +461,7 @@ public class Client {
                     filename = getUidMap(INDEX_PATH, INDEX_NAME).get(filePath);
                 String uid = generateFileUid(filePath, partId, filename);
 
-                //TODO
-                //bytes[] digitalSignature = createDigitalSignature(file_bytes, getPrivateKey() );
+                byte[] digitalSignature = createDigitalSignature(file_bytes, getPrivateKey() );
                 int tries = 0;
 
                 while (tries < 3) {
@@ -392,8 +476,7 @@ public class Client {
                                     ByteString.copyFrom(
                                             file_bytes))
                             .setUsername(this.username)
-                            //TODO
-                            //.setDigitalSignature(digitalSignature)
+                            .setDigitalSignature(ByteString.copyFrom(digitalSignature))
                             .setPassword(ByteString.copyFrom(generateSecurePassword(passwd, this.salt)))
                             .setFileName(filename)
                             .setUid(uid)
@@ -412,7 +495,7 @@ public class Client {
                     System.err.println("Exceeded the number of tries. Client logged out.");
                     logout();
                 }
-            } catch (IOException e) {
+            } catch (IOException | NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
                 e.printStackTrace();
             }
         } else System.err.println("Error: To push a file, you need to login first");
@@ -515,6 +598,18 @@ public class Client {
         }
     }
 
+    private PrivateKey getPrivateKey() {
+        PrivateKey privateKey = null;
+        try {
+            //TODO provide a password
+            privateKey = (PrivateKey) this.keyStore.getKey(this.username + "privkey", "".toCharArray());
+            System.out.println(keyStore.containsAlias("db-encryption-secret"));
+        } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException e) {
+            e.printStackTrace();
+        }
+        return privateKey;
+    }
+
     public void givePermission() {
         Console console = System.console();
         String other = console.readLine("Enter the username to give permission: ");
@@ -535,9 +630,11 @@ public class Client {
                 .build();
         GetAESEncryptedReply reply = blockingStub.getAESEncrypted(req);
         byte[] aesEncrypted= reply.getAESEncrypted().toByteArray();
-        byte[] OtherPK = reply.getOtherPublicKey().toByteArray();
+        byte[] otherPubKey = reply.getOtherPublicKey().toByteArray();
+
         if(reply.getIsOwner()){
             //desencriptar com a privada, encriptar com a publica do outro e mandar para o server
+            PrivateKey privkey = getPrivateKey();
 
 
 
@@ -568,19 +665,6 @@ public class Client {
 
     public void generateSecureFile() {
 
-    }
-    private KeyPair generateUserKeyPair() {
-        KeyPair keyPair = null;
-        try {
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-            SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
-            keyGen.initialize(2048, random);
-            keyPair = keyGen.genKeyPair();
-
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-        return keyPair;
     }
 
 }

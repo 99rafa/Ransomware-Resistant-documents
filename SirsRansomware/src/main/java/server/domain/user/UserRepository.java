@@ -263,7 +263,7 @@ public class UserRepository extends Repository {
                 user.setUsername(username);
                 user.setPassHash(rs.getBytes("password"));
                 user.setSalt(rs.getBytes("salt"));
-                user.setPublicKey(rs.getBytes("public_key"));
+                user.setPublicKey(rs.getBytes("publicKey"));
             }
 
             //Retrieve owned files
