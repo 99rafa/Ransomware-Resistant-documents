@@ -552,7 +552,7 @@ public class Server {
             if (req.getMode().matches("read|write")) {
                 if (usernameExists(req.getOther())) {
                     if (filenameExists(req.getUid())) {
-                        giveUserPermission(req.getOther(), req.getUid(), req.getMode());
+                        giveUserPermission(req.getOther(), req.getUid(), req.getMode(),req.getOtherAESEncrypted().toByteArray());
                         reply = GivePermissionReply.newBuilder().setOkOther(true).setOkUid(true).setOkMode(true).build();
                     }
                 } else
@@ -565,12 +565,13 @@ public class Server {
         }
         @Override
         public void getAESEncrypted(GetAESEncryptedRequest req, StreamObserver<GetAESEncryptedReply> responseObserver){
-            GetAESEncryptedReply reply=null;
-            byte[] aes;
+            GetAESEncryptedReply reply;
+
             if (isOwner(req.getUsername(), req.getUid())){
-                aes = getAESEncrypted(req.getUsername(),req.getUid());
-                reply = GetAESEncryptedReply.newBuilder().setAESEncrypted(ByteString.copyFrom(aes)).build();
-            } else reply = GetAESEncryptedReply.newBuilder().setIsOwner(false).setAESEncrypted(null).build();
+                byte[] aes = getAESEncrypted(req.getUsername(),req.getUid());
+                byte[] pk = getPublicKey(req.getOther());
+                reply = GetAESEncryptedReply.newBuilder().setAESEncrypted(ByteString.copyFrom(aes)).setOtherPublicKey(ByteString.copyFrom(pk)).build();
+            } else reply = GetAESEncryptedReply.newBuilder().setIsOwner(false).setAESEncrypted(null).setOtherPublicKey(null).build();
 
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -608,12 +609,15 @@ public class Server {
             return file.getUid() != null && file.getName() != null && file.getPartition() != null && file.getOwner() != null;
         }
 
-        private void giveUserPermission(String username, String uid, String mode) {
-            userRepository.setUserPermissionFile(username, uid, mode);
-            //depending on the mode, set on the database the symmetric key encrypted with the public key of the people who have permission to access the file
+        private void giveUserPermission(String username, String uid, String mode, byte[] AESEncrypted ) {
+            userRepository.setUserPermissionFile(username, uid, mode,AESEncrypted);
         }
         private List<String> getUsersWithPermission(String uid, String mode){
             return userRepository.getUsersWithPermissions(uid,mode);
+        }
+
+        private byte[] getPublicKey(String username){
+            return userRepository.getPublicKey(username);
         }
 
         private byte[] getAESEncrypted(String username, String uid){

@@ -146,7 +146,7 @@ message GivePermissionRequest{
   string other = 1;
   string uid = 2;
   string mode = 3;
-  bytes AESEncrypted= 4;
+  bytes OtherAESEncrypted= 4;
 }
 
 message GivePermissionReply{
@@ -163,6 +163,7 @@ message GetAESEncryptedRequest{
 message GetAESEncryptedReply{
   bool is_owner =1;
   bytes AESEncrypted=2;
+  bytes otherPublicKey=3;
 }
 
 
