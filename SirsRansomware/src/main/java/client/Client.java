@@ -729,16 +729,18 @@ public class Client {
             if (res.getOkMode()) {
                 if (res.getOkOthers()) {
                     if (res.getOkUid()) {
-                        switch (s) {
-                            case "read" -> System.out.println("Read permission of file " + filename + " granted for user " + username);
-                            case "write" -> System.out.println("Write permission of file " + filename + " granted for user " + username);
-                        }
+                        printToSystem(s,filename,Arrays.asList(othersNames));
                     }
                 } else System.out.println("Username do not exist");
             } else System.out.println("Wrong type of permission inserted");
 
         }else System.out.println("You are not the owner of this file, you cannot give permission");
 
+    }
+    public void printToSystem(String mode,String filename, List<String> usernames){
+        for (String name :usernames){
+            System.out.println(mode + "permission granted for filename " + filename + "for user " + name);
+        }
     }
 
     public void generateSecureFile() {

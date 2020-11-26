@@ -576,7 +576,7 @@ public class Server {
                 byte[] aes = getAESEncrypted(req.getUsername(),req.getUid());
 
                 List<byte[]> pk = userRepository.getPublicKeysByUsernames(req.getOthersNamesList());
-                reply = GetAESEncryptedReply.newBuilder().setAESEncrypted(ByteString.copyFrom(aes))
+                reply = GetAESEncryptedReply.newBuilder().setIsOwner(true).setAESEncrypted(ByteString.copyFrom(aes))
                         .addAllOthersPublicKeys(pk.stream().map(ByteString::copyFrom).collect(Collectors.toList())).build();
 
             } else reply = GetAESEncryptedReply.newBuilder().setIsOwner(false).setAESEncrypted(null).addAllOthersPublicKeys(null).build();
