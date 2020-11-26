@@ -47,6 +47,7 @@ message RegisterRequest {
   string username = 1;
   bytes password = 2;
   bytes salt = 3;
+  bytes publicKey=4;
 }
 
 // The response message containing the greetings
@@ -121,4 +122,6 @@ message GivePermissionReply{
   bool ok_uid = 2;
   bool ok_mode = 3;
 }
+
+
 

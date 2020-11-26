@@ -23,6 +23,8 @@ public class User implements DatabaseObject {
 
     private int iterations;
 
+    private byte[] publicKey;
+
     //MTM
     private List<String> editableFiles = new ArrayList<>();
     //MTM
@@ -32,11 +34,12 @@ public class User implements DatabaseObject {
     //OTM
     private List<String> createdVersions = new ArrayList<>();
 
-    public User(String username, byte[] passHash, byte[] salt, int iterations) {
+    public User(String username, byte[] passHash, byte[] salt, int iterations, byte[] publicKey) {
         this.username = username;
         this.passHash = passHash;
         this.salt = salt;
         this.iterations = iterations;
+        this.publicKey = publicKey;
     }
 
     public User() {
@@ -119,11 +122,15 @@ public class User implements DatabaseObject {
         this.ownedFiles.add(file);
     }
 
+    public byte[] getPublicKey() { return publicKey; }
+
+    public void setPublicKey(byte[] publicKey) { this.publicKey = publicKey; }
+
     @Override
     public void saveInDatabase(Connector connector) {
         try {
             //Insert user
-            String sql = "INSERT INTO Users VALUES (?,?,?,?)";
+            String sql = "INSERT INTO Users VALUES (?,?,?,?,?)";
             PreparedStatement s = connector.connection.prepareStatement(sql);
 
             //Set parameters
@@ -131,6 +138,7 @@ public class User implements DatabaseObject {
             s.setBinaryStream(2, new ByteArrayInputStream(this.passHash));
             s.setBinaryStream(3, new ByteArrayInputStream(this.salt));
             s.setInt(4, this.iterations);
+            s.setBinaryStream(5, new ByteArrayInputStream(this.publicKey));
             s.executeUpdate();
 
             //Commit transaction
@@ -150,6 +158,7 @@ public class User implements DatabaseObject {
         return "User{" +
                 "username='" + username + '\'' +
                 ", passHash=" + Arrays.toString(passHash) +
+                ", publicKey=" + Arrays.toString(publicKey) +
                 ", editableFiles=" + editableFiles +
                 ", readableFiles=" + readableFiles +
                 ", ownedFiles=" + ownedFiles +
