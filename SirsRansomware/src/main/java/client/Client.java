@@ -522,8 +522,6 @@ public class Client {
         String filename = console.readLine("Enter the filename: ");
         String uid = null;
 
-
-
         try {
             uid = getUid(filename);
         } catch (FileNotFoundException e) {
@@ -537,6 +535,7 @@ public class Client {
                 .build();
         GetAESEncryptedReply reply = blockingStub.getAESEncrypted(req);
         byte[] aesEncrypted= reply.getAESEncrypted().toByteArray();
+        byte[] OtherPK = reply.getOtherPublicKey().toByteArray();
         if(reply.getIsOwner()){
             //desencriptar com a privada, encriptar com a publica do outro e mandar para o server
 
