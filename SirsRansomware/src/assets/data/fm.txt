@@ -1,2 +1,1 @@
-/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/certs/server1.key a94d3058-a647-4a57-b706-42f231d90e50 1 key
-/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/certs/server0.key a7eaa450-ebf4-454c-ade2-c5715ed5005a 1 key
+/Users/rafael/Documents/IST/MEIC/SIRS/project/SIRS_proj1/SirsRansomware/src/assets/certs/server1.key 8c7a4565-a04e-43fa-b982-c90804a195ab 1 teste

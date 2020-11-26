@@ -22,11 +22,14 @@ public class File implements DatabaseObject {
 
     private String partition;
 
-    public File(String uid, String owner, String name, String partition) {
+    private byte[] ownerAESEncrypted;
+
+    public File(String uid, String owner, String name, String partition, byte[] AESEncrypted) {
         this.uid = uid;
         this.owner = owner;
         this.name = name;
         this.partition = partition;
+        this.ownerAESEncrypted = AESEncrypted;
     }
 
     public File() {
@@ -76,6 +79,7 @@ public class File implements DatabaseObject {
         this.versions.add(versionId);
     }
 
+
     @Override
     public void saveInDatabase(Connector connector) {
         try {
@@ -90,18 +94,20 @@ public class File implements DatabaseObject {
             s.setString(4, this.partition);
             s.executeUpdate();
 
-            sql = "INSERT INTO EditableFiles VALUES (?,?)";
+            sql = "INSERT INTO EditableFiles VALUES (?,?,?)";
             s = connector.connection.prepareStatement(sql);
 
             s.setString(1, this.owner);
             s.setString(2, this.uid);
+            s.setBytes(3, this.ownerAESEncrypted);
             s.executeUpdate();
 
-            sql = "INSERT INTO ReadableFiles VALUES (?,?)";
+            sql = "INSERT INTO ReadableFiles VALUES (?,?,?)";
             s = connector.connection.prepareStatement(sql);
 
             s.setString(1, this.owner);
             s.setString(2, this.uid);
+            s.setBytes(3, this.ownerAESEncrypted);
             s.executeUpdate();
 
             connector.connection.commit();

@@ -10,7 +10,7 @@ CREATE TABLE Users
     password   VARBINARY(1024) NOT NULL,
     salt       VARBINARY(64)   NOT NULL,
     iterations INT             NOT NULL,
-    publicKey  VARBINARY(2048) NOT NULL
+    public_key  VARBINARY(2048) NOT NULL
 );
 
 CREATE TABLE Files
@@ -37,7 +37,7 @@ CREATE TABLE EditableFiles
 (
     username VARCHAR(15),
     uid      VARCHAR(100),
-    AESEncrypted VARBINARY (2048),
+    AESEncrypted VARBINARY(2048),
     FOREIGN KEY (username) REFERENCES Users (username),
     FOREIGN KEY (uid) REFERENCES Files (uid)
 );

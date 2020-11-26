@@ -29,6 +29,7 @@ public class FileVersionRepository extends Repository {
                 version.setFileUid(rs.getString("file_uid"));
                 version.setCreator(rs.getString("creator"));
                 version.setDate(rs.getDate("date"));
+                version.setDigitalSignature(rs.getBytes("digital_signature"));
             }
 
         } catch (SQLException e) {
@@ -52,6 +53,7 @@ public class FileVersionRepository extends Repository {
                 version.setFileUid(fileUid);
                 version.setCreator(rs.getString("creator"));
                 version.setDate(rs.getDate("date"));
+                version.setDigitalSignature(rs.getBytes("digital_signature"));
             }
 
         } catch (SQLException e) {

@@ -462,7 +462,7 @@ public class Server {
                 }
                 //REGISTER FILE
                 if (!this.fileRepository.fileExists(req.getUid())) {
-                    registerFile(req.getUid(), req.getFileName(), req.getUsername(), req.getPartId());
+                    registerFile(req.getUid(), req.getFileName(), req.getUsername(), req.getPartId(), req.getAESEncrypted().toByteArray());
                 }
                 registerFileVersion(versionId, req.getUid(), req.getUsername(),req.getDigitalSignature().toByteArray());
 
@@ -491,7 +491,7 @@ public class Server {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                reply.addUids(file.getUid());
+                reply.addUids(mostRecentVersion.getUid());
                 reply.addFilenames(file.getName());
                 reply.addOwners(file.getOwner());
                 reply.addPartIds(file.getPartition());
@@ -572,7 +572,7 @@ public class Server {
             if (isOwner(req.getUsername(), req.getUid())){
                 byte[] aes = getAESEncrypted(req.getUsername(),req.getUid());
                 byte[] pk = getPublicKey(req.getOther());
-                reply = GetAESEncryptedReply.newBuilder().setAESEncrypted(ByteString.copyFrom(aes)).setOtherPublicKey(ByteString.copyFrom(pk)).build();
+                reply = GetAESEncryptedReply.newBuilder().setAESEncrypted(ByteString.copyFrom(aes)).setOtherPublicKey(ByteString.copyFrom(pk)).setIsOwner(true).build();
             } else reply = GetAESEncryptedReply.newBuilder().setIsOwner(false).setAESEncrypted(null).setOtherPublicKey(null).build();
 
             responseObserver.onNext(reply);
@@ -591,8 +591,8 @@ public class Server {
             user.saveInDatabase(this.c);
         }
 
-        private void registerFile(String uid, String filename, String owner, String partId) {
-            server.domain.file.File file = new server.domain.file.File(uid, owner, filename, partId);
+        private void registerFile(String uid, String filename, String owner, String partId, byte[] AESEncrypted) {
+            server.domain.file.File file = new server.domain.file.File(uid, owner, filename, partId, AESEncrypted);
             file.saveInDatabase(this.c);
         }
 

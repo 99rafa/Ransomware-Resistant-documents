@@ -121,12 +121,13 @@ message PullReply{
 
 message PushRequest {
   bytes file = 1;
-  string uid = 2;
-  string file_name = 3;
-  string username = 4;
-  bytes password = 5;
-  string part_id = 6;
-  bytes digital_signature = 7;
+  bytes AESEncrypted = 2;
+  string uid = 3;
+  string file_name = 4;
+  string username = 5;
+  bytes password = 6;
+  string part_id = 7;
+  bytes digital_signature = 8;
 }
 
 message PushReply {

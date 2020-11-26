@@ -114,7 +114,7 @@ public class FileRepository extends Repository {
     public byte[] getFileOwnerPublicKey(String uid){
         try {
             String owner = "";
-            String sql = "SELECT owner FROM Files WHERE uid = ?";
+            String sql = "SELECT creator FROM FileVersions WHERE version_uid = ?";
             PreparedStatement statement = super.getConnection().prepareStatement(sql);
 
             //Set parameters
@@ -124,7 +124,7 @@ public class FileRepository extends Repository {
             ResultSet rs = statement.executeQuery();
 
             if (rs.next()) {
-                owner = rs.getString("owner");
+                owner = rs.getString("creator");
             }
 
             sql = "SELECT public_key FROM Users WHERE username = ?";

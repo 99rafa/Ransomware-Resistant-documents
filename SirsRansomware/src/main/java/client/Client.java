@@ -16,8 +16,7 @@ import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
 import pt.ulisboa.tecnico.sdis.zk.ZKRecord;
 import server.Server;
 
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
+import javax.crypto.*;
 import javax.crypto.spec.PBEKeySpec;
 import javax.net.ssl.SSLException;
 import java.io.*;
@@ -52,6 +51,7 @@ public class Client {
     private String username = null;
     private byte[] salt = null;
     KeyStore keyStore;
+    private Cipher cipher;
 
     /**
      * Construct client connecting to HelloWorld server at {@code host:port}.
@@ -192,11 +192,10 @@ public class Client {
     /**
      * Say hello to server.
      */
-    public void register() {
+    public void register() throws NoSuchPaddingException, NoSuchAlgorithmException {
 
         Console console = System.console();
         String name = console.readLine("Enter a username: ");
-
         boolean match = false;
         String passwd = "";
 
@@ -218,11 +217,8 @@ public class Client {
         PublicKey publicKey = keyPair.getPublic();
 
 
-
-        // Get the bytes of the public and private keys
-        byte[] privateKeyBytes = privateKey.getEncoded(); //keep privatekey in Keystore
+        // Get the bytes of the public key
         byte[] publicKeyBytes = publicKey.getEncoded();
-
 
 
         RegisterRequest request = RegisterRequest.newBuilder()
@@ -292,9 +288,7 @@ public class Client {
                 if (response.getOkPassword()) {
                     this.username = name;
                     this.salt = salt;
-                    PrintWriter writer = new PrintWriter(FILE_MAPPING_PATH);
-                    writer.print("");
-                    writer.close();
+                    clearFileMapping();
                     System.out.println("Successful Authentication. Welcome " + name + "!");
                     break;
                 } else {
@@ -310,6 +304,18 @@ public class Client {
             System.err.println("Exceeded the number of tries. Client logged out.");
             logout();
         }
+    }
+
+    public void clearFileMapping() {
+
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter(FILE_MAPPING_PATH);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        writer.print("");
+        writer.close();
     }
 
     public void logout() {
@@ -404,7 +410,7 @@ public class Client {
 
     public byte[] createDigitalSignature(byte[] fileBytes, PrivateKey privateKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
         //Creating a Signature object
-        Signature sign = Signature.getInstance("SHA256withDSA");
+        Signature sign = Signature.getInstance("SHA256withRSA");
 
         //Initialize the signature
         sign.initSign(privateKey);
@@ -416,13 +422,13 @@ public class Client {
         return sign.sign();
     }
 
-    public boolean verifyDigitalSignature(byte[] signature, PublicKey publicKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+    public boolean verifyDigitalSignature(byte[] message, byte[] signature, PublicKey publicKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
         //Creating a Signature object
-        Signature sign = Signature.getInstance("SHA256withDSA");
+        Signature sign = Signature.getInstance("SHA256withRSA");
         //Initializing the signature
 
         sign.initVerify(publicKey);
-        sign.update(signature);
+        sign.update(message);
 
         //Verifying the signature
         return sign.verify(signature);
@@ -447,9 +453,11 @@ public class Client {
                 //TODO STATIC FOR NOW
                 String partId = "1";
                 String filename;
+                SecretKey fileSecretKey = null;
                 if (isNew) {
                     System.out.print("Filename: ");
                     filename = input.nextLine();
+                    fileSecretKey = generateSecretKey();
                 } else
                     filename = getUidMap(INDEX_PATH, INDEX_NAME).get(filePath);
                 String uid = generateFileUid(filePath, partId, filename);
@@ -458,16 +466,22 @@ public class Client {
                 int tries = 0;
 
                 while (tries < 3) {
-                    String passwd = new String((System.console()).readPassword("Enter a password: "));
+                    String passwd = new String((System.console()).readPassword("Enter your password: "));
                     System.out.println("Sending file to server");
+
+                    GetPublicKeysByUsernamesRequest request = GetPublicKeysByUsernamesRequest.newBuilder().addAllUsernames(Collections.singleton(this.username)).build();
+
+                    GetPublicKeysByUsernamesReply reply = blockingStub.getPublicKeysByUsernames(request);
+                    byte[] encryptedSecret = secureSecretKey(reply.getKeys(0).toByteArray(), fileSecretKey.getEncoded());
+
                     PushReply res;
                     PushRequest req;
-                    generateSecureFile();
                     req = PushRequest
                             .newBuilder()
                             .setFile(
                                     ByteString.copyFrom(
-                                            file_bytes))
+                                            generateSecureFile(file_bytes,fileSecretKey)))
+                            .setAESEncrypted(ByteString.copyFrom(encryptedSecret))
                             .setUsername(this.username)
                             .setDigitalSignature(ByteString.copyFrom(digitalSignature))
                             .setPassword(ByteString.copyFrom(generateSecurePassword(passwd, this.salt)))
@@ -571,7 +585,7 @@ public class Client {
 
                 PublicKey pk = kf.generatePublic(X509publicKey);
                 //VERIFY SIGNATURE
-                if(!verifyDigitalSignature(digitalSignature,pk))
+                if(!verifyDigitalSignature(file_data,digitalSignature,pk))
                     System.out.println("TA MAU DE SAL");
                     //TODO RETRIEVE HEALTHY VERSION
                 else
@@ -596,7 +610,6 @@ public class Client {
         try {
             //TODO provide a password
             privateKey = (PrivateKey) this.keyStore.getKey(this.username + "privkey", "".toCharArray());
-            System.out.println(keyStore.containsAlias("db-encryption-secret"));
         } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException e) {
             e.printStackTrace();
         }
@@ -610,6 +623,7 @@ public class Client {
         String filename = console.readLine("Enter the filename: ");
         String uid = null;
 
+        String instance="RSA"; //change to append mode and padding
         try {
             uid = getUid(filename);
         } catch (FileNotFoundException e) {
@@ -622,9 +636,23 @@ public class Client {
                 .setUid(uid)
                 .build();
         GetAESEncryptedReply reply = blockingStub.getAESEncrypted(req);
-        byte[] aesEncrypted = reply.getAESEncrypted().toByteArray();
+        byte[] aesEncrypted= reply.getAESEncrypted().toByteArray();
+        byte[] otherPubKey = reply.getOtherPublicKey().toByteArray();
+        byte[] encryptedSecret = null;
         if(reply.getIsOwner()){
-            //desencriptar com a privada, encriptar com a publica do outro e mandar para o server
+
+            try{
+                //decrypt with private key in order to obtain symmetric key
+                PrivateKey privkey = getPrivateKey();
+                this.cipher = Cipher.getInstance(instance);
+                this.cipher.init(Cipher.DECRYPT_MODE, privkey);
+                byte[] aesKey= this.cipher.doFinal(aesEncrypted);
+
+                encryptedSecret = secureSecretKey(otherPubKey,aesKey);
+
+            } catch (InvalidKeyException | BadPaddingException | IllegalBlockSizeException | NoSuchPaddingException | NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            }
 
             //read/write permissions
             GivePermissionRequest request = GivePermissionRequest
@@ -632,7 +660,7 @@ public class Client {
                     .setOther(other)
                     .setUid(uid)
                     .setMode(s)
-                    .setOtherAESEncrypted(null)
+                    .setOtherAESEncrypted(ByteString.copyFrom(Objects.requireNonNull(encryptedSecret)))
                     .build();
             GivePermissionReply res = blockingStub.givePermission(request);
 
@@ -651,8 +679,56 @@ public class Client {
 
     }
 
-    public void generateSecureFile() {
+    private byte[] secureSecretKey(byte[] otherPubKey, byte[] aesKey) {
+
+        //encrypt AES with "other" public key to send to the server
+        KeyFactory kf = null;
+        try {
+            Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            kf = KeyFactory.getInstance("RSA");
+            PublicKey otherPublicKey = kf.generatePublic(new X509EncodedKeySpec(otherPubKey));
+            cipher.init(Cipher.ENCRYPT_MODE,otherPublicKey);
+            return cipher.doFinal(aesKey);
+        } catch (NoSuchAlgorithmException | InvalidKeyException | InvalidKeySpecException | IllegalBlockSizeException | BadPaddingException | NoSuchPaddingException e) {
+            e.printStackTrace();
+        }
+       return null;
 
     }
+
+    public SecretKey generateSecretKey() {
+
+        KeyGenerator keyGen = null;
+        try {
+            keyGen = KeyGenerator.getInstance("AES");
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+
+        SecureRandom secRandom = new SecureRandom();
+
+        Objects.requireNonNull(keyGen).init(secRandom);
+
+        return keyGen.generateKey();
+
+    }
+
+    public byte[] generateSecureFile(byte[] file_bytes, SecretKey secretKey) {
+
+        Cipher cipher = null;
+        byte[] encryptedBytes = null;
+        try {
+            cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            encryptedBytes = cipher.doFinal(file_bytes);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+            e.printStackTrace();
+        }
+        return encryptedBytes;
+
+
+    }
+
+
 
 }
