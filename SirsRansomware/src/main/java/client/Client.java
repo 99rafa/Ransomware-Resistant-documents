@@ -508,7 +508,7 @@ public class Client {
         System.out.println("help - displays help message");
         System.out.println("pull - receives files from server");
         System.out.println("push - sends file to server");
-        System.out.println("give_perm - give read/write file access permission to a user");
+        System.out.println("give_perm - give read/write file access permission to user/s");
         System.out.println("logout - exits client");
         System.out.println("exit - exits client");
     }
@@ -536,7 +536,6 @@ public class Client {
             String[] fileNames = choice.split(" ");
             List<String> uids = new ArrayList<>();
             for (String file : fileNames) {
-
                 if (getUid(file) != null)
                     uids.add(getUid(file));
                 else
@@ -550,7 +549,6 @@ public class Client {
                     .build();
             reply = blockingStub.pullSelected(request);
         }
-
 
         if (!reply.getOk())
             System.err.println("Wrong password!");
@@ -573,10 +571,8 @@ public class Client {
                                 .build()
                 ).getPublicKey().toByteArray();
 
-                X509EncodedKeySpec X509publicKey = new X509EncodedKeySpec(ownerPublicKey);
-                KeyFactory kf = KeyFactory.getInstance("RSA");
 
-                PublicKey pk = kf.generatePublic(X509publicKey);
+                PublicKey pk = getPublicKey(ownerPublicKey);
                 //VERIFY SIGNATURE
                 if(!verifyDigitalSignature(file_data,digitalSignature,pk))
                     System.out.println("TA MAU DE SAL");
@@ -597,6 +593,18 @@ public class Client {
             }
         }
     }
+    private PublicKey getPublicKey(byte[] ownerPublicKey){
+        PublicKey pk = null;
+        try {
+            X509EncodedKeySpec X509publicKey = new X509EncodedKeySpec(ownerPublicKey);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+
+            pk = kf.generatePublic(X509publicKey);
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
+        }
+        return pk;
+    }
 
     private PrivateKey getPrivateKey() {
         PrivateKey privateKey = null;
@@ -612,11 +620,11 @@ public class Client {
 
     public void givePermission() {
         Console console = System.console();
-        String others = console.readLine("Enter the username/s to give permission, separated by a blank space.: ");
+        String others = console.readLine("Enter the username/s to give permission, separated by a blank space: ");
         String s = ((System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n")));
         String filename = console.readLine("Enter the filename: ");
         String uid = null;
-        String instance="RSA/CBC"; //change to append mode and padding
+        String instance="RSA/CBC";
         String[] othersNames = others.split(" ");
 
 
@@ -635,31 +643,13 @@ public class Client {
         GetAESEncryptedReply reply = blockingStub.getAESEncrypted(req);
         byte[] aesEncrypted= reply.getAESEncrypted().toByteArray();
         List<byte[]> othersPubKeys = reply.getOthersPublicKeysList().stream().map(ByteString::toByteArray).collect(Collectors.toList());
-        byte[] otherPubKeyEncrypted = null;
+        byte[] aesKey = null;
 
         if(reply.getIsOwner()){
-            List<byte[]> othersAesEncrypted = null;
-            for (byte[] bytes : othersPubKeys) {
-                try {
-                    //decrypt with private key in order to obtain symmetric key
-                    PrivateKey privkey = getPrivateKey();
-                    this.cipher = Cipher.getInstance(instance);
-                    this.cipher.init(Cipher.DECRYPT_MODE, privkey);
-                    byte[] aesKey = this.cipher.doFinal(aesEncrypted);
-
-                    //encrypt AES with "other" public key to send to the server
-                    KeyFactory kf = KeyFactory.getInstance(instance);
-                    PublicKey otherPublicKey = kf.generatePublic(new X509EncodedKeySpec(bytes));
-                    this.cipher.init(Cipher.ENCRYPT_MODE, otherPublicKey);
-                    otherPubKeyEncrypted = this.cipher.doFinal(aesKey);
-                    othersAesEncrypted.add(otherPubKeyEncrypted);
-
-
-                } catch (InvalidKeyException | BadPaddingException | IllegalBlockSizeException | NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-                    e.printStackTrace();
-                }
-            }
-
+            //decrypt with private key in order to obtain symmetric key
+            aesKey = getAESKey(instance,aesEncrypted);
+            //encrypt AES with "others" public keys to send to the server
+            List<byte[]> othersAesEncrypted = getOthersAESEncrypted(othersPubKeys,aesKey);
             //read/write permissions
             GivePermissionRequest request = GivePermissionRequest
                     .newBuilder()
@@ -687,6 +677,37 @@ public class Client {
 
     public void generateSecureFile() {
 
+    }
+    public List<byte[]> getOthersAESEncrypted(List<byte[]> othersPubKeys, byte[] aesKey){
+        List<byte[]> othersAESEncrypted = null;
+        for (byte[] bytes : othersPubKeys) {
+            try {
+                KeyFactory kf = KeyFactory.getInstance("RSA");
+                PublicKey otherPublicKey = kf.generatePublic(new X509EncodedKeySpec(bytes));
+                this.cipher.init(Cipher.ENCRYPT_MODE, otherPublicKey);
+                byte[] otherAESEncrypted = this.cipher.doFinal(aesKey);
+                othersAESEncrypted.add(otherAESEncrypted);
+
+
+            } catch (InvalidKeyException | BadPaddingException | IllegalBlockSizeException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+                e.printStackTrace();
+            }
+        }
+        return othersAESEncrypted;
+    }
+
+    public byte[] getAESKey(String instance, byte[] aesEncrypted){
+        byte[] aesKey = null;
+        try {
+            PrivateKey privkey = getPrivateKey();
+            this.cipher = Cipher.getInstance(instance);
+            this.cipher.init(Cipher.DECRYPT_MODE, privkey);
+            aesKey = this.cipher.doFinal(aesEncrypted);
+
+        } catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException | BadPaddingException | IllegalBlockSizeException e) {
+            e.printStackTrace();
+        }
+        return aesKey;
     }
     public static SecretKey createAESKey() throws Exception {
 
