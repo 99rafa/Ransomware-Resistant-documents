@@ -29,7 +29,7 @@ public class SelfSignedCertificate {
     private static final String CERTIFICATE_ALIAS = "YOUR_CERTIFICATE_NAME";
     private static final String CERTIFICATE_ALGORITHM = "RSA";
     private static final String CERTIFICATE_DN = "CN=cn, O=o, L=L, ST=il, C= c";
-    private static final String CERTIFICATE_NAME = "keystore.pem";
+    private static final String CERTIFICATE_NAME = "src/assets/certs/clientCert.pem";
     private static final int CERTIFICATE_BITS = 1024;
 
     static {
@@ -71,7 +71,7 @@ public class SelfSignedCertificate {
         KeyStore keyStore = KeyStore.getInstance("PKCS12");
         keyStore.load(new FileInputStream("src/assets/keyStores/trustCertsServerKeyStore.p12"), "w7my3n,~yvF-;Py3".toCharArray());
         keyStore.setKeyEntry(CERTIFICATE_ALIAS, key, "".toCharArray(),  new java.security.cert.Certificate[]{cert});
-        File file = new File(".", CERTIFICATE_NAME);
-        keyStore.store( new FileOutputStream(file), "w7my3n,~yvF-;Py3".toCharArray() );
+        //File file = new File(".", CERTIFICATE_NAME);
+        keyStore.store( new FileOutputStream("src/assets/keyStores/trustCertsServerKeyStore.p12"), "w7my3n,~yvF-;Py3".toCharArray() );
     }
 }

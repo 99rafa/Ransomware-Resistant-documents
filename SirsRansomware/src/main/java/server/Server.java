@@ -497,6 +497,7 @@ public class Server {
                 reply.addPartIds(file.getPartition());
                 reply.addFiles(ByteString.copyFrom(
                         file_bytes));
+                reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(file.getUid())));
                 reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
             }
             responseObserver.onNext(reply.build());
@@ -530,6 +531,7 @@ public class Server {
                         reply.addPartIds(file.getPartition());
                         reply.addFiles(ByteString.copyFrom(
                                 file_bytes));
+                        reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(file.getUid())));
                         reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
                         break;
                     }

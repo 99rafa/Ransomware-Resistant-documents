@@ -112,8 +112,9 @@ message PullReply{
   repeated string owners = 3;
   repeated bytes files = 4;
   repeated string partIds = 5;
-  repeated bytes digital_signatures = 6;
-  bool ok = 7;
+  repeated bytes publicKeys = 6;
+  repeated bytes digital_signatures = 7;
+  bool ok = 8;
 }
 
 

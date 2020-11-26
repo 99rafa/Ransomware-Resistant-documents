@@ -189,16 +189,6 @@ public class Client {
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }
 
-    private static byte[] readPrivateKey(Key privateKey) {
-        String encodedString = "-----BEGIN PRIVATE KEY-----\n";
-        encodedString = encodedString+Base64.getEncoder().encodeToString(privateKey.getEncoded())+"\n";
-        encodedString = encodedString+"-----END PRIVATE KEY-----\n";
-
-        return  Base64.getDecoder().decode(encodedString);
-
-
-    }
-
     /**
      * Say hello to server.
      */
@@ -274,7 +264,7 @@ public class Client {
 
 
 
-    public void login() {
+    public void login() throws FileNotFoundException {
         int tries = 0;
         Console console = System.console();
 
@@ -302,6 +292,9 @@ public class Client {
                 if (response.getOkPassword()) {
                     this.username = name;
                     this.salt = salt;
+                    PrintWriter writer = new PrintWriter(FILE_MAPPING_PATH);
+                    writer.print("");
+                    writer.close();
                     System.out.println("Successful Authentication. Welcome " + name + "!");
                     break;
                 } else {
@@ -563,15 +556,15 @@ public class Client {
                 String partId = reply.getPartIds(i);
                 byte[] file_data = reply.getFiles(i).toByteArray();
                 byte[] digitalSignature = reply.getDigitalSignatures(i).toByteArray();
+                byte[] ownerPublicKey = reply.getPublicKeys(i).toByteArray();
 
-                //VERIFY FILE DATA
-                //GET FILE OWNER PUBLIC KEY
-                byte[] ownerPublicKey = blockingStub.getFileOwnerPublicKey(
+                //GET FILE OWNER PUBLIC KEY -> deprecated version
+                /*byte[] ownerPublicKey = blockingStub.getFileOwnerPublicKey(
                         GetFileOwnerPublicKeyRequest
                                 .newBuilder()
                                 .setUid(uid)
                                 .build()
-                ).getPublicKey().toByteArray();
+                ).getPublicKey().toByteArray();*/
 
                 X509EncodedKeySpec X509publicKey = new X509EncodedKeySpec(ownerPublicKey);
                 KeyFactory kf = KeyFactory.getInstance("RSA");
@@ -617,8 +610,6 @@ public class Client {
         String filename = console.readLine("Enter the filename: ");
         String uid = null;
 
-
-
         try {
             uid = getUid(filename);
         } catch (FileNotFoundException e) {
@@ -634,7 +625,7 @@ public class Client {
         byte[] aesEncrypted = reply.getAESEncrypted().toByteArray();
         if(reply.getIsOwner()){
             //desencriptar com a privada, encriptar com a publica do outro e mandar para o server
-            
+
             //read/write permissions
             GivePermissionRequest request = GivePermissionRequest
                     .newBuilder()
