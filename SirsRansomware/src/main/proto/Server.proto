@@ -112,7 +112,8 @@ message PullReply{
   repeated string owners = 3;
   repeated bytes files = 4;
   repeated string partIds = 5;
-  bool ok = 6;
+  repeated bytes digital_signatures = 6;
+  bool ok = 7;
 }
 
 
@@ -124,6 +125,7 @@ message PushRequest {
   string username = 4;
   bytes password = 5;
   string part_id = 6;
+  bytes digital_signature = 7;
 }
 
 message PushReply {
