@@ -35,6 +35,7 @@ service Server {
   rpc GetPublicKeysByFile(GetPublicKeysByFileRequest) returns (GetPublicKeysByFileReply){}
   rpc GetPublicKeysByUsernames(GetPublicKeysByUsernamesRequest) returns (GetPublicKeysByUsernamesReply){}
   rpc GetFileOwnerPublicKey(GetFileOwnerPublicKeyRequest) returns  (GetFileOwnerPublicKeyReply){}
+  rpc VerifyPassword(VerifyPasswordRequest) returns (VerifyPasswordReply){}
 }
 
 message GetFileOwnerPublicKeyRequest{
@@ -96,12 +97,10 @@ message LoginReply {
 
 message PullAllRequest{
   string username = 1;
-  bytes password = 2;
 }
 
 message PullSelectedRequest{
   string username = 1;
-  bytes password = 2;
   repeated string uids = 3;
 }
 
@@ -115,7 +114,6 @@ message PullReply{
   repeated bytes publicKeys = 6;
   repeated bytes digital_signatures = 7;
   repeated bytes AESEncrypted = 8;
-  bool ok = 9;
 }
 
 
@@ -126,9 +124,8 @@ message PushRequest {
   string uid = 3;
   string file_name = 4;
   string username = 5;
-  bytes password = 6;
-  string part_id = 7;
-  bytes digital_signature = 8;
+  string part_id = 6;
+  bytes digital_signature = 7;
 }
 
 message PushReply {
@@ -148,14 +145,14 @@ message HelloReply {
 message GivePermissionRequest{
   repeated string othersNames = 1;
   string uid = 2;
-  string mode = 3;
+  string mode=3;
   repeated bytes OtherAESEncrypted= 4;
+
 }
 
 message GivePermissionReply{
-  bool ok_others = 2;
-  bool ok_uid = 3;
-  bool ok_mode = 4;
+  bool ok_others = 1;
+  bool ok_uid = 2;
 }
 message GetAESEncryptedRequest{
   string username=1;
@@ -167,6 +164,13 @@ message GetAESEncryptedReply{
   bool is_owner =1;
   bytes AESEncrypted=2;
   repeated bytes othersPublicKeys=3;
+}
+message VerifyPasswordRequest{
+  string username=1;
+  bytes password=2;
+}
+message VerifyPasswordReply{
+  bool ok_password=1;
 }
 
 
