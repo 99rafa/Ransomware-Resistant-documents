@@ -1,0 +1,2 @@
+/home/mateus/Desktop/Tecnico/sirs/project/SIRS_proj1/SirsRansomware/src/assets/certs/server1.key 222816fd-ec41-443e-9ded-3a47e9ef13cc 1 poi
+/home/mateus/Desktop/Tecnico/sirs/project/SIRS_proj1/SirsRansomware/src/assets/certs/server0.key 6d104a35-a4b7-4058-a8ce-c7adb04b561d 1 ls

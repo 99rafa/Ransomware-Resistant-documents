@@ -320,7 +320,8 @@ public class Client {
         try {
             writer = new PrintWriter(FILE_MAPPING_PATH);
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            System.err.println("clearFileMapping: File not found. Ignored ");
+            return;
         }
         writer.print("");
         writer.close();
@@ -530,15 +531,31 @@ public class Client {
                     GetPublicKeysByUsernamesRequest request = GetPublicKeysByUsernamesRequest.newBuilder().addAllUsernames(Collections.singleton(this.username)).build();
 
                     GetPublicKeysByUsernamesReply reply = blockingStub.getPublicKeysByUsernames(request);
-                    byte[] encryptedAES = encryptWithRSA(bytesToPubKey(reply.getKeys(0).toByteArray()), fileSecretKey.getEncoded());
+                    byte[] encryptedAES;
+                    byte[] file;
+                    if(isNew){
+                        encryptedAES = encryptWithRSA(bytesToPubKey(reply.getKeys(0).toByteArray()), fileSecretKey.getEncoded());
+                        file=encryptWithAES(fileSecretKey, file_bytes);
+                    }
+                    else{
+                        GetAESEncryptedRequest req = GetAESEncryptedRequest
+                                .newBuilder()
+                                .setUsername(this.username)
+                                .addAllOthersNames(Collections.singleton(this.username))
+                                .setUid(uid)
+                                .build();
+                        GetAESEncryptedReply res = blockingStub.getAESEncrypted(req);
+                        encryptedAES=res.getAESEncrypted().toByteArray();
+                        file=file_bytes;
+                    }
+
+
 
                     PushReply res;
                     PushRequest req;
                     req = PushRequest
                             .newBuilder()
-                            .setFile(
-                                    ByteString.copyFrom(
-                                            Objects.requireNonNull(encryptWithAES(fileSecretKey, file_bytes))))
+                            .setFile(ByteString.copyFrom(file))
                             .setAESEncrypted(ByteString.copyFrom(encryptedAES))
                             .setUsername(this.username)
                             .setDigitalSignature(ByteString.copyFrom(digitalSignature))
@@ -678,7 +695,11 @@ public class Client {
     public void givePermission() {
         Console console = System.console();
         String others = console.readLine("Enter the username/s to give permission, separated by a blank space: ");
-        String s = ((System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n")));
+        String s = System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n");
+        while (!s.matches("write|read")){
+            System.err.println("Wrong type of permission");
+            s=System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n");
+        }
         String filename = console.readLine("Enter the filename: ");
         String uid = null;
 
@@ -701,7 +722,7 @@ public class Client {
         GetAESEncryptedReply reply = blockingStub.getAESEncrypted(req);
         byte[] aesEncrypted= reply.getAESEncrypted().toByteArray();
         List<byte[]> othersPubKeysBytes = reply.getOthersPublicKeysList().stream().map(ByteString::toByteArray).collect(Collectors.toList());
-        byte[] aesKeyBytes = null;
+        byte[] aesKeyBytes;
 
         if(reply.getIsOwner()){
             //decrypt with private key in order to obtain symmetric key
@@ -721,20 +742,15 @@ public class Client {
             if (res.getOkMode()) {
                 if (res.getOkOthers()) {
                     if (res.getOkUid()) {
-                        printToSystem(s,filename,Arrays.asList(othersNames));
+                        for (String name : othersNames){
+                            System.out.println(s + " permission granted for filename " + filename + " for user " + name);
+                        }
                     }
                 } else System.out.println("Username do not exist");
             } else System.out.println("Wrong type of permission inserted");
 
         }else System.out.println("You are not the owner of this file, you cannot give permission");
-
     }
-    public void printToSystem(String mode,String filename, List<String> usernames){
-        for (String name :usernames){
-            System.out.println(mode + "permission granted for filename " + filename + "for user " + name);
-        }
-    }
-
 
 
     public List<byte[]> getOthersAESEncrypted(List<byte[]> othersPubKeys, byte[] aesKey){
@@ -761,14 +777,14 @@ public class Client {
 
         SecureRandom secRandom = new SecureRandom();
 
-        Objects.requireNonNull(keyGen).init(secRandom);
+        Objects.requireNonNull(keyGen).init(256,secRandom);
 
         return keyGen.generateKey();
 
     }
 
 
-    public byte[] decryptSecureFile (byte[] file_bytes, byte[] AESEncrypted) {
+    public byte[] decryptSecureFile(byte[] file_bytes, byte[] AESEncrypted) {
         byte[] aesKeybytes = getAESKeyBytes(AESEncrypted);
         SecretKey aesKey = bytesToAESKey(aesKeybytes);
         return decryptWithAES(aesKey,file_bytes);
