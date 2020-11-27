@@ -1,1 +1,0 @@
-/Users/rafael/Documents/IST/MEIC/SIRS/project/SIRS_proj1/SirsRansomware/src/assets/sql_scripts/init.sql 982a0391-1a69-4c38-8603-2f9ecbda42bd 1 s
