@@ -24,20 +24,19 @@ import server.domain.fileVersion.FileVersionRepository;
 import server.domain.user.User;
 import server.domain.user.UserRepository;
 
-import javax.crypto.*;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLException;
-import java.io.*;
+import java.io.Console;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
-import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.sql.SQLException;
@@ -466,7 +465,7 @@ public class Server {
                 }
                 //REGISTER FILE
                 if (!this.fileRepository.fileExists(req.getUid())) {
-                    registerFile(req.getUid(), req.getFileName(), req.getUsername(), req.getPartId(), req.getAESEncrypted().toByteArray());
+                    registerFile(req.getUid(), req.getFileName(), req.getUsername(), req.getPartId(), req.getAESEncrypted().toByteArray(),req.getIv().toByteArray());
                 }
                 registerFileVersion(versionId, req.getUid(), req.getUsername(),req.getDigitalSignature().toByteArray());
 
@@ -486,7 +485,7 @@ public class Server {
             PullReply.Builder reply = PullReply.newBuilder().setOk(true);
             List<File> readableFiles = this.fileRepository.getUserReadableFiles(req.getUsername());
             for (File file : readableFiles) {
-                System.out.println("Sending file " + file.getName() + " to client " + req.getUsername());
+                System.out.println("Sending file " + file.getName() + " " + file.getUid() + " to client " + req.getUsername());
                 FileVersion mostRecentVersion = fileVersionRepository.getMostRecentVersion(file.getUid());
                 byte[] file_bytes = new byte[0];
                 try {
@@ -498,12 +497,13 @@ public class Server {
                 reply.addUids(mostRecentVersion.getUid());
                 reply.addFilenames(file.getName());
                 reply.addOwners(file.getOwner());
+                reply.addIvs(ByteString.copyFrom(file.getIv()));
                 reply.addPartIds(file.getPartition());
                 reply.addFiles(ByteString.copyFrom(
                         file_bytes));
-                reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(file.getUid())));
+                reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(mostRecentVersion.getUid())));
                 reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
-                reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),mostRecentVersion.getUid())));
+                reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),file.getUid())));
             }
             responseObserver.onNext(reply.build());
             responseObserver.onCompleted();
@@ -533,6 +533,7 @@ public class Server {
                         reply.addUids(file.getUid());
                         reply.addFilenames(file.getName());
                         reply.addOwners(file.getOwner());
+                        reply.addIvs(ByteString.copyFrom(file.getIv()));
                         reply.addPartIds(file.getPartition());
                         reply.addFiles(ByteString.copyFrom(
                                 file_bytes));
@@ -560,7 +561,14 @@ public class Server {
             if (req.getMode().matches("read|write")) {
                 if (allUsernamesExist(req.getOthersNamesList())) {
                     if (filenameExists(req.getUid())) {
-                        giveUsersPermission(req.getOthersNamesList(), req.getUid(), req.getMode(),req.getOtherAESEncryptedList().stream().map(ByteString::toByteArray).collect(Collectors.toList()));
+                        giveUsersPermission(req.getOthersNamesList(),
+                                req.getUid(),
+                                req.getMode(),
+                                req.getOtherAESEncryptedList()
+                                        .stream()
+                                        .map(ByteString::toByteArray)
+                                        .collect(Collectors.toList())
+                        );
                         reply = GivePermissionReply.newBuilder().setOkOthers(true).setOkUid(true).setOkMode(true).build();
                     }
                 } else
@@ -584,7 +592,7 @@ public class Server {
                         .addAllOthersPublicKeys(pk.stream().map(ByteString::copyFrom).collect(Collectors.toList())).build();
 
 
-            } else reply = GetAESEncryptedReply.newBuilder().setIsOwner(false).setAESEncrypted(null).addAllOthersPublicKeys(null).build();
+            } else reply = GetAESEncryptedReply.newBuilder().setIsOwner(false).build();
 
 
             responseObserver.onNext(reply);
@@ -603,8 +611,8 @@ public class Server {
             user.saveInDatabase(this.c);
         }
 
-        private void registerFile(String uid, String filename, String owner, String partId, byte[] AESEncrypted) {
-            server.domain.file.File file = new server.domain.file.File(uid, owner, filename, partId, AESEncrypted);
+        private void registerFile(String uid, String filename, String owner, String partId, byte[] AESEncrypted,byte[] iv) {
+            server.domain.file.File file = new server.domain.file.File(uid, owner, filename, partId, AESEncrypted, iv);
             file.saveInDatabase(this.c);
         }
 

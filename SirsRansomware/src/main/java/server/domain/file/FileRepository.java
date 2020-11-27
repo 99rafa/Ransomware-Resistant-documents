@@ -37,7 +37,7 @@ public class FileRepository extends Repository {
         File file = new File();
         List<String> versions = new ArrayList<>();
         try {
-            String sql = "SELECT uid,owner,name,part_id FROM Files WHERE uid = ?";
+            String sql = "SELECT uid,owner,name,part_id,iv FROM Files WHERE uid = ?";
             PreparedStatement statement = super.getConnection().prepareStatement(sql);
 
             //Set parameters
@@ -49,6 +49,7 @@ public class FileRepository extends Repository {
                 file.setOwner(rs.getString("owner"));
                 file.setName(rs.getString("name"));
                 file.setPartition(rs.getString("part_id"));
+                file.setIv(rs.getBytes("iv"));
             }
 
             sql = "SELECT version_uid FROM FileVersions WHERE file_uid = ?";
@@ -148,7 +149,7 @@ public class FileRepository extends Repository {
     public List<File> getUserReadableFiles(String username) {
         List<File> files = new ArrayList<>();
         try {
-            String sql = "SELECT Files.uid,owner,name,part_id FROM Files,ReadableFiles WHERE Files.uid = ReadableFiles.uid AND username = ?";
+            String sql = "SELECT Files.uid,owner,name,part_id,iv FROM Files,ReadableFiles WHERE Files.uid = ReadableFiles.uid AND username = ?";
             PreparedStatement statement = super.getConnection().prepareStatement(sql);
 
             //Set parameters
@@ -161,6 +162,7 @@ public class FileRepository extends Repository {
                 file.setOwner(rs.getString("owner"));
                 file.setName(rs.getString("name"));
                 file.setPartition(rs.getString("part_id"));
+                file.setIv(rs.getBytes("iv"));
                 files.add(file);
             }
 

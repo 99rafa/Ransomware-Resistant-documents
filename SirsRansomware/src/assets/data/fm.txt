@@ -1,1 +1,2 @@
-/usr/share/maven/lib/guice.jar 8661ed1c-f7d8-465b-8016-47adca6302ac 2 k
+/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/clientPulls/fenix 3cd0031a-78a4-4091-8bb9-3f437f285845 1 fenix
+/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/clientPulls/fenix1 7dd88fdb-a328-495a-bbd2-3b8d282e1137 1 fenix

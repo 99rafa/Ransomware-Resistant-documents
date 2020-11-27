@@ -1,5 +1,11 @@
 package server.database;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -40,6 +46,20 @@ public class Connector {
         System.out.println(u1);
         System.out.println(f1);
         System.out.println(fileVersion1);*/
+
+        KeyStore ks = null;
+        try {
+            ks = KeyStore.getInstance("PKCS12");
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+        try {
+            assert ks != null;
+            ks.load(new FileInputStream("src/assets/keyStores/clientStore.p12"), "vjZx~R::Vr=s7]bz#".toCharArray());
+        } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
+            e.printStackTrace();
+        }
+
 
     }
 

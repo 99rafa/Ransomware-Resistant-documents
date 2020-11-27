@@ -3,7 +3,7 @@ tls-channel/
 SirsRansomware/test
 SirsRansomware/src/assets/serverFiles/
 
-
+SirsRansomware/src/java/main/database/Connector.java
 SirsRansomware/zookeeper.log
 
 SirsRansomware/SirsRansomware.iml
