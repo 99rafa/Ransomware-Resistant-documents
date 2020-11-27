@@ -320,7 +320,7 @@ public class Client {
         try {
             writer = new PrintWriter(FILE_MAPPING_PATH);
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            return;
         }
         writer.print("");
         writer.close();

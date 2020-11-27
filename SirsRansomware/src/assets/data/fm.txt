@@ -1,0 +1,1 @@
+/home/mateus/Desktop/Tecnico/sirs/project/SIRS_proj1/SirsRansomware/src/assets/certs/server1.key cfbac5e7-7909-41c8-a0b1-a12e5583ef74 1 aq
