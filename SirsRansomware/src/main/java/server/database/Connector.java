@@ -7,9 +7,9 @@ import java.sql.SQLException;
 public class Connector {
 
     private static final String DB_URL = "jdbc:mysql://localhost:3306/ransomdb";
-
     private static final String USER = "rafael";
     private static final String PASSWORD = "pass";
+
 
     public Connection connection;
 
