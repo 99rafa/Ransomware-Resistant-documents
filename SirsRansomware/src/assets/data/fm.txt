@@ -1,6 +1,1 @@
-<<<<<<< HEAD
-/home/mateus/Desktop/Tecnico/sirs/project/SIRS_proj1/SirsRansomware/src/assets/certs/server1.key 222816fd-ec41-443e-9ded-3a47e9ef13cc 1 poi
-/home/mateus/Desktop/Tecnico/sirs/project/SIRS_proj1/SirsRansomware/src/assets/certs/server0.key 6d104a35-a4b7-4058-a8ce-c7adb04b561d 1 ls
-=======
-/home/mateus/Desktop/Tecnico/sirs/project/SIRS_proj1/SirsRansomware/src/assets/certs/server1.key cfbac5e7-7909-41c8-a0b1-a12e5583ef74 1 aq
->>>>>>> d78a4e405f0e6313f9a704b26a85339ad3c8c429
+/usr/share/maven/lib/guice.jar 8661ed1c-f7d8-465b-8016-47adca6302ac 2 k

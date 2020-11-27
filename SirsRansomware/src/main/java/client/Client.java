@@ -245,7 +245,7 @@ public class Client {
             e.printStackTrace();
         }
         try {
-            this.keyStore.setKeyEntry(name + "privKey", getPrivateKey(), "".toCharArray(), certificateChain);
+            this.keyStore.setKeyEntry(name + "privKey", keyPair.getPrivate(), "".toCharArray(), certificateChain);
             this.keyStore.store(new FileOutputStream("src/assets/keyStores/clientStore.p12"), "vjZx~R::Vr=s7]bz#".toCharArray());
         } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException e) {
             e.printStackTrace();
