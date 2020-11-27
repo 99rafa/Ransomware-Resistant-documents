@@ -19,6 +19,7 @@ CREATE TABLE Files
     owner   VARCHAR(30) NOT NULL,
     name    VARCHAR(30) NOT NULL,
     part_id VARCHAR(30) NOT NULL,
+    iv VARBINARY(516) NOT NULL ,
     FOREIGN KEY (owner) REFERENCES Users (username)
 );
 

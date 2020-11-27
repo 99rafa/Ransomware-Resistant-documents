@@ -114,6 +114,9 @@ message PullReply{
   repeated bytes publicKeys = 6;
   repeated bytes digital_signatures = 7;
   repeated bytes AESEncrypted = 8;
+  repeated bytes ivs = 9;
+  bool ok = 10;
+
 }
 
 
@@ -126,6 +129,7 @@ message PushRequest {
   string username = 5;
   string part_id = 6;
   bytes digital_signature = 7;
+  bytes iv = 8;
 }
 
 message PushReply {

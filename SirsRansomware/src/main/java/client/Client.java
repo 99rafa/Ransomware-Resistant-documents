@@ -10,7 +10,6 @@ import io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import org.apache.commons.io.FileUtils;
-import org.bouncycastle.its.asn1.AesCcmCiphertext;
 import proto.*;
 import pt.ulisboa.tecnico.sdis.zk.ZKNaming;
 import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
@@ -18,6 +17,7 @@ import pt.ulisboa.tecnico.sdis.zk.ZKRecord;
 import server.Server;
 
 import javax.crypto.*;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLException;
@@ -210,6 +210,10 @@ public class Client {
 
         while (!match) {
             passwd = new String(console.readPassword("Enter a password: "));
+            while(passwd.length() < 8 || passwd.length() > 25){
+                System.out.println("Password must be between 8 and 25 characters, try again");
+                passwd = new String(console.readPassword("Enter a password: "));
+            }
             String confirmation = new String(console.readPassword("Confirm your password: "));
             if (passwd.equals(confirmation))
                 match = true;
@@ -405,17 +409,6 @@ public class Client {
         } else return getUidMap(INDEX_PATH, INDEX_UID).get(filePath);
     }
 
-    public String getUid(String filename) throws FileNotFoundException {
-        Scanner sc = new Scanner(new File(FILE_MAPPING_PATH));
-        while (sc.hasNextLine()) {
-            String[] s = sc.nextLine().split(" ");
-            if (s[INDEX_NAME].equals(filename))
-                return s[INDEX_UID];
-
-        }
-        return null;
-    }
-
     public byte[] createDigitalSignature(byte[] fileBytes, PrivateKey privateKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
         //Creating a Signature object
         Signature sign = Signature.getInstance("SHA256withRSA");
@@ -526,17 +519,19 @@ public class Client {
 
                 while (tries < 3) {
                     String passwd = new String((System.console()).readPassword("Enter your password: "));
-                    System.out.println("Sending file to server");
-                    VerifyPasswordRequest reqPass= VerifyPasswordRequest.newBuilder().setPassword(ByteString.copyFrom(generateSecurePassword(passwd,this.salt))).build();
+
+                    VerifyPasswordRequest reqPass= VerifyPasswordRequest.newBuilder().setUsername(this.username).setPassword(ByteString.copyFrom(generateSecurePassword(passwd,this.salt))).build();
                     VerifyPasswordReply repPass= blockingStub.verifyPassword(reqPass);
                     if (repPass.getOkPassword()){
+                        System.out.println("Sending file to server");
                         byte[] encryptedAES;
                         byte[] file;
+                        PushRequest.Builder builder = PushRequest.newBuilder();
                         if (isNew) {
                             GetPublicKeysByUsernamesRequest request = GetPublicKeysByUsernamesRequest.newBuilder().addAllUsernames(Collections.singleton(this.username)).build();
                             GetPublicKeysByUsernamesReply reply = blockingStub.getPublicKeysByUsernames(request);
                             encryptedAES = encryptWithRSA(bytesToPubKey(reply.getKeys(0).toByteArray()), fileSecretKey.getEncoded());
-                            file = encryptWithAES(fileSecretKey, file_bytes);
+                            file = encryptWithAES(fileSecretKey, file_bytes,builder);
                         } else {
                             GetAESEncryptedRequest req = GetAESEncryptedRequest
                                     .newBuilder()
@@ -600,12 +595,11 @@ public class Client {
             return;
         }
         String choice = ((System.console().readLine("Select which files you want to pull, separated by a blank space. 'all' for pulling every file: ")));
-
         Map<String, String> uidMap = getUidMap(INDEX_UID, INDEX_PATH);
         int tries=0;
         while (tries < 3) {
             String passwd = new String((System.console()).readPassword("Enter a password: "));
-            VerifyPasswordRequest reqPass = VerifyPasswordRequest.newBuilder().setPassword(ByteString.copyFrom(generateSecurePassword(passwd, this.salt))).build();
+            VerifyPasswordRequest reqPass = VerifyPasswordRequest.newBuilder().setUsername(this.username).setPassword(ByteString.copyFrom(generateSecurePassword(passwd, this.salt))).build();
             VerifyPasswordReply repPass = blockingStub.verifyPassword(reqPass);
             if (repPass.getOkPassword()) {
                 PullReply reply;
@@ -616,11 +610,12 @@ public class Client {
                             .build();
                     reply = blockingStub.pullAll(request);
                 } else {
+                    Map<String,String> map = getUidMap(INDEX_NAME,INDEX_UID);
                     String[] fileNames = choice.split(" ");
                     List<String> uids = new ArrayList<>();
                     for (String file : fileNames) {
-                        if (getUid(file) != null)
-                            uids.add(getUid(file));
+                        if (map.get(file) != null)
+                            uids.add(map.get(file));
                         else
                             System.err.println("Error: file " + file + " does not exist in the database. File ignored.");
                     }
@@ -631,47 +626,62 @@ public class Client {
                             .build();
                     reply = blockingStub.pullSelected(request);
                 }
-                for (int i = 0; i < reply.getFilenamesCount(); i++) {
-                    System.out.println("Received file " + reply.getFilenames(i));
-                    String uid = reply.getUids(i);
-                    String filename = reply.getFilenames(i);
-                    String owner = reply.getOwners(i);
-                    String partId = reply.getPartIds(i);
-                    byte[] file_data = reply.getFiles(i).toByteArray();
-                    byte[] digitalSignature = reply.getDigitalSignatures(i).toByteArray();
-                    byte[] ownerPublicKey = reply.getPublicKeys(i).toByteArray();
+                if (!reply.getOk())
+                    System.err.println("Something wrong with operations in server!");
+                else {
+                    for (int i = 0; i < reply.getFilenamesCount(); i++) {
+                        System.out.println("Received file " + reply.getFilenames(i));
+                        String uid = reply.getUids(i);
+                        String filename = reply.getFilenames(i);
+                        String owner = reply.getOwners(i);
+                        String partId = reply.getPartIds(i);
+                        byte[] file_data = reply.getFiles(i).toByteArray();
+                        byte[] digitalSignature = reply.getDigitalSignatures(i).toByteArray();
+                        byte[] ownerPublicKey = reply.getPublicKeys(i).toByteArray();
 
-                    //GET FILE OWNER PUBLIC KEY -> deprecated version
-                    /*byte[] ownerPublicKey = blockingStub.getFileOwnerPublicKey(
-                            GetFileOwnerPublicKeyRequest
-                                    .newBuilder()
-                                    .setUid(uid)
-                                    .build()
-                    ).getPublicKey().toByteArray();*/
+                        //GET FILE OWNER PUBLIC KEY -> deprecated version
+                        /*byte[] ownerPublicKey = blockingStub.getFileOwnerPublicKey(
+                                GetFileOwnerPublicKeyRequest
+                                        .newBuilder()
+                                        .setUid(uid)
+                                        .build()
+                        ).getPublicKey().toByteArray();*/
 
+                        //IF FILE EXISTS OVERWRITE IT
 
-                    PublicKey pk = getPublicKey(ownerPublicKey);
-                    //VERIFY SIGNATURE
-                    if (!verifyDigitalSignature(file_data, digitalSignature, pk))
-                        System.err.println("Signature verification failed");
-                        //TODO RETRIEVE HEALTHY VERSION
-                    else
-                        System.out.println("Signature correctly verified");
+                        byte[] decipheredFileData = decryptSecureFile(file_data, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray());
 
-                    //IF FILE EXISTS OVERWRITE IT
+                        PublicKey pk = getPublicKey(ownerPublicKey);
+                        //VERIFY SIGNATURE
+                        if (!verifyDigitalSignature(decipheredFileData, digitalSignature, pk))
+                            System.err.println("Signature verification failed");
+                            //TODO RETRIEVE HEALTHY VERSION
+                        else
+                            System.out.println("Signature correctly verified");
 
-                    byte[] decipheredFileData = decryptSecureFile(file_data, reply.getAESEncrypted(i).toByteArray());
-
-                    if (uidMap.containsKey(uid))
-                        FileUtils.writeByteArrayToFile(new File(uidMap.get(uid)), decipheredFileData);
-                        //ELSE CREATE IT
-                    else {
-                        FileUtils.writeByteArrayToFile(new File(PULLS_DIR + filename), file_data);
-                        String text = PULLS_DIR + filename + " " + uid + " " + partId + " " + filename + "\n";
-                        appendTextToFile(text, FILE_MAPPING_PATH);
+                        if (uidMap.containsKey(uid))
+                            FileUtils.writeByteArrayToFile(new File(uidMap.get(uid)), decipheredFileData);
+                            //ELSE CREATE IT
+                        else {
+                            //PREVENTS DUPLICATE FILENAMES FROM OVERWRITING
+                            int dupNumber = 1;
+                            Map<String, String> map = getUidMap(INDEX_NAME, INDEX_UID);
+                            if (!map.containsKey(filename)) {
+                                FileUtils.writeByteArrayToFile(new File(PULLS_DIR + filename), decipheredFileData);
+                                String text = PULLS_DIR + filename + " " + uid + " " + partId + " " + filename + "\n";
+                                appendTextToFile(text, FILE_MAPPING_PATH);
+                            } else {
+                                while (map.containsKey(filename + dupNumber)) {
+                                    dupNumber++;
+                                }
+                                FileUtils.writeByteArrayToFile(new File(PULLS_DIR + filename + dupNumber), decipheredFileData);
+                                String text = PULLS_DIR + filename + dupNumber + " " + uid + " " + partId + " " + filename + "\n";
+                                appendTextToFile(text, FILE_MAPPING_PATH);
+                            }
+                        }
                     }
+                    break;
                 }
-                break;
             }else {
                 System.err.println("Wrong password!");
                 tries++;
@@ -712,13 +722,13 @@ public class Client {
         while (tries < 3) {
             String passwd = new String((System.console()).readPassword("Enter a password: "));
 
-            VerifyPasswordRequest reqPass = VerifyPasswordRequest.newBuilder().setPassword(ByteString.copyFrom(generateSecurePassword(passwd, this.salt))).build();
+            VerifyPasswordRequest reqPass = VerifyPasswordRequest.newBuilder().setUsername(this.username).setPassword(ByteString.copyFrom(generateSecurePassword(passwd, this.salt))).build();
             VerifyPasswordReply repPass = blockingStub.verifyPassword(reqPass);
-            if(repPass.getOkPassword()) {
+            if (repPass.getOkPassword()) {
                 String uid = null;
                 String[] othersNames = others.split(" ");
                 try {
-                    uid = getUid(filename);
+                    uid = getUidMap(INDEX_NAME, INDEX_UID).get(filename);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -730,41 +740,43 @@ public class Client {
                         .build();
 
                 GetAESEncryptedReply reply = blockingStub.getAESEncrypted(req);
-                    byte[] aesEncrypted = reply.getAESEncrypted().toByteArray();
-                    List<byte[]> othersPubKeysBytes = reply.getOthersPublicKeysList().stream().map(ByteString::toByteArray).collect(Collectors.toList());
-                    byte[] aesKeyBytes;
+                byte[] aesEncrypted = reply.getAESEncrypted().toByteArray();
+                List<byte[]> othersPubKeysBytes = reply.getOthersPublicKeysList().stream().map(ByteString::toByteArray).collect(Collectors.toList());
+                byte[] aesKeyBytes;
 
-                    if (reply.getIsOwner()) {
-                        //decrypt with private key in order to obtain symmetric key
-                        aesKeyBytes = getAESKeyBytes(aesEncrypted);
-                        //encrypt AES with "others" public keys to send to the server
-                        List<byte[]> othersAesEncrypted = getOthersAESEncrypted(othersPubKeysBytes, aesKeyBytes);
-                        //read/write permissions
-                        GivePermissionRequest request = GivePermissionRequest
-                                .newBuilder()
-                                .addAllOthersNames(Arrays.asList(othersNames))
-                                .setUid(uid)
-                                .setMode(s)
-                                .addAllOtherAESEncrypted(othersAesEncrypted.stream().map(ByteString::copyFrom).collect(Collectors.toList()))
-                                .build();
-                        GivePermissionReply res = blockingStub.givePermission(request);
-                        if (res.getOkOthers()) {
-                            if (res.getOkUid()) {
-                                for (String name : othersNames) {
-                                    System.out.println(s + " permission granted for filename " + filename + " for user " + name);
-                                }
-                                break;
+                if (reply.getIsOwner()) {
+                    //decrypt with private key in order to obtain symmetric key
+                    aesKeyBytes = getAESKeyBytes(aesEncrypted);
+                    //encrypt AES with "others" public keys to send to the server
+                    List<byte[]> othersAesEncrypted = getOthersAESEncrypted(othersPubKeysBytes, aesKeyBytes);
+                    //read/write permissions
+                    GivePermissionRequest request = GivePermissionRequest
+                            .newBuilder()
+                            .addAllOthersNames(Arrays.asList(othersNames))
+                            .setUid(uid)
+                            .setMode(s)
+                            .addAllOtherAESEncrypted(othersAesEncrypted.stream().map(ByteString::copyFrom).collect(Collectors.toList()))
+                            .build();
+                    GivePermissionReply res = blockingStub.givePermission(request);
+                    if (res.getOkOthers()) {
+                        if (res.getOkUid()) {
+                            for (String name : othersNames) {
+                                System.out.println(s + " permission granted for filename " + filename + " for user " + name);
                             }
-                        } else System.out.println("Username do not exist"); break;
-                    } else System.out.println("You are not the owner of this file, you cannot give permission"); break;
-                } else {
-                    System.err.println("Wrong password!");
-                    tries++;
-                }
-                if (tries == 3) {
-                    System.err.println("Exceeded the number of tries. Client logged out.");
-                    logout();
-                }
+                            break;
+                        }
+                    } else System.out.println("Username do not exist");
+                    break;
+                } else System.out.println("You are not the owner of this file, you cannot give permission");
+                break;
+            } else {
+                System.err.println("Wrong password!");
+                tries++;
+            }
+            if (tries == 3) {
+                System.err.println("Exceeded the number of tries. Client logged out.");
+                logout();
+            }
         }
     }
 
@@ -800,31 +812,38 @@ public class Client {
     }
 
 
-    public byte[] decryptSecureFile(byte[] file_bytes, byte[] AESEncrypted) {
+    public byte[] decryptSecureFile(byte[] file_bytes, byte[] AESEncrypted, byte[] iv) {
         byte[] aesKeybytes = getAESKeyBytes(AESEncrypted);
         SecretKey aesKey = bytesToAESKey(aesKeybytes);
-        return decryptWithAES(aesKey,file_bytes);
+        return decryptWithAES(aesKey,file_bytes,iv);
     }
 
-    public byte[] decryptWithAES( SecretKey secretKey, byte[] file_bytes) {
+    public byte[] decryptWithAES( SecretKey secretKey, byte[] file_bytes, byte[] iv) {
         Cipher cipher;
         try {
+            IvParameterSpec ivParams = new IvParameterSpec(iv);
             cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            cipher.init(Cipher.DECRYPT_MODE, secretKey);
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, ivParams);
             return cipher.doFinal(file_bytes);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | InvalidAlgorithmParameterException e) {
             e.printStackTrace();
         }
         return null;
 
     }
-    public byte[] encryptWithAES( SecretKey secretKey, byte[] file_bytes) {
+    public byte[] encryptWithAES( SecretKey secretKey, byte[] file_bytes, PushRequest.Builder requestBuilder) {
         Cipher cipher;
         try {
             cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+            SecureRandom secureRandom = new SecureRandom();
+            byte[] iv = new byte[cipher.getBlockSize()];
+            secureRandom.nextBytes(iv);
+            requestBuilder.setIv(ByteString.copyFrom(iv));
+            IvParameterSpec ivParams = new IvParameterSpec(iv);
+
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey,ivParams);
             return cipher.doFinal(file_bytes);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | InvalidAlgorithmParameterException e) {
             e.printStackTrace();
         }
         return null;
@@ -844,8 +863,10 @@ public class Client {
     }
     private byte[] encryptWithRSA(Key encryptionKey, byte[] file_bytes) {
         try {
+            SecureRandom randomSecureRandom = new SecureRandom();
             Cipher rsa;
             rsa = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+
             rsa.init(Cipher.ENCRYPT_MODE, encryptionKey);
             return rsa.doFinal(file_bytes);
         } catch (Exception e) {
