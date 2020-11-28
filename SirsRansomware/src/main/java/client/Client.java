@@ -612,6 +612,7 @@ public class Client {
                 } else {
                     Map<String,String> map = getUidMap(INDEX_NAME,INDEX_UID);
                     String[] fileNames = choice.split(" ");
+                    System.out.println(map);
                     List<String> uids = new ArrayList<>();
                     for (String file : fileNames) {
                         if (map.get(file) != null)
@@ -626,8 +627,10 @@ public class Client {
                             .build();
                     reply = blockingStub.pullSelected(request);
                 }
-                if (!reply.getOk())
+                if (!reply.getOk()) {
                     System.err.println("Something wrong with operations in server!");
+                    break;
+                }
                 else {
                     for (int i = 0; i < reply.getFilenamesCount(); i++) {
                         System.out.println("Received file " + reply.getFilenames(i));
