@@ -607,20 +607,12 @@ public class Client {
                     .build();
             reply = blockingStub.pullAll(request);
         } else {
-            Map<String,String> map = getUidMap(INDEX_NAME,INDEX_UID);
             String[] fileNames = choice.split(" ");
-            List<String> uids = new ArrayList<>();
-            for (String file : fileNames) {
-                if (map.get(file) != null)
-                    uids.add(map.get(file));
-                else
-                    System.err.println("Error: file " + file + " does not exist in the database. File ignored.");
-            }
             PullSelectedRequest request = PullSelectedRequest
                     .newBuilder()
                     .setUsername(this.username)
                     .setPassword(ByteString.copyFrom(generateSecurePassword(passwd, this.salt)))
-                    .addAllUids(uids)
+                    .addAllFilenames(Arrays.asList(fileNames))
                     .build();
             reply = blockingStub.pullSelected(request);
         }

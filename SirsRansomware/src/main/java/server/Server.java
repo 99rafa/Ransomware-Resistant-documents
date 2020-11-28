@@ -518,9 +518,9 @@ public class Server {
             }
             PullReply.Builder reply = PullReply.newBuilder().setOk(true);
             List<File> readableFiles = this.fileRepository.getUserReadableFiles(req.getUsername());
-            for (int i = 0; i < req.getUidsCount(); i++) {
+            for (int i = 0; i < req.getFilenamesCount(); i++) {
                 for (File file : readableFiles) {
-                    if (req.getUids(i).equals(file.getUid())) {
+                    if (req.getFilenames(i).equals(file.getName())) {
                         System.out.println("Sending file " + file.getName() + " to client " + req.getUsername());
                         FileVersion mostRecentVersion = fileVersionRepository.getMostRecentVersion(file.getUid());
                         byte[] file_bytes = new byte[0];
