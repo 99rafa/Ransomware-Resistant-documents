@@ -161,6 +161,8 @@ public class User implements DatabaseObject {
         return "User{" +
                 "username='" + username + '\'' +
                 ", passHash=" + Arrays.toString(passHash) +
+                ", salt=" + Arrays.toString(salt) +
+                ", iterations=" + iterations +
                 ", publicKey=" + Arrays.toString(publicKey) +
                 ", editableFiles=" + editableFiles +
                 ", readableFiles=" + readableFiles +
