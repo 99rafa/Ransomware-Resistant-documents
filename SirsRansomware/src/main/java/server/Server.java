@@ -454,35 +454,26 @@ public class Server {
             ByteString bs = req.getFile();
             System.out.println("Received file from client " + req.getUsername());
             PushReply reply = null;
-            if (isCorrectPassword(req.getUsername(), req.getPassword().toByteArray())) {
-                String versionId = UUID.randomUUID().toString();
-                byte[] bytes = bs.toByteArray();
-                try {
-                    FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + versionId), bytes);
-                    reply = PushReply.newBuilder().setOk(true).build();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                //REGISTER FILE
-                if (!this.fileRepository.fileExists(req.getUid())) {
-                    registerFile(req.getUid(), req.getFileName(), req.getUsername(), req.getPartId(), req.getAESEncrypted().toByteArray(),req.getIv().toByteArray());
-                }
-                registerFileVersion(versionId, req.getUid(), req.getUsername(),req.getDigitalSignature().toByteArray());
-
-            } else reply = PushReply.newBuilder().setOk(false).build();
-
+            String versionId = UUID.randomUUID().toString();
+            byte[] bytes = bs.toByteArray();
+            try {
+                FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + versionId), bytes);
+                reply = PushReply.newBuilder().setOk(true).build();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            //REGISTER FILE
+            if (!this.fileRepository.fileExists(req.getUid())) {
+                registerFile(req.getUid(), req.getFileName(), req.getUsername(), req.getPartId(), req.getAESEncrypted().toByteArray(),req.getIv().toByteArray());
+            }
+            registerFileVersion(versionId, req.getUid(), req.getUsername(),req.getDigitalSignature().toByteArray());
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
 
         @Override
         public void pullAll(PullAllRequest req, StreamObserver<PullReply> responseObserver) {
-            if (!isCorrectPassword(req.getUsername(), req.getPassword().toByteArray())) {
-                responseObserver.onNext(PullReply.newBuilder().setOk(false).build());
-                responseObserver.onCompleted();
-                return;
-            }
-            PullReply.Builder reply = PullReply.newBuilder().setOk(true);
+            PullReply.Builder reply = PullReply.newBuilder();
             List<File> readableFiles = this.fileRepository.getUserReadableFiles(req.getUsername());
             for (File file : readableFiles) {
                 System.out.println("Sending file " + file.getName() + " " + file.getUid() + " to client " + req.getUsername());
@@ -505,18 +496,15 @@ public class Server {
                 reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
                 reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),file.getUid())));
             }
+            reply.setOk(true);
             responseObserver.onNext(reply.build());
             responseObserver.onCompleted();
         }
 
         @Override
         public void pullSelected(PullSelectedRequest req, StreamObserver<PullReply> responseObserver) {
-            if (!isCorrectPassword(req.getUsername(), req.getPassword().toByteArray())) {
-                responseObserver.onNext(PullReply.newBuilder().setOk(false).build());
-                responseObserver.onCompleted();
-                return;
-            }
-            PullReply.Builder reply = PullReply.newBuilder().setOk(true);
+
+            PullReply.Builder reply = PullReply.newBuilder();
             List<File> readableFiles = this.fileRepository.getUserReadableFiles(req.getUsername());
             for (int i = 0; i < req.getFilenamesCount(); i++) {
                 for (File file : readableFiles) {
@@ -537,13 +525,14 @@ public class Server {
                         reply.addPartIds(file.getPartition());
                         reply.addFiles(ByteString.copyFrom(
                                 file_bytes));
-                        reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(file.getUid())));
+                        reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(mostRecentVersion.getVersionUid()))); //alterei isto pq tava a dar mal
                         reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
-                        reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),mostRecentVersion.getUid())));
+                        reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),file.getUid()))); //o getAES vai buscar o uid e nao o most recent Version uid
                         break;
                     }
                 }
             }
+            reply.setOk(true);
             responseObserver.onNext(reply.build());
             responseObserver.onCompleted();
         }
@@ -558,23 +547,15 @@ public class Server {
         @Override
         public void givePermission(GivePermissionRequest req, StreamObserver<GivePermissionReply> responseObserver) {
             GivePermissionReply reply = null;
-            if (req.getMode().matches("read|write")) {
-                if (allUsernamesExist(req.getOthersNamesList())) {
-                    if (filenameExists(req.getUid())) {
-                        giveUsersPermission(req.getOthersNamesList(),
-                                req.getUid(),
-                                req.getMode(),
-                                req.getOtherAESEncryptedList()
-                                        .stream()
-                                        .map(ByteString::toByteArray)
-                                        .collect(Collectors.toList())
-                        );
-                        reply = GivePermissionReply.newBuilder().setOkOthers(true).setOkUid(true).setOkMode(true).build();
-                    }
-                } else
-                    reply = GivePermissionReply.newBuilder().setOkOthers(false).setOkUid(false).setOkMode(true).build();
+
+            if (allUsernamesExist(req.getOthersNamesList())) {
+                if (filenameExists(req.getUid())) {
+                    giveUsersPermission(req.getOthersNamesList(), req.getUid(), req.getMode(),req.getOtherAESEncryptedList().stream().map(ByteString::toByteArray).collect(Collectors.toList()));
+                    reply = GivePermissionReply.newBuilder().setOkOthers(true).setOkUid(true).build();
+                }
             } else
-                reply = GivePermissionReply.newBuilder().setOkOthers(false).setOkUid(false).setOkMode(false).build();
+                reply = GivePermissionReply.newBuilder().setOkOthers(false).setOkUid(false).build();
+
 
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -582,22 +563,31 @@ public class Server {
         @Override
         public void getAESEncrypted(GetAESEncryptedRequest req, StreamObserver<GetAESEncryptedReply> responseObserver){
             GetAESEncryptedReply reply;
-
             if (isOwner(req.getUsername(), req.getUid())){
-
                 byte[] aes = getAESEncrypted(req.getUsername(),req.getUid());
-
                 List<byte[]> pk = userRepository.getPublicKeysByUsernames(req.getOthersNamesList());
                 reply = GetAESEncryptedReply.newBuilder().setIsOwner(true).setAESEncrypted(ByteString.copyFrom(aes))
                         .addAllOthersPublicKeys(pk.stream().map(ByteString::copyFrom).collect(Collectors.toList())).build();
-
-
             } else reply = GetAESEncryptedReply.newBuilder().setIsOwner(false).build();
 
 
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
+        @Override
+        public void verifyPassword(VerifyPasswordRequest req, StreamObserver<VerifyPasswordReply> responseObserver){
+            VerifyPasswordReply reply;
+            if (isCorrectPassword(req.getUsername(), req.getPassword().toByteArray())) {
+                reply= VerifyPasswordReply.newBuilder().setOkPassword(true).build();
+            }
+            else{
+                reply=VerifyPasswordReply.newBuilder().setOkPassword(false).build();
+            }
+
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        }
+
 
         private boolean isCorrectPassword(String username, byte[] password) {
 
