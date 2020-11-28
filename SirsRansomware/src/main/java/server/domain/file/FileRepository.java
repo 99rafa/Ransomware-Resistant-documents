@@ -8,6 +8,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class FileRepository extends Repository {
@@ -127,7 +128,6 @@ public class FileRepository extends Repository {
             if (rs.next()) {
                 owner = rs.getString("creator");
             }
-
             sql = "SELECT public_key FROM Users WHERE username = ?";
             statement = super.getConnection().prepareStatement(sql);
 

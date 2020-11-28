@@ -525,13 +525,14 @@ public class Server {
                         reply.addPartIds(file.getPartition());
                         reply.addFiles(ByteString.copyFrom(
                                 file_bytes));
-                        reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(file.getUid())));
+                        reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(mostRecentVersion.getVersionUid()))); //alterei isto pq tava a dar mal
                         reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
-                        reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),mostRecentVersion.getUid())));
+                        reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),file.getUid()))); //o getAES vai buscar o uid e nao o most recent Version uid
                         break;
                     }
                 }
             }
+            reply.setOk(true);
             responseObserver.onNext(reply.build());
             responseObserver.onCompleted();
         }

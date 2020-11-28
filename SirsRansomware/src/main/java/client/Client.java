@@ -655,7 +655,7 @@ public class Client {
 
                         PublicKey pk = getPublicKey(ownerPublicKey);
                         //VERIFY SIGNATURE
-                        if (!verifyDigitalSignature(decipheredFileData, digitalSignature, pk))
+                        if (!verifyDigitalSignature(decipheredFileData, digitalSignature, pk)) //dies here wrong IV
                             System.err.println("Signature verification failed");
                             //TODO RETRIEVE HEALTHY VERSION
                         else
