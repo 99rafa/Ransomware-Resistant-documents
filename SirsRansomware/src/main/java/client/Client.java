@@ -629,7 +629,6 @@ public class Client {
                 }
                 if (!reply.getOk()) {
                     System.err.println("Something wrong with operations in server!");
-                    break;
                 }
                 else {
                     for (int i = 0; i < reply.getFilenamesCount(); i++) {
@@ -683,8 +682,9 @@ public class Client {
                             }
                         }
                     }
-                    break;
+
                 }
+                break;
             }else {
                 System.err.println("Wrong password!");
                 tries++;
