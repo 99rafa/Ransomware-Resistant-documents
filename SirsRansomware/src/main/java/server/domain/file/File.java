@@ -24,15 +24,34 @@ public class File implements DatabaseObject {
 
     private byte[] ownerAESEncrypted;
 
-    public File(String uid, String owner, String name, String partition, byte[] AESEncrypted) {
+    private byte[] iv;
+
+    public File(String uid, String owner, String name, String partition, byte[] AESEncrypted, byte[] iv) {
         this.uid = uid;
         this.owner = owner;
         this.name = name;
         this.partition = partition;
         this.ownerAESEncrypted = AESEncrypted;
+        this.iv = iv;
     }
 
     public File() {
+    }
+
+    public byte[] getOwnerAESEncrypted() {
+        return ownerAESEncrypted;
+    }
+
+    public void setOwnerAESEncrypted(byte[] ownerAESEncrypted) {
+        this.ownerAESEncrypted = ownerAESEncrypted;
+    }
+
+    public byte[] getIv() {
+        return iv;
+    }
+
+    public void setIv(byte[] iv) {
+        this.iv = iv;
     }
 
     public List<String> getVersions() {
@@ -84,7 +103,7 @@ public class File implements DatabaseObject {
     public void saveInDatabase(Connector connector) {
         try {
             //Prepared statement
-            String sql = "INSERT INTO Files VALUES (?,?,?,?)";
+            String sql = "INSERT INTO Files VALUES (?,?,?,?,?)";
             PreparedStatement s = connector.connection.prepareStatement(sql);
 
             //Set parameters
@@ -92,6 +111,7 @@ public class File implements DatabaseObject {
             s.setString(2, this.owner);
             s.setString(3, this.name);
             s.setString(4, this.partition);
+            s.setBytes(5,this.iv);
             s.executeUpdate();
 
             sql = "INSERT INTO EditableFiles VALUES (?,?,?)";
