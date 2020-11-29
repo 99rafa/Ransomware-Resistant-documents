@@ -36,6 +36,25 @@ service Server {
   rpc GetPublicKeysByUsernames(GetPublicKeysByUsernamesRequest) returns (GetPublicKeysByUsernamesReply){}
   rpc GetFileOwnerPublicKey(GetFileOwnerPublicKeyRequest) returns  (GetFileOwnerPublicKeyReply){}
   rpc VerifyPassword(VerifyPasswordRequest) returns (VerifyPasswordReply){}
+  rpc BackupFile(BackupFileRequest) returns (BackupFileReply) {}
+  rpc GetBackup(GetBackupRequest) returns (GetBackupReply){}
+}
+
+message GetBackupRequest{
+  string uid = 1;
+}
+
+message GetBackupReply {
+  bytes file = 1;
+}
+
+message BackupFileRequest{
+  bytes file = 1;
+  string uid = 2;
+}
+
+message BackupFileReply{
+  bool ok = 1;
 }
 
 message GetFileOwnerPublicKeyRequest{

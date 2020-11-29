@@ -64,9 +64,7 @@ public class Server {
     private final String privateKeyFilePath;
     private final String trustCertCollectionFilePath;
     private io.grpc.Server server;
-    private ZKNaming zkNaming;
-    private ManagedChannel channel;
-    private ServerGrpc.ServerBlockingStub blockingStub;
+    private static ZKNaming zkNaming;
     private KeyStore keyStore;
     private KeyStore trustCertStore;
     private KeyStore trustStore;
@@ -199,52 +197,6 @@ public class Server {
         return content;
     }
 
-    public List<String> getZooPaths(String zooPath) {
-        System.out.println(this.zooHost + ":" + this.zooPort);
-        ZKNaming zkNaming = new ZKNaming(this.zooHost, this.zooPort);
-        ArrayList<ZKRecord> recs = null;
-        try {
-            recs = new ArrayList<>(zkNaming.listRecords(zooPath));
-        } catch (ZKNamingException e) {
-            e.printStackTrace();
-        }
-
-        assert recs != null;
-        return recs.stream().map(ZKRecord::getPath).collect(Collectors.toList());
-    }
-
-    /**
-     * Construct client connecting to HelloWorld server at {@code host:port}.
-     */
-    public void changeChannel(String zooPath) throws SSLException {
-        ZKRecord record = null;
-        try {
-            record = zkNaming.lookup(zooPath);
-        } catch (ZKNamingException e) {
-            e.printStackTrace();
-        }
-        assert record != null;
-        this.channel = NettyChannelBuilder.forTarget(record.getURI())
-                .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
-                .sslContext(buildSslContext(this.trustCertCollectionFilePath, this.certChainFilePath, this.privateKeyFilePath))
-                .build();
-        this.blockingStub = ServerGrpc.newBlockingStub(channel);
-    }
-
-    public void greet(String name) throws SSLException {
-        changeChannel(getZooPaths("/sirs/ransomware/servers").get(0));
-        System.out.println("Will try to greet " + name + " ...");
-        HelloRequest request = HelloRequest.newBuilder().setName(name).build();
-        HelloReply response;
-        try {
-            response = this.blockingStub.sayHello(request);
-        } catch (StatusRuntimeException e) {
-            logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
-            return;
-        }
-        System.out.println("Greeting: " + response.getMessage());
-    }
-
     private SslContextBuilder getSslContextBuilder() {
         SslContextBuilder sslClientContextBuilder = SslContextBuilder.forServer(new java.io.File(certChainFilePath),
                 new java.io.File(privateKeyFilePath));
@@ -257,7 +209,16 @@ public class Server {
 
     private void start() throws IOException {
         server = NettyServerBuilder.forAddress(new InetSocketAddress(host, Integer.parseInt(port)))
-                .addService(new ServerImp(this.keyStore,this.trustCertStore,this.trustStore))
+                .addService(new ServerImp(
+                        this.keyStore,
+                        this.trustCertStore,
+                        this.trustStore,
+                        this.certChainFilePath,
+                        this.privateKeyFilePath,
+                        this.trustCertCollectionFilePath,
+                        this.id,
+                        this.partId)
+                )
                 .sslContext(getSslContextBuilder().build())
                 .build()
                 .start();
@@ -344,9 +305,16 @@ public class Server {
 
     static class ServerImp extends ServerGrpc.ServerImplBase {
         private final static int ITERATIONS = 10000;
+        private final String certChainFilePath;
+        private final String privateKeyFilePath;
+        private final String trustCertCollectionFilePath;
+        private final String partId;
+        private final String id;
         private KeyStore keyStore;
         private KeyStore trustCertStore;
         private KeyStore trustStore;
+        private ManagedChannel channel;
+        private ServerGrpc.ServerBlockingStub blockingStub;
         Connector c;
         UserRepository userRepository;
         FileRepository fileRepository;
@@ -354,7 +322,18 @@ public class Server {
 
         public ServerImp(KeyStore keyStore,
                 KeyStore trustCertStore,
-                KeyStore trustStore) {
+                KeyStore trustStore,
+                String certChainFilePath,
+                String privateKeyFilePath,
+                String trustCertCollectionFilePath,
+                String id,
+                String partId
+        ) {
+            this.certChainFilePath = certChainFilePath;
+            this.privateKeyFilePath = privateKeyFilePath;
+            this.trustCertCollectionFilePath = trustCertCollectionFilePath;
+            this.id = id;
+            this.partId = partId;
             try {
                 c = new Connector();
                 userRepository = new UserRepository(c.getConnection());
@@ -368,6 +347,42 @@ public class Server {
             }
         }
 
+        @Override
+        public void getBackup(GetBackupRequest request, StreamObserver<GetBackupReply> responseObserver) {
+            byte[] file_bytes = new byte[0];
+            try {
+                file_bytes = Files.readAllBytes(
+                        Paths.get(SIRS_DIR + "/src/assets/backupFiles/" + request.getUid()));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            GetBackupReply getBackupReply = GetBackupReply
+                    .newBuilder()
+                    .setFile(ByteString.copyFrom(file_bytes))
+                    .build();
+
+            responseObserver.onNext(getBackupReply);
+            responseObserver.onCompleted();
+        }
+
+        @Override
+        public void backupFile(BackupFileRequest request, StreamObserver<BackupFileReply> responseObserver) {
+            System.out.println("Receiving backup of file : " + request.getUid());
+            BackupFileReply backupFileReply;
+            byte[] bytes = request.getFile().toByteArray();
+            try {
+                FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/backupFiles/" + request.getUid()), bytes);
+                backupFileReply = BackupFileReply.newBuilder().setOk(true).build();
+            } catch (IOException e) {
+                backupFileReply = BackupFileReply.newBuilder().setOk(false).build();
+                e.printStackTrace();
+            }
+
+
+            responseObserver.onNext(backupFileReply);
+            responseObserver.onCompleted();
+        }
 
         @Override
         public void salt(SaltRequest request, StreamObserver<SaltReply> responseObserver) {
@@ -463,6 +478,7 @@ public class Server {
         @Override
         public void push(PushRequest req, StreamObserver<PushReply> responseObserver) {
 
+            //TODO verify if user is authorized to do push on this file
             ByteString bs = req.getFile();
             System.out.println("Received file " + req.getFileName() + "from client " + req.getUsername());
             PushReply reply = null;
@@ -476,11 +492,36 @@ public class Server {
             }
             //REGISTER FILE
             if (!this.fileRepository.fileExists(req.getUid())) {
-                registerFile(req.getUid(), req.getFileName(), req.getUsername(), req.getPartId(), req.getAESEncrypted().toByteArray(),req.getIv().toByteArray());
+                registerFile(req.getUid(), req.getFileName(), req.getUsername(), req.getPartId(), req.getAESEncrypted().toByteArray(), req.getIv().toByteArray());
             }
-            registerFileVersion(versionId, req.getUid(), req.getUsername(),req.getDigitalSignature().toByteArray());
-            responseObserver.onNext(reply);
-            responseObserver.onCompleted();
+            registerFileVersion(versionId, req.getUid(), req.getUsername(), req.getDigitalSignature().toByteArray());
+            //REPLICATE CHANGE TO BACKUPS
+            try {
+                List<String> servers = getZooPaths("/sirs/ransomware/servers");
+                for(String server : servers){
+                    String pair = server.split("/")[4];
+                    String part = pair.split("_")[0];
+                    String id = pair.split("_")[1];
+                    if(part.equals(req.getPartId()) && !id.equals(this.id)){
+                        System.out.println("Sending backup to server " + id);
+                        changeChannel(server);
+                         this.blockingStub.backupFile(
+                                BackupFileRequest
+                                        .newBuilder()
+                                        .setFile(req.getFile())
+                                        .setUid(req.getUid())
+                                        .build()
+                        );
+                    }
+
+                }
+            } catch (SSLException e) {
+                e.printStackTrace();
+            } finally {
+                responseObserver.onNext(reply);
+                responseObserver.onCompleted();
+            }
+
         }
 
         @Override
@@ -606,6 +647,36 @@ public class Server {
 
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
+        }
+
+        public List<String> getZooPaths(String zooPath) {
+            ArrayList<ZKRecord> recs = null;
+            try {
+                recs = new ArrayList<>(zkNaming.listRecords(zooPath));
+            } catch (ZKNamingException e) {
+                e.printStackTrace();
+            }
+
+            assert recs != null;
+            return recs.stream().map(ZKRecord::getPath).collect(Collectors.toList());
+        }
+
+        /**
+         * Construct client connecting to HelloWorld server at {@code host:port}.
+         */
+        public void changeChannel(String zooPath) throws SSLException {
+            ZKRecord record = null;
+            try {
+                record = zkNaming.lookup(zooPath);
+            } catch (ZKNamingException e) {
+                e.printStackTrace();
+            }
+            assert record != null;
+            this.channel = NettyChannelBuilder.forTarget(record.getURI())
+                    .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
+                    .sslContext(buildSslContext(trustCertCollectionFilePath, certChainFilePath, privateKeyFilePath))
+                    .build();
+            this.blockingStub = ServerGrpc.newBlockingStub(channel);
         }
 
 
