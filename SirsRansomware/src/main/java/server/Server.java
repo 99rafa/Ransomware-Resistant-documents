@@ -82,7 +82,7 @@ public class Server {
         this.partId = partId;
         this.zooPort = zooPort;
         this.zooHost = zooHost;
-        this.zooPath = "/sirs/ransomware/servers/" + partId + "_" + id;
+        this.zooPath = "/sirs/ransomware/server";
         this.host = host;
         this.port = port;
         this.certChainFilePath = certChainFilePath;
@@ -243,7 +243,7 @@ public class Server {
 
     private void addToZooKeeper() {
 
-        this.zkNaming = new ZKNaming(zooHost, zooPort);
+        zkNaming = new ZKNaming(zooHost, zooPort);
         try {
             zkNaming.rebind(this.zooPath, host, this.port);
         } catch (ZKNamingException e) {
@@ -314,7 +314,6 @@ public class Server {
         private KeyStore trustCertStore;
         private KeyStore trustStore;
         private ManagedChannel channel;
-        private ServerGrpc.ServerBlockingStub blockingStub;
         Connector c;
         UserRepository userRepository;
         FileRepository fileRepository;
@@ -348,39 +347,37 @@ public class Server {
         }
 
         @Override
-        public void getBackup(GetBackupRequest request, StreamObserver<GetBackupReply> responseObserver) {
-            byte[] file_bytes = new byte[0];
-            try {
-                file_bytes = Files.readAllBytes(
-                        Paths.get(SIRS_DIR + "/src/assets/backupFiles/" + request.getUid()));
-            } catch (IOException e) {
-                e.printStackTrace();
+        public void retrieveHealthyVersions(RetrieveHealthyVersionsRequest request, StreamObserver<RetrieveHealthyVersionsReply> responseObserver) {
+            List<String> servers = getZooPaths("/sirs/ransomware/backups");
+            List<ByteString> backup_versions = new ArrayList<>();
+            for(String backup : servers){
+                try {
+                    backup_versions.add(getBackup(backup,request.getUid()));
+                } catch (SSLException e) {
+                    e.printStackTrace();
+                }
             }
-
-            GetBackupReply getBackupReply = GetBackupReply
+            RetrieveHealthyVersionsReply reply = RetrieveHealthyVersionsReply
                     .newBuilder()
-                    .setFile(ByteString.copyFrom(file_bytes))
+                    .addAllFiles(backup_versions)
                     .build();
 
-            responseObserver.onNext(getBackupReply);
+            responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
 
         @Override
-        public void backupFile(BackupFileRequest request, StreamObserver<BackupFileReply> responseObserver) {
-            System.out.println("Receiving backup of file : " + request.getUid());
-            BackupFileReply backupFileReply;
-            byte[] bytes = request.getFile().toByteArray();
+        public void healCorruptedVersion(HealCorruptedVersionRequest request, StreamObserver<HealCorruptedVersionReply> responseObserver) {
             try {
-                FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/backupFiles/" + request.getUid()), bytes);
-                backupFileReply = BackupFileReply.newBuilder().setOk(true).build();
+                FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getUid()), request.getFile().toByteArray());
             } catch (IOException e) {
-                backupFileReply = BackupFileReply.newBuilder().setOk(false).build();
                 e.printStackTrace();
             }
-
-
-            responseObserver.onNext(backupFileReply);
+            HealCorruptedVersionReply reply = HealCorruptedVersionReply
+                    .newBuilder()
+                    .setOk(true)
+                    .build();
+            responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
 
@@ -497,21 +494,14 @@ public class Server {
             registerFileVersion(versionId, req.getUid(), req.getUsername(), req.getDigitalSignature().toByteArray());
             //REPLICATE CHANGE TO BACKUPS
             try {
-                List<String> servers = getZooPaths("/sirs/ransomware/servers");
+                List<String> servers = getZooPaths("/sirs/ransomware/backups");
                 for(String server : servers){
                     String pair = server.split("/")[4];
                     String part = pair.split("_")[0];
                     String id = pair.split("_")[1];
-                    if(part.equals(req.getPartId()) && !id.equals(this.id)){
+                    if(part.equals(req.getPartId())){
                         System.out.println("Sending backup to server " + id);
-                        changeChannel(server);
-                         this.blockingStub.backupFile(
-                                BackupFileRequest
-                                        .newBuilder()
-                                        .setFile(req.getFile())
-                                        .setUid(req.getUid())
-                                        .build()
-                        );
+                        backupFile(server,req.getFile(),versionId);
                     }
 
                 }
@@ -664,19 +654,65 @@ public class Server {
         /**
          * Construct client connecting to HelloWorld server at {@code host:port}.
          */
-        public void changeChannel(String zooPath) throws SSLException {
+        public ByteString getBackup(String zooPath, String uid) throws SSLException {
             ZKRecord record = null;
+            ByteString bytes;
+            BackupServerGrpc.BackupServerBlockingStub blockingStub;
+            ManagedChannel channel;
             try {
                 record = zkNaming.lookup(zooPath);
             } catch (ZKNamingException e) {
                 e.printStackTrace();
             }
             assert record != null;
-            this.channel = NettyChannelBuilder.forTarget(record.getURI())
+            channel = NettyChannelBuilder.forTarget(record.getURI())
                     .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
                     .sslContext(buildSslContext(trustCertCollectionFilePath, certChainFilePath, privateKeyFilePath))
                     .build();
-            this.blockingStub = ServerGrpc.newBlockingStub(channel);
+            blockingStub = BackupServerGrpc.newBlockingStub(channel);
+            bytes = blockingStub.getBackup(
+                    GetBackupRequest
+                            .newBuilder()
+                            .setUid(uid)
+                            .build()
+            ).getFile();
+
+            channel.shutdown();
+
+            return bytes;
+        }
+
+        public void backupFile(String zooPath, ByteString file, String uid) throws SSLException {
+            ZKRecord record = null;
+            BackupServerGrpc.BackupServerBlockingStub blockingStub;
+            ManagedChannel channel;
+            try {
+                record = zkNaming.lookup(zooPath);
+            } catch (ZKNamingException e) {
+                e.printStackTrace();
+            }
+            assert record != null;
+            channel = NettyChannelBuilder.forTarget(record.getURI())
+                    .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
+                    .sslContext(buildSslContext(trustCertCollectionFilePath, certChainFilePath, privateKeyFilePath))
+                    .build();
+            blockingStub = BackupServerGrpc.newBlockingStub(channel);
+
+            BackupFileReply reply = blockingStub.backupFile(
+                    BackupFileRequest
+                            .newBuilder()
+                            .setFile(file)
+                            .setUid(uid)
+                            .build()
+            );
+
+            if(reply.getOk())
+                System.out.println("Backup version stored in backupServer");
+            else
+                System.out.println("Backup version failed to store");
+
+            channel.shutdown();
+
         }
 
 

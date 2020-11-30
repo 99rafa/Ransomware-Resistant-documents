@@ -90,16 +90,9 @@ public class Client {
 
         System.out.println(zooHost + ":" + zooPort);
         ZKNaming zkNaming = new ZKNaming(zooHost, zooPort);
-        ArrayList<ZKRecord> recs = null;
-        try {
-            recs = new ArrayList<>(zkNaming.listRecords("/sirs/ransomware/servers"));
-        } catch (ZKNamingException e) {
-            e.printStackTrace();
-        }
 
-        assert recs != null;
-        path = recs.get(random.nextInt(recs.size())).getPath();
-        this.currentPartition = path.split("/")[path.split("/").length - 1].split("_")[0];
+
+        path = "/sirs/ransomware/server";
         ZKRecord record = null;
         try {
             record = zkNaming.lookup(path);
@@ -445,7 +438,7 @@ public class Client {
         ZKNaming zkNaming = new ZKNaming(this.zooHost,this.zooPort);
         ArrayList<ZKRecord> recs = null;
         try {
-            recs = new ArrayList<>(zkNaming.listRecords("/sirs/ransomware/servers"));
+            recs = new ArrayList<>(zkNaming.listRecords("/sirs/ransomware/backups"));
         } catch (ZKNamingException e) {
             e.printStackTrace();
         }
@@ -453,41 +446,6 @@ public class Client {
 
         String[] split = recs.get(random.nextInt(recs.size())).getPath().split("/");
         return split[split.length - 1].split("_")[0];
-    }
-
-    public void connectToRandomPartitionServer(String partId) throws InterruptedException {
-        shutdown();
-        Random random = new Random();
-        String path;
-        ZKNaming zkNaming = new ZKNaming(zooHost, zooPort);
-        ArrayList<ZKRecord> recs = null;
-        try {
-            recs = new ArrayList<>(zkNaming.listRecords("/sirs/ransomware/servers"));
-        } catch (ZKNamingException e) {
-            e.printStackTrace();
-        }
-        assert recs != null;
-
-        List<String> paths = recs.stream().map(ZKRecord::getPath)
-                .filter(p -> p.split("/")[p.split("/").length - 1].startsWith(partId))
-                .collect(Collectors.toList());
-
-        path = paths.get(random.nextInt(paths.size()));
-        this.currentPartition = path.split("/")[path.split("/").length - 1].split("_")[0];
-        ZKRecord record = null;
-        try {
-            record = zkNaming.lookup(path);
-        } catch (ZKNamingException e) {
-            e.printStackTrace();
-        }
-
-
-        assert record != null;
-        this.channel = NettyChannelBuilder.forTarget(record.getURI())
-                .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
-                .sslContext(sslContext)
-                .build();
-        this.blockingStub = ServerGrpc.newBlockingStub(channel);
     }
 
     public void push() {
@@ -515,8 +473,7 @@ public class Client {
                     filename = getUidMap(INDEX_PATH, INDEX_NAME).get(filePath);
                     partId = getUidMap(INDEX_PATH, INDEX_PART_ID).get(filePath);
                 }
-                if(!this.currentPartition.equals(partId))
-                    connectToRandomPartitionServer(partId);
+
                 String uid = generateFileUid(filePath, partId, filename);
 
                 byte[] digitalSignature = createDigitalSignature(file_bytes, getPrivateKey());
@@ -550,8 +507,7 @@ public class Client {
                         }
                         PushReply res;
                         PushRequest req;
-                        req = PushRequest
-                                .newBuilder()
+                        req = builder
                                 .setFile(ByteString.copyFrom(file))
                                 .setAESEncrypted(ByteString.copyFrom(encryptedAES))
                                 .setUsername(this.username)
@@ -576,7 +532,7 @@ public class Client {
                         logout();
                     }
                 }
-            } catch (IOException | NoSuchAlgorithmException | InvalidKeyException | SignatureException | InterruptedException e) {
+            } catch (IOException | NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
                 e.printStackTrace();
             }
         } else System.err.println("Error: To push a file, you need to login first");
@@ -638,26 +594,63 @@ public class Client {
                         byte[] digitalSignature = reply.getDigitalSignatures(i).toByteArray();
                         byte[] ownerPublicKey = reply.getPublicKeys(i).toByteArray();
 
-                        //GET FILE OWNER PUBLIC KEY -> deprecated version
-                        /*byte[] ownerPublicKey = blockingStub.getFileOwnerPublicKey(
-                                GetFileOwnerPublicKeyRequest
-                                        .newBuilder()
-                                        .setUid(uid)
-                                        .build()
-                        ).getPublicKey().toByteArray();*/
-
                         //IF FILE EXISTS OVERWRITE IT
 
-                        byte[] decipheredFileData = decryptSecureFile(file_data, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray());
+                        byte[] decipheredFileData = new byte[0];
+                        try {
+                            decipheredFileData = decryptSecureFile(file_data, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray());
+                        } catch (BadPaddingException | IllegalBlockSizeException ignored) { }
 
                         PublicKey pk = getPublicKey(ownerPublicKey);
                         //VERIFY SIGNATURE
-                        if (!verifyDigitalSignature(decipheredFileData, digitalSignature, pk)) //dies here wrong IV
+                        if (!verifyDigitalSignature(decipheredFileData, digitalSignature, pk)) { //dies here wrong IV
                             System.err.println(" Error: Signature verification failed");
                             //TODO RETRIEVE HEALTHY VERSION
-                        else
-                            System.out.println("Signature correctly verified");
+                            RetrieveHealthyVersionsReply reply1  = this.blockingStub.retrieveHealthyVersions(
+                                    RetrieveHealthyVersionsRequest
+                                            .newBuilder()
+                                            .setUid(uid)
+                                            .build()
+                            );
+                            byte[] healthyVersion = null;
+                            boolean hasHealthy = false;
+                            List<byte[]> backups = reply1.getFilesList().stream()
+                                    .map(ByteString::toByteArray)
+                                    .collect(Collectors.toList());
 
+                            for(byte[] backup : backups){
+                                try {
+                                    decipheredFileData = decryptSecureFile(backup, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray());
+                                } catch (BadPaddingException | IllegalBlockSizeException ignored) { }
+
+                                if(verifyDigitalSignature(decipheredFileData, digitalSignature, pk)){
+                                    healthyVersion = backup;
+                                    hasHealthy = true;
+                                    break;
+                                }
+                            }
+                            if(!hasHealthy){
+                                System.err.println("This file got corrupted!");
+                                continue;
+                            }
+                            //TODO SEND HEALTHY VERSION
+                            HealCorruptedVersionReply reply2 = this.blockingStub.healCorruptedVersion(
+                                    HealCorruptedVersionRequest
+                                            .newBuilder()
+                                            .setUid(uid)
+                                            .setFile(ByteString.copyFrom(healthyVersion))
+                                            .build()
+                            );
+
+                            if(reply2.getOk()){
+                                System.out.println("Version correctly healed in server");
+                            } else{
+                                System.err.println("Error healing server version!");
+                            }
+                        }
+                        else {
+                            System.out.println("Signature correctly verified");
+                        }
                         if (uidMap.containsKey(uid))
                             FileUtils.writeByteArrayToFile(new File(uidMap.get(uid)), decipheredFileData);
                             //ELSE CREATE IT
@@ -812,20 +805,20 @@ public class Client {
     }
 
 
-    public byte[] decryptSecureFile(byte[] file_bytes, byte[] AESEncrypted, byte[] iv) {
+    public byte[] decryptSecureFile(byte[] file_bytes, byte[] AESEncrypted, byte[] iv) throws BadPaddingException, IllegalBlockSizeException {
         byte[] aesKeybytes = getAESKeyBytes(AESEncrypted);
         SecretKey aesKey = bytesToAESKey(aesKeybytes);
         return decryptWithAES(aesKey,file_bytes,iv);
     }
 
-    public byte[] decryptWithAES( SecretKey secretKey, byte[] file_bytes, byte[] iv) {
+    public byte[] decryptWithAES( SecretKey secretKey, byte[] file_bytes, byte[] iv) throws BadPaddingException, IllegalBlockSizeException {
         Cipher cipher;
         try {
             IvParameterSpec ivParams = new IvParameterSpec(iv);
             cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
             cipher.init(Cipher.DECRYPT_MODE, secretKey, ivParams);
             return cipher.doFinal(file_bytes);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | InvalidAlgorithmParameterException e) {
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException e) {
             e.printStackTrace();
         }
         return null;

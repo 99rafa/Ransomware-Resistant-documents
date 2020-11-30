@@ -1,1 +1,2 @@
-/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/certs/server1.pem 1755fbbc-73bf-405a-aff5-a019941a2850 1 pem
+/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/clientPulls/pem ff404f60-54a8-4512-9335-21300f9a7dc1 1 pem
+/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/clientPulls/jar fb6b46e5-6f5c-4aac-acf6-bbee8c06e89a 1 jar
