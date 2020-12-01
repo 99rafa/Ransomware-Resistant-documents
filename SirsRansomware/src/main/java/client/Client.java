@@ -178,6 +178,7 @@ public class Client {
                     case "give_perm" -> client.givePermission();
                     case "push" -> client.push();
                     case "logout" -> client.logout();
+                    case "revertRemoteFile" -> client.revertRemoteFile();
                     case "exit" -> running = false;
                     default -> System.out.println("Command not recognized");
                 }
@@ -262,7 +263,55 @@ public class Client {
 
 
 
+    public void revertRemoteFile() throws FileNotFoundException {
+        if (username != null) {
+            Map<String,String> map = getUidMap(INDEX_NAME,INDEX_UID);
+            Console console = System.console();
+            int tries = 0;
+            String filename = console.readLine("Enter filename to revert: ");
+            String fileUid = map.get(filename);
+            while (tries < 3) {
+                String passwd = new String(console.readPassword("Enter your password: "));
 
+                VerifyPasswordRequest reqPass = VerifyPasswordRequest.newBuilder().setUsername(this.username).setPassword(ByteString.copyFrom(generateSecurePassword(passwd, this.salt))).build();
+                VerifyPasswordReply repPass = blockingStub.verifyPassword(reqPass);
+                if (repPass.getOkPassword()) {
+                    ListFileVersionsReply reply = this.blockingStub.listFileVersions(
+                            ListFileVersionsRequest
+                                    .newBuilder()
+                                    .setFileUid(fileUid)
+                                    .build()
+                    );
+                    int version = reply.getDatesCount();
+                    for(String date : reply.getDatesList()){
+                        System.out.println("Version " + version + " modified on date " + date);
+                    version--;
+                    }
+                    String number = console.readLine("Enter version number to revert into: ");
+                    RevertMostRecentVersionReply reply1 = this.blockingStub.revertMostRecentVersion(
+                            RevertMostRecentVersionRequest
+                                    .newBuilder()
+                                    .setFileUid(reply.getFileIds(reply.getDatesCount() - Integer.parseInt(number)))
+                                    .setVersionUid(reply.getVersionsUids(reply.getDatesCount() - Integer.parseInt(number)))
+                                    .build()
+                    );
+                    if(reply1.getOk()){
+                        System.out.println("Version reverted successfully!");
+                    } else{
+                        System.out.println("Failed to reverte version!");
+                    }
+                    break;
+                }else {
+                    System.err.println("Error: Wrong password!");
+                    tries++;
+                }
+                if (tries == 3) {
+                    System.err.println("Error: Exceeded the number of tries. Client logged out.");
+                    logout();
+                }
+            }
+        }
+    }
 
     public void login() {
         int tries = 0;
@@ -489,11 +538,18 @@ public class Client {
                         byte[] encryptedAES;
                         byte[] file;
                         PushRequest.Builder builder = PushRequest.newBuilder();
+                        byte[] iv = new byte[0];
                         if (isNew) {
+
+                            //Generate new IV
+                            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+                            SecureRandom secureRandom = new SecureRandom();
+                            iv = new byte[cipher.getBlockSize()];
+                            secureRandom.nextBytes(iv);
+
                             GetPublicKeysByUsernamesRequest request = GetPublicKeysByUsernamesRequest.newBuilder().addAllUsernames(Collections.singleton(this.username)).build();
                             GetPublicKeysByUsernamesReply reply = blockingStub.getPublicKeysByUsernames(request);
                             encryptedAES = encryptWithRSA(bytesToPubKey(reply.getKeys(0).toByteArray()), fileSecretKey.getEncoded());
-                            file = encryptWithAES(fileSecretKey, file_bytes,builder);
                         } else {
                             GetAESEncryptedRequest req = GetAESEncryptedRequest
                                     .newBuilder()
@@ -502,12 +558,19 @@ public class Client {
                                     .setUid(uid)
                                     .build();
                             GetAESEncryptedReply res = blockingStub.getAESEncrypted(req);
+                            iv = res.getIv().toByteArray();
                             encryptedAES = res.getAESEncrypted().toByteArray();
-                            file = file_bytes;
+                            fileSecretKey = bytesToAESKey(getAESKeyBytes(encryptedAES));
+
+                            file  = encryptWithAES(fileSecretKey, file_bytes , iv);
                         }
+
+                        file = encryptWithAES(fileSecretKey, file_bytes, iv);
+
                         PushReply res;
                         PushRequest req;
                         req = builder
+                                .setIv(ByteString.copyFrom(iv))
                                 .setFile(ByteString.copyFrom(file))
                                 .setAESEncrypted(ByteString.copyFrom(encryptedAES))
                                 .setUsername(this.username)
@@ -532,7 +595,7 @@ public class Client {
                         logout();
                     }
                 }
-            } catch (IOException | NoSuchAlgorithmException | InvalidKeyException | SignatureException e) {
+            } catch (IOException | NoSuchAlgorithmException | InvalidKeyException | SignatureException | NoSuchPaddingException e) {
                 e.printStackTrace();
             }
         } else System.err.println("Error: To push a file, you need to login first");
@@ -547,6 +610,7 @@ public class Client {
         System.out.println("push - sends file to server");
         System.out.println("give_perm - give read/write file access permission to user/s");
         System.out.println("logout - exits client");
+        System.out.println("revertRemoteFile - reverts a file to a previous version");
         System.out.println("exit - exits client");
     }
 
@@ -789,7 +853,6 @@ public class Client {
 
     public byte[] getAESKeyBytes(byte[] AESEncryptedBytes){
         return decryptWithRSA(getPrivateKey(),AESEncryptedBytes);
-
     }
 
     public SecretKey generateAESKey() {
@@ -829,14 +892,10 @@ public class Client {
         return null;
 
     }
-    public byte[] encryptWithAES( SecretKey secretKey, byte[] file_bytes, PushRequest.Builder requestBuilder) {
+    public byte[] encryptWithAES( SecretKey secretKey, byte[] file_bytes, byte[] iv) {
         Cipher cipher;
         try {
             cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            SecureRandom secureRandom = new SecureRandom();
-            byte[] iv = new byte[cipher.getBlockSize()];
-            secureRandom.nextBytes(iv);
-            requestBuilder.setIv(ByteString.copyFrom(iv));
             IvParameterSpec ivParams = new IvParameterSpec(iv);
 
             cipher.init(Cipher.ENCRYPT_MODE, secretKey,ivParams);
@@ -845,7 +904,6 @@ public class Client {
             e.printStackTrace();
         }
         return null;
-
     }
 
     private byte[] decryptWithRSA(Key decryptionKey, byte[] file_bytes) {

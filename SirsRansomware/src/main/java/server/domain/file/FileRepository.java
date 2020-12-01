@@ -1,6 +1,7 @@
 package server.domain.file;
 
 
+import com.google.protobuf.ByteString;
 import server.database.Repository;
 
 import java.sql.Connection;
@@ -144,6 +145,23 @@ public class FileRepository extends Repository {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public byte[] getFileIv(String uid){
+        try {
+            String sql = "SELECT iv FROM Files WHERE uid = ?";
+            PreparedStatement statement = super.getConnection().prepareStatement(sql);
+
+            //Set parameters
+            statement.setString(1, uid);
+
+            ResultSet rs = statement.executeQuery();
+            if (rs.next()) return rs.getBytes("iv");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return new byte[0];
     }
 
     public List<File> getUserReadableFiles(String username) {

@@ -53,10 +53,6 @@ public class FileVersion implements DatabaseObject {
         this.fileUid = fileUid;
     }
 
-    public String getUid() {
-        return versionUid;
-    }
-
     public void setUid(String uid) {
         this.versionUid = uid;
     }

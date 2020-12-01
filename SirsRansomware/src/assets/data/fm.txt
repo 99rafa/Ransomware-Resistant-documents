@@ -1,1 +1,2 @@
-/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/certs/ca.pem 8ef9c9aa-b047-4987-8355-af66988e1b46 1 pem
+/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/clientPulls/ca 019aaddc-9180-4207-a602-cba0e71b9958 1 ca
+/home/afonso/school/sirs/tls-lib/SirsRansomware/src/assets/clientPulls/pem1 088dbf91-85de-462d-b585-26afda6d6a8e 1 pem1

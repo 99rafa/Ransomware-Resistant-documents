@@ -38,6 +38,27 @@ service Server {
   rpc VerifyPassword(VerifyPasswordRequest) returns (VerifyPasswordReply){}
   rpc RetrieveHealthyVersions(RetrieveHealthyVersionsRequest) returns (RetrieveHealthyVersionsReply) {}
   rpc HealCorruptedVersion(HealCorruptedVersionRequest) returns (HealCorruptedVersionReply) {}
+  rpc RevertMostRecentVersion(RevertMostRecentVersionRequest) returns (RevertMostRecentVersionReply) {}
+  rpc ListFileVersions(ListFileVersionsRequest) returns (ListFileVersionsReply) {}
+}
+
+message RevertMostRecentVersionRequest{
+  string version_uid = 1;
+  string file_uid = 2;
+}
+
+message RevertMostRecentVersionReply{
+  bool ok = 1;
+}
+
+message ListFileVersionsRequest{
+  string file_uid = 1;
+}
+
+message ListFileVersionsReply{
+  repeated string dates = 1;
+  repeated string file_ids = 2;
+  repeated string versions_uids = 3;
 }
 
 message HealCorruptedVersionRequest{
@@ -192,6 +213,7 @@ message GetAESEncryptedReply{
   bool is_owner =1;
   bytes AESEncrypted=2;
   repeated bytes othersPublicKeys=3;
+  bytes iv = 4;
 }
 message VerifyPasswordRequest{
   string username=1;

@@ -39,6 +39,8 @@ import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -330,6 +332,51 @@ public class Server {
         }
 
         @Override
+        public void revertMostRecentVersion(RevertMostRecentVersionRequest request, StreamObserver<RevertMostRecentVersionReply> responseObserver) {
+            try {
+                List<String> servers = getZooPaths("/sirs/ransomware/backups");
+                byte[] file = getBackup(servers.get(0),request.getVersionUid()).toByteArray();
+                FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), file);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            RevertMostRecentVersionReply reply = RevertMostRecentVersionReply.newBuilder().setOk(true).build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        }
+
+        @Override
+        public void listFileVersions(ListFileVersionsRequest request, StreamObserver<ListFileVersionsReply> responseObserver) {
+            List<FileVersion> versions = this.fileVersionRepository
+                    .getFileVersions(request.getFileUid());
+            ListFileVersionsReply reply = ListFileVersionsReply
+                    .newBuilder()
+                    .addAllDates(
+                            versions.stream()
+                                    .map(l ->
+                                    {
+                                        DateFormat dateFormat = new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
+                                        return dateFormat.format(l.getDate());
+                                    })
+                                    .collect(Collectors.toList())
+                    )
+                    .addAllFileIds(
+                            versions.stream()
+                            .map(FileVersion::getFileUid)
+                            .collect(Collectors.toList())
+                    )
+                    .addAllVersionsUids(
+                            versions.stream()
+                            .map(FileVersion::getVersionUid)
+                            .collect(Collectors.toList())
+                    )
+                    .build();
+            responseObserver.onNext(reply);
+            responseObserver.onCompleted();
+        }
+
+        @Override
         public void retrieveHealthyVersions(RetrieveHealthyVersionsRequest request, StreamObserver<RetrieveHealthyVersionsReply> responseObserver) {
             List<String> servers = getZooPaths("/sirs/ransomware/backups");
             List<ByteString> backup_versions = new ArrayList<>();
@@ -508,7 +555,7 @@ public class Server {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                reply.addVersionUids(mostRecentVersion.getUid());
+                reply.addVersionUids(mostRecentVersion.getVersionUid());
                 reply.addFileUids(file.getUid());
                 reply.addFilenames(file.getName());
                 reply.addOwners(file.getOwner());
@@ -516,7 +563,7 @@ public class Server {
                 reply.addPartIds(file.getPartition());
                 reply.addFiles(ByteString.copyFrom(
                         file_bytes));
-                reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(mostRecentVersion.getUid())));
+                reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(mostRecentVersion.getVersionUid())));
                 reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
                 reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),file.getUid())));
             }
@@ -544,7 +591,7 @@ public class Server {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                        reply.addVersionUids(mostRecentVersion.getUid());
+                        reply.addVersionUids(mostRecentVersion.getVersionUid());
                         reply.addFileUids(file.getUid());
                         reply.addFilenames(file.getName());
                         reply.addOwners(file.getOwner());
@@ -596,8 +643,18 @@ public class Server {
             if (isOwner(req.getUsername(), req.getUid())){
                 byte[] aes = getAESEncrypted(req.getUsername(),req.getUid());
                 List<byte[]> pk = userRepository.getPublicKeysByUsernames(req.getOthersNamesList());
-                reply = GetAESEncryptedReply.newBuilder().setIsOwner(true).setAESEncrypted(ByteString.copyFrom(aes))
-                        .addAllOthersPublicKeys(pk.stream().map(ByteString::copyFrom).collect(Collectors.toList())).build();
+                byte[] iv = fileRepository.getFileIv(req.getUid());
+                reply = GetAESEncryptedReply
+                        .newBuilder()
+                        .setIsOwner(true)
+                        .setAESEncrypted(ByteString.copyFrom(aes))
+                        .addAllOthersPublicKeys(
+                                pk.stream()
+                                        .map(ByteString::copyFrom)
+                                        .collect(Collectors.toList())
+                        )
+                        .setIv(ByteString.copyFrom(iv))
+                        .build();
             } else reply = GetAESEncryptedReply.newBuilder().setIsOwner(false).build();
 
 
@@ -618,7 +675,7 @@ public class Server {
             responseObserver.onCompleted();
         }
 
-        public void replicateFile(String partId,ByteString file, String versionId) throws SSLException {
+        public void replicateFile(String partId, ByteString file, String versionId) throws SSLException {
             List<String> servers = getZooPaths("/sirs/ransomware/backups");
             for(String server : servers){
                 String pair = server.split("/")[4];
