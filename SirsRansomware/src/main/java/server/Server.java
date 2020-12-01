@@ -3,7 +3,6 @@ package server;
 
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
-import io.grpc.StatusRuntimeException;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.netty.NettyServerBuilder;
@@ -53,8 +52,6 @@ public class Server {
 
     private static final Logger logger = Logger.getLogger(Server.class.getName());
     private static final String SIRS_DIR = System.getProperty("user.dir");
-    private final String partId;
-    private final String id;
     private final String zooPort;
     private final String zooHost;
     private final String zooPath;
@@ -69,17 +66,13 @@ public class Server {
     private KeyStore trustCertStore;
     private KeyStore trustStore;
 
-    public Server(String id,
-                  String partId,
-                  String zooPort,
+    public Server(String zooPort,
                   String zooHost,
                   String port,
                   String host,
                   String certChainFilePath,
                   String privateKeyFilePath,
                   String trustCertCollectionFilePath) {
-        this.id = id;
-        this.partId = partId;
         this.zooPort = zooPort;
         this.zooHost = zooHost;
         this.zooPath = "/sirs/ransomware/server";
@@ -157,7 +150,7 @@ public class Server {
      */
     public static void main(String[] args) throws IOException, InterruptedException {
 
-        if (args.length != 9) {
+        if (args.length != 7) {
             System.out.println(
                     "USAGE: ServerTls id partId zooHost zooPort host port certChainFilePath privateKeyFilePath " +
                             "trustCertCollectionFilePath\n  Note: You only need to supply trustCertCollectionFilePath if you want " +
@@ -172,9 +165,7 @@ public class Server {
                 args[3],
                 args[4],
                 args[5],
-                args[6],
-                args[7],
-                args[8]);
+                args[6]);
         server.start();
 
         //server.greet("Server");
@@ -215,9 +206,7 @@ public class Server {
                         this.trustStore,
                         this.certChainFilePath,
                         this.privateKeyFilePath,
-                        this.trustCertCollectionFilePath,
-                        this.id,
-                        this.partId)
+                        this.trustCertCollectionFilePath)
                 )
                 .sslContext(getSslContextBuilder().build())
                 .build()
@@ -308,8 +297,6 @@ public class Server {
         private final String certChainFilePath;
         private final String privateKeyFilePath;
         private final String trustCertCollectionFilePath;
-        private final String partId;
-        private final String id;
         private KeyStore keyStore;
         private KeyStore trustCertStore;
         private KeyStore trustStore;
@@ -324,15 +311,11 @@ public class Server {
                 KeyStore trustStore,
                 String certChainFilePath,
                 String privateKeyFilePath,
-                String trustCertCollectionFilePath,
-                String id,
-                String partId
+                String trustCertCollectionFilePath
         ) {
             this.certChainFilePath = certChainFilePath;
             this.privateKeyFilePath = privateKeyFilePath;
             this.trustCertCollectionFilePath = trustCertCollectionFilePath;
-            this.id = id;
-            this.partId = partId;
             try {
                 c = new Connector();
                 userRepository = new UserRepository(c.getConnection());
@@ -369,10 +352,13 @@ public class Server {
         @Override
         public void healCorruptedVersion(HealCorruptedVersionRequest request, StreamObserver<HealCorruptedVersionReply> responseObserver) {
             try {
-                FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getUid()), request.getFile().toByteArray());
+                FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), request.getFile().toByteArray());
+                replicateFile(request.getPartId(),request.getFile(),request.getVersionUid());
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
+
             HealCorruptedVersionReply reply = HealCorruptedVersionReply
                     .newBuilder()
                     .setOk(true)
@@ -482,7 +468,7 @@ public class Server {
             String versionId = UUID.randomUUID().toString();
             byte[] bytes = bs.toByteArray();
             try {
-                FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + versionId), bytes);
+                FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + req.getUid()), bytes);
                 reply = PushReply.newBuilder().setOk(true).build();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -494,17 +480,8 @@ public class Server {
             registerFileVersion(versionId, req.getUid(), req.getUsername(), req.getDigitalSignature().toByteArray());
             //REPLICATE CHANGE TO BACKUPS
             try {
-                List<String> servers = getZooPaths("/sirs/ransomware/backups");
-                for(String server : servers){
-                    String pair = server.split("/")[4];
-                    String part = pair.split("_")[0];
-                    String id = pair.split("_")[1];
-                    if(part.equals(req.getPartId())){
-                        System.out.println("Sending backup to server " + id);
-                        backupFile(server,req.getFile(),versionId);
-                    }
+                replicateFile(req.getPartId(),req.getFile(),versionId);
 
-                }
             } catch (SSLException e) {
                 e.printStackTrace();
             } finally {
@@ -527,11 +504,12 @@ public class Server {
                 byte[] file_bytes = new byte[0];
                 try {
                     file_bytes = Files.readAllBytes(
-                            Paths.get(SIRS_DIR + "/src/assets/serverFiles/" + mostRecentVersion.getVersionUid()));
+                            Paths.get(SIRS_DIR + "/src/assets/serverFiles/" + file.getUid()));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                reply.addUids(mostRecentVersion.getUid());
+                reply.addVersionUids(mostRecentVersion.getUid());
+                reply.addFileUids(file.getUid());
                 reply.addFilenames(file.getName());
                 reply.addOwners(file.getOwner());
                 reply.addIvs(ByteString.copyFrom(file.getIv()));
@@ -562,11 +540,12 @@ public class Server {
                         byte[] file_bytes = new byte[0];
                         try {
                             file_bytes = Files.readAllBytes(
-                                    Paths.get(SIRS_DIR + "/src/assets/serverFiles/" + mostRecentVersion.getVersionUid()));
+                                    Paths.get(SIRS_DIR + "/src/assets/serverFiles/" + file.getUid()));
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-                        reply.addUids(file.getUid());
+                        reply.addVersionUids(mostRecentVersion.getUid());
+                        reply.addFileUids(file.getUid());
                         reply.addFilenames(file.getName());
                         reply.addOwners(file.getOwner());
                         reply.addIvs(ByteString.copyFrom(file.getIv()));
@@ -637,6 +616,20 @@ public class Server {
 
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
+        }
+
+        public void replicateFile(String partId,ByteString file, String versionId) throws SSLException {
+            List<String> servers = getZooPaths("/sirs/ransomware/backups");
+            for(String server : servers){
+                String pair = server.split("/")[4];
+                String part = pair.split("_")[0];
+                String id = pair.split("_")[1];
+                if(part.equals(partId)){
+                    System.out.println("Sending backup to server " + id);
+                    backupFile(server,file,versionId);
+                }
+
+            }
         }
 
         public List<String> getZooPaths(String zooPath) {

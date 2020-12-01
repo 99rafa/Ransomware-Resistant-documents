@@ -586,7 +586,8 @@ public class Client {
                 else {
                     for (int i = 0; i < reply.getFilenamesCount(); i++) {
                         System.out.println("Received file " + reply.getFilenames(i));
-                        String uid = reply.getUids(i);
+                        String version_uid = reply.getVersionUids(i);
+                        String file_uid = reply.getFileUids(i);
                         String filename = reply.getFilenames(i);
                         String owner = reply.getOwners(i);
                         String partId = reply.getPartIds(i);
@@ -605,11 +606,11 @@ public class Client {
                         //VERIFY SIGNATURE
                         if (!verifyDigitalSignature(decipheredFileData, digitalSignature, pk)) { //dies here wrong IV
                             System.err.println(" Error: Signature verification failed");
-                            //TODO RETRIEVE HEALTHY VERSION
+
                             RetrieveHealthyVersionsReply reply1  = this.blockingStub.retrieveHealthyVersions(
                                     RetrieveHealthyVersionsRequest
                                             .newBuilder()
-                                            .setUid(uid)
+                                            .setUid(version_uid)
                                             .build()
                             );
                             byte[] healthyVersion = null;
@@ -619,12 +620,14 @@ public class Client {
                                     .collect(Collectors.toList());
 
                             for(byte[] backup : backups){
+                                byte[] encryptedBackup = backup.clone();
+                                System.out.println(version_uid);
                                 try {
                                     decipheredFileData = decryptSecureFile(backup, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray());
                                 } catch (BadPaddingException | IllegalBlockSizeException ignored) { }
 
                                 if(verifyDigitalSignature(decipheredFileData, digitalSignature, pk)){
-                                    healthyVersion = backup;
+                                    healthyVersion = encryptedBackup;
                                     hasHealthy = true;
                                     break;
                                 }
@@ -637,8 +640,10 @@ public class Client {
                             HealCorruptedVersionReply reply2 = this.blockingStub.healCorruptedVersion(
                                     HealCorruptedVersionRequest
                                             .newBuilder()
-                                            .setUid(uid)
+                                            .setVersionUid(version_uid)
+                                            .setFileUid(file_uid)
                                             .setFile(ByteString.copyFrom(healthyVersion))
+                                            .setPartId(partId)
                                             .build()
                             );
 
@@ -651,8 +656,8 @@ public class Client {
                         else {
                             System.out.println("Signature correctly verified");
                         }
-                        if (uidMap.containsKey(uid))
-                            FileUtils.writeByteArrayToFile(new File(uidMap.get(uid)), decipheredFileData);
+                        if (uidMap.containsKey(file_uid))
+                            FileUtils.writeByteArrayToFile(new File(uidMap.get(file_uid)), decipheredFileData);
                             //ELSE CREATE IT
                         else {
                             //PREVENTS DUPLICATE FILENAMES FROM OVERWRITING
@@ -660,14 +665,14 @@ public class Client {
                             Map<String, String> map = getUidMap(INDEX_NAME, INDEX_UID);
                             if (!map.containsKey(filename)) {
                                 FileUtils.writeByteArrayToFile(new File(PULLS_DIR + filename), decipheredFileData);
-                                String text = PULLS_DIR + filename + " " + uid + " " + partId + " " + filename + "\n";
+                                String text = PULLS_DIR + filename + " " + file_uid + " " + partId + " " + filename + "\n";
                                 appendTextToFile(text, FILE_MAPPING_PATH);
                             } else {
                                 while (map.containsKey(filename + dupNumber)) {
                                     dupNumber++;
                                 }
                                 FileUtils.writeByteArrayToFile(new File(PULLS_DIR + filename + dupNumber), decipheredFileData);
-                                String text = PULLS_DIR + filename + dupNumber + " " + uid + " " + partId + " " + filename + "\n";
+                                String text = PULLS_DIR + filename + dupNumber + " " + file_uid + " " + partId + " " + filename + "\n";
                                 appendTextToFile(text, FILE_MAPPING_PATH);
                             }
                         }

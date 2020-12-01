@@ -41,8 +41,10 @@ service Server {
 }
 
 message HealCorruptedVersionRequest{
-  string uid = 1;
+  string version_uid = 1;
   bytes file = 2;
+  string file_uid = 3;
+  string part_id = 4;
 }
 
 message HealCorruptedVersionReply{
@@ -127,7 +129,8 @@ message PullSelectedRequest{
 
 
 message PullReply{
-  repeated string uids = 1;
+  repeated string file_uids = 1;
+  repeated string version_uids = 11;
   repeated string filenames = 2;
   repeated string owners = 3;
   repeated bytes files = 4;
