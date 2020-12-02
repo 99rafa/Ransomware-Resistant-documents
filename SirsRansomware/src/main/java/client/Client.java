@@ -15,11 +15,10 @@ import pt.ulisboa.tecnico.sdis.zk.ZKNaming;
 import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
 import pt.ulisboa.tecnico.sdis.zk.ZKRecord;
 import server.Server;
+import client.EncryptionLogic;
 
 import javax.crypto.*;
-import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
-import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLException;
 import java.io.*;
 import java.nio.file.Files;
@@ -28,7 +27,6 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -39,7 +37,6 @@ import java.util.stream.Collectors;
  * A simple client that requests a greeting from the {@link Server} with TLS.
  */
 public class Client {
-    private final static int ITERATIONS = 10000;
     private static final int INDEX_PATH = 0;
     private static final int INDEX_UID = 1;
     private static final int INDEX_PART_ID = 2;
@@ -49,8 +46,6 @@ public class Client {
     private static final String FILE_MAPPING_PATH = SIRS_DIR + "/src/assets/data/fm.txt";
     private static final String PULLS_DIR = SIRS_DIR + "/src/assets/clientPulls/";
 
-    private ManagedChannel channel;
-    private ServerGrpc.ServerBlockingStub blockingStub;
     private String username = null;
     private byte[] salt = null;
     KeyStore keyStore;
@@ -58,6 +53,8 @@ public class Client {
     private final String zooPort;
     private final SslContext sslContext;
     private String currentPartition;
+    private final EncryptionLogic e;
+    private final ClientLogic c;
 
     /**
      * Construct client connecting to HelloWorld server at {@code host:port}.
@@ -69,6 +66,7 @@ public class Client {
         this.zooHost = zooHost;
         this.zooPort = zooPort;
         this.sslContext = sslContext;
+
         Random random = new Random();
         String path;
 
@@ -102,37 +100,14 @@ public class Client {
 
 
         assert record != null;
-        this.channel = NettyChannelBuilder.forTarget(record.getURI())
+        /* Only for using provided test certs. */
+        ManagedChannel channel = NettyChannelBuilder.forTarget(record.getURI())
                 .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
                 .sslContext(sslContext)
                 .build();
-        blockingStub = ServerGrpc.newBlockingStub(channel);
-    }
-
-    private KeyPair generateUserKeyPair() {
-        KeyPair keyPair = null;
-        try {
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-            SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
-            keyGen.initialize(2048, random);
-            keyPair = keyGen.genKeyPair();
-
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-        return keyPair;
-    }
-
-    private SecretKey retrieveStoredKey() {
-        SecretKey secretKey = null;
-        try {
-            //TODO provide a password
-            secretKey = (SecretKey) this.keyStore.getKey("db-encryption-secret", "".toCharArray());
-            System.out.println(keyStore.containsAlias("db-encryption-secret"));
-        } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException e) {
-            e.printStackTrace();
-        }
-        return secretKey;
+        ServerGrpc.ServerBlockingStub blockingStub = ServerGrpc.newBlockingStub(channel);
+        this.c= new ClientLogic(blockingStub, channel);
+        this.e = new EncryptionLogic();
     }
 
     private static SslContext buildSslContext(String trustCertCollectionFilePath,
@@ -184,18 +159,11 @@ public class Client {
                 }
             }
         } finally {
-            client.shutdown();
+            client.c.Shutdown();
         }
     }
 
-    public void shutdown() throws InterruptedException {
-        channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
-    }
-
-    /**
-     * Say hello to server.
-     */
-    public void register() throws NoSuchPaddingException, NoSuchAlgorithmException {
+    public void register() {
 
         Console console = System.console();
         String name = console.readLine("Enter a username: ");
@@ -213,26 +181,15 @@ public class Client {
                 match = true;
             else System.out.println("Password don't match. Try again");
         }
-        byte[] salt = PBKDF2Main.getNextSalt();
-
-
 
         System.out.println("Will try to register " + name + " ...");
         // generate RSA Keys
-        KeyPair keyPair = generateUserKeyPair();
+        KeyPair keyPair = e.generateUserKeyPair();
         PublicKey publicKey = keyPair.getPublic();
 
 
         // Get the bytes of the public key
         byte[] publicKeyBytes = publicKey.getEncoded();
-
-
-        RegisterRequest request = RegisterRequest.newBuilder()
-                .setUsername(name)
-                .setPassword(ByteString.copyFrom(generateSecurePassword(passwd,salt)))
-                .setSalt(ByteString.copyFrom(salt))
-                .setPublicKey(ByteString.copyFrom(publicKeyBytes))
-                .build();
 
         //save secret Key to key store
         X509Certificate[] certificateChain = new X509Certificate[1];
@@ -249,68 +206,10 @@ public class Client {
             e.printStackTrace();
         }
 
-
-        RegisterReply response;
-        try {
-            response = blockingStub.register(request);
-        } catch (StatusRuntimeException e) {
-            logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
-            return;
-        }
+        byte[] salt = PBKDF2Main.getNextSalt();
+        RegisterReply response = c.Register(name,e.generateSecurePassword(passwd,salt),publicKeyBytes,salt);
         System.out.println(response.getOk());
         //this.username = name;
-    }
-
-
-
-    public void revertRemoteFile() throws FileNotFoundException {
-        if (username != null) {
-            Map<String,String> map = getUidMap(INDEX_NAME,INDEX_UID);
-            Console console = System.console();
-            int tries = 0;
-            String filename = console.readLine("Enter filename to revert: ");
-            String fileUid = map.get(filename);
-            while (tries < 3) {
-                String passwd = new String(console.readPassword("Enter your password: "));
-
-                VerifyPasswordRequest reqPass = VerifyPasswordRequest.newBuilder().setUsername(this.username).setPassword(ByteString.copyFrom(generateSecurePassword(passwd, this.salt))).build();
-                VerifyPasswordReply repPass = blockingStub.verifyPassword(reqPass);
-                if (repPass.getOkPassword()) {
-                    ListFileVersionsReply reply = this.blockingStub.listFileVersions(
-                            ListFileVersionsRequest
-                                    .newBuilder()
-                                    .setFileUid(fileUid)
-                                    .build()
-                    );
-                    int version = reply.getDatesCount();
-                    for(String date : reply.getDatesList()){
-                        System.out.println("Version " + version + " modified on date " + date);
-                    version--;
-                    }
-                    String number = console.readLine("Enter version number to revert into: ");
-                    RevertMostRecentVersionReply reply1 = this.blockingStub.revertMostRecentVersion(
-                            RevertMostRecentVersionRequest
-                                    .newBuilder()
-                                    .setFileUid(reply.getFileIds(reply.getDatesCount() - Integer.parseInt(number)))
-                                    .setVersionUid(reply.getVersionsUids(reply.getDatesCount() - Integer.parseInt(number)))
-                                    .build()
-                    );
-                    if(reply1.getOk()){
-                        System.out.println("Version reverted successfully!");
-                    } else{
-                        System.out.println("Failed to reverte version!");
-                    }
-                    break;
-                }else {
-                    System.err.println("Error: Wrong password!");
-                    tries++;
-                }
-                if (tries == 3) {
-                    System.err.println("Error: Exceeded the number of tries. Client logged out.");
-                    logout();
-                }
-            }
-        }
     }
 
     public void login() {
@@ -322,8 +221,7 @@ public class Client {
             String name = console.readLine("Enter your username: ");
             String password = new String(console.readPassword("Enter your password: "));
             //Save user salt
-            SaltRequest req = SaltRequest.newBuilder().setUsername(name).build();
-            SaltReply reply = blockingStub.salt(req);
+            SaltReply reply = c.Salt(name);
 
             if (!reply.getOkUsername()) {
                 System.err.println("Error: Username does not exist. Try again");
@@ -331,20 +229,9 @@ public class Client {
                 continue;
 
             }
-            byte[] salt = blockingStub.salt(req).getSalt().toByteArray();
-            LoginRequest request = LoginRequest.newBuilder()
-                    .setUsername(name)
-                    .setPassword(ByteString.copyFrom(generateSecurePassword(password, salt)))
-                    .build();
+            byte[] salt = reply.getSalt().toByteArray();
+            LoginReply response = c.Login(name,e.generateSecurePassword(password, salt));
 
-            LoginReply response;
-
-            try {
-                response = blockingStub.login(request);
-            } catch (StatusRuntimeException e) {
-                logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
-                return;
-            }
             if (response.getOkUsername()) {
                 if (response.getOkPassword()) {
                     this.username = name;
@@ -382,36 +269,9 @@ public class Client {
         this.username = null;
     }
 
-    private byte[] generateSecurePassword(String password, byte[] salt) {
-        byte[] key = null;
-        try {
-            char[] chars = password.toCharArray();
-            //rafa edit: this is just to demonstrate how to generate a PBKDF2 password-based kdf
-            // because the salt needs to be the same
-            //byte[] salt = PBKDF2Main.getNextSalt();
-
-            PBEKeySpec spec = new PBEKeySpec(chars, salt, Client.ITERATIONS, 256 * 8);
-            SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-            key = skf.generateSecret(spec).getEncoded();
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            e.printStackTrace();
-        }
-        return key;
-    }
-
-    /**
-     * Say hello to server.
-     */
     public void greet(String name) {
         System.out.println("Will try to greet " + name + " ...");
-        HelloRequest request = HelloRequest.newBuilder().setName(name).build();
-        HelloReply response;
-        try {
-            response = blockingStub.sayHello(request);
-        } catch (StatusRuntimeException e) {
-            logger.log(Level.WARNING, "RPC failed: {0}", e.getStatus());
-            return;
-        }
+        HelloReply response= c.Hello(name);
         System.out.println("Greeting: " + response.getMessage());
     }
 
@@ -456,32 +316,6 @@ public class Client {
         } else return getUidMap(INDEX_PATH, INDEX_UID).get(filePath);
     }
 
-    public byte[] createDigitalSignature(byte[] fileBytes, PrivateKey privateKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
-        //Creating a Signature object
-        Signature sign = Signature.getInstance("SHA256withRSA");
-
-        //Initialize the signature
-        sign.initSign(privateKey);
-
-        //Adding data to the signature
-        sign.update(fileBytes);
-        //Calculating the signature
-
-        return sign.sign();
-    }
-
-    public boolean verifyDigitalSignature(byte[] message, byte[] signature, PublicKey publicKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
-        //Creating a Signature object
-        Signature sign = Signature.getInstance("SHA256withRSA");
-        //Initializing the signature
-
-        sign.initVerify(publicKey);
-        sign.update(message);
-
-        //Verifying the signature
-        return sign.verify(signature);
-    }
-
     public String getRandomPartition(){
         Random random = new Random();
         ZKNaming zkNaming = new ZKNaming(this.zooHost,this.zooPort);
@@ -517,7 +351,7 @@ public class Client {
                 if (isNew) {
                     partId = getRandomPartition();
                     filename = System.console().readLine("Filename: ");
-                    fileSecretKey = generateAESKey();
+                    fileSecretKey = e.generateAESKey();
                 } else{
                     filename = getUidMap(INDEX_PATH, INDEX_NAME).get(filePath);
                     partId = getUidMap(INDEX_PATH, INDEX_PART_ID).get(filePath);
@@ -525,20 +359,17 @@ public class Client {
 
                 String uid = generateFileUid(filePath, partId, filename);
 
-                byte[] digitalSignature = createDigitalSignature(file_bytes, getPrivateKey());
+                byte[] digitalSignature = e.createDigitalSignature(file_bytes, e.getPrivateKey(this.username,this.keyStore));
                 int tries = 0;
 
                 while (tries < 3) {
                     String passwd = new String((System.console()).readPassword("Enter your password: "));
-
-                    VerifyPasswordRequest reqPass= VerifyPasswordRequest.newBuilder().setUsername(this.username).setPassword(ByteString.copyFrom(generateSecurePassword(passwd,this.salt))).build();
-                    VerifyPasswordReply repPass= blockingStub.verifyPassword(reqPass);
+                    VerifyPasswordReply repPass= c.VerifyPassword(this.username,e.generateSecurePassword(passwd, this.salt));
                     if (repPass.getOkPassword()){
                         System.out.println("Sending file to server");
                         byte[] encryptedAES;
                         byte[] file;
-                        PushRequest.Builder builder = PushRequest.newBuilder();
-                        byte[] iv = new byte[0];
+                        byte[] iv;
                         if (isNew) {
 
                             //Generate new IV
@@ -547,39 +378,20 @@ public class Client {
                             iv = new byte[cipher.getBlockSize()];
                             secureRandom.nextBytes(iv);
 
-                            GetPublicKeysByUsernamesRequest request = GetPublicKeysByUsernamesRequest.newBuilder().addAllUsernames(Collections.singleton(this.username)).build();
-                            GetPublicKeysByUsernamesReply reply = blockingStub.getPublicKeysByUsernames(request);
-                            encryptedAES = encryptWithRSA(bytesToPubKey(reply.getKeys(0).toByteArray()), fileSecretKey.getEncoded());
+                            GetPublicKeysByUsernamesReply reply = c.GetPublicKeysByUsernames(this.username);
+                            encryptedAES = e.encryptWithRSA(e.bytesToPubKey(reply.getKeys(0).toByteArray()), fileSecretKey.getEncoded());
                         } else {
-                            GetAESEncryptedRequest req = GetAESEncryptedRequest
-                                    .newBuilder()
-                                    .setUsername(this.username)
-                                    .addAllOthersNames(Collections.singleton(this.username))
-                                    .setUid(uid)
-                                    .build();
-                            GetAESEncryptedReply res = blockingStub.getAESEncrypted(req);
+                            GetAESEncryptedReply res = c.GetAESEncrypted(this.username,this.username,uid);
                             iv = res.getIv().toByteArray();
                             encryptedAES = res.getAESEncrypted().toByteArray();
-                            fileSecretKey = bytesToAESKey(getAESKeyBytes(encryptedAES));
+                            fileSecretKey = e.bytesToAESKey(e.getAESKeyBytes(encryptedAES,this.username,this.keyStore));
 
-                            file  = encryptWithAES(fileSecretKey, file_bytes , iv);
+                            file  = e.encryptWithAES(fileSecretKey, file_bytes , iv);
                         }
 
-                        file = encryptWithAES(fileSecretKey, file_bytes, iv);
+                        file = e.encryptWithAES(fileSecretKey, file_bytes, iv);
 
-                        PushReply res;
-                        PushRequest req;
-                        req = builder
-                                .setIv(ByteString.copyFrom(iv))
-                                .setFile(ByteString.copyFrom(file))
-                                .setAESEncrypted(ByteString.copyFrom(encryptedAES))
-                                .setUsername(this.username)
-                                .setDigitalSignature(ByteString.copyFrom(digitalSignature))
-                                .setFileName(filename)
-                                .setUid(uid)
-                                .setPartId(partId)
-                                .build();
-                        res = blockingStub.push(req);
+                        PushReply res= c.Push(iv,file,encryptedAES,this.username,digitalSignature,filename,uid,partId);
                         if (res.getOk()) {
                             System.out.println("File uploaded successfully");
                             break;
@@ -624,25 +436,14 @@ public class Client {
         int tries=0;
         while (tries < 3) {
             String passwd = new String((System.console()).readPassword("Enter a password: "));
-            VerifyPasswordRequest reqPass = VerifyPasswordRequest.newBuilder().setUsername(this.username).setPassword(ByteString.copyFrom(generateSecurePassword(passwd, this.salt))).build();
-            VerifyPasswordReply repPass = blockingStub.verifyPassword(reqPass);
+            VerifyPasswordReply repPass = c.VerifyPassword(this.username,e.generateSecurePassword(passwd, this.salt));
             if (repPass.getOkPassword()) {
                 PullReply reply;
                 if (choice.equals("all")) {
-                    PullAllRequest request = PullAllRequest
-                            .newBuilder()
-                            .setUsername(this.username)
-                            .build();
-                    reply = blockingStub.pullAll(request);
+                    reply = c.PullAll(this.username);
                 } else {
                     String[] fileNames = choice.split(" ");
-                    PullSelectedRequest request = PullSelectedRequest
-                            .newBuilder()
-                            .setUsername(this.username)
-                            .setPassword(ByteString.copyFrom(generateSecurePassword(passwd, this.salt)))
-                            .addAllFilenames(Arrays.asList(fileNames))
-                            .build();
-                    reply = blockingStub.pullSelected(request);
+                    reply = c.PullSelected(this.username,fileNames);
                 }
                 if (!reply.getOk()) {
                     System.err.println("Error: Something wrong with operations in server!");
@@ -663,20 +464,16 @@ public class Client {
 
                         byte[] decipheredFileData = new byte[0];
                         try {
-                            decipheredFileData = decryptSecureFile(file_data, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray());
+                            decipheredFileData = e.decryptSecureFile(file_data, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray(),this.username,this.keyStore);
                         } catch (BadPaddingException | IllegalBlockSizeException ignored) { }
 
-                        PublicKey pk = getPublicKey(ownerPublicKey);
+                        PublicKey pk = e.getPublicKey(ownerPublicKey);
                         //VERIFY SIGNATURE
-                        if (!verifyDigitalSignature(decipheredFileData, digitalSignature, pk)) { //dies here wrong IV
+                        if (!e.verifyDigitalSignature(decipheredFileData, digitalSignature, pk)) { //dies here wrong IV
                             System.err.println(" Error: Signature verification failed");
 
-                            RetrieveHealthyVersionsReply reply1  = this.blockingStub.retrieveHealthyVersions(
-                                    RetrieveHealthyVersionsRequest
-                                            .newBuilder()
-                                            .setUid(version_uid)
-                                            .build()
-                            );
+                            RetrieveHealthyVersionsReply reply1  = c.RetrieveHealthyVersions(version_uid);
+
                             byte[] healthyVersion = null;
                             boolean hasHealthy = false;
                             List<byte[]> backups = reply1.getFilesList().stream()
@@ -687,10 +484,10 @@ public class Client {
                                 byte[] encryptedBackup = backup.clone();
                                 System.out.println(version_uid);
                                 try {
-                                    decipheredFileData = decryptSecureFile(backup, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray());
+                                    decipheredFileData = e.decryptSecureFile(backup, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray(),this.username,this.keyStore);
                                 } catch (BadPaddingException | IllegalBlockSizeException ignored) { }
 
-                                if(verifyDigitalSignature(decipheredFileData, digitalSignature, pk)){
+                                if(e.verifyDigitalSignature(decipheredFileData, digitalSignature, pk)){
                                     healthyVersion = encryptedBackup;
                                     hasHealthy = true;
                                     break;
@@ -701,15 +498,7 @@ public class Client {
                                 continue;
                             }
                             //TODO SEND HEALTHY VERSION
-                            HealCorruptedVersionReply reply2 = this.blockingStub.healCorruptedVersion(
-                                    HealCorruptedVersionRequest
-                                            .newBuilder()
-                                            .setVersionUid(version_uid)
-                                            .setFileUid(file_uid)
-                                            .setFile(ByteString.copyFrom(healthyVersion))
-                                            .setPartId(partId)
-                                            .build()
-                            );
+                            HealCorruptedVersionReply reply2 = c.HealCorruptedVersion(version_uid,file_uid,healthyVersion,partId);
 
                             if(reply2.getOk()){
                                 System.out.println("Version correctly healed in server");
@@ -755,20 +544,6 @@ public class Client {
 
         }
     }
-    private PublicKey getPublicKey(byte[] ownerPublicKey){
-        return (PublicKey) bytesToPubKey(ownerPublicKey);
-    }
-
-    private PrivateKey getPrivateKey() {
-        PrivateKey privateKey = null;
-        try {
-            //TODO provide a password
-            privateKey = (PrivateKey) this.keyStore.getKey(this.username + "privkey", "".toCharArray());
-        } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException e) {
-            e.printStackTrace();
-        }
-        return privateKey;
-    }
 
     public void givePermission() {
         Console console = System.console();
@@ -783,9 +558,7 @@ public class Client {
 
         while (tries < 3) {
             String passwd = new String((System.console()).readPassword("Enter a password: "));
-
-            VerifyPasswordRequest reqPass = VerifyPasswordRequest.newBuilder().setUsername(this.username).setPassword(ByteString.copyFrom(generateSecurePassword(passwd, this.salt))).build();
-            VerifyPasswordReply repPass = blockingStub.verifyPassword(reqPass);
+            VerifyPasswordReply repPass = c.VerifyPassword(this.username,e.generateSecurePassword(passwd, this.salt));
             if (repPass.getOkPassword()) {
                 String uid = null;
                 String[] othersNames = others.split(" ");
@@ -794,32 +567,18 @@ public class Client {
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
-                GetAESEncryptedRequest req = GetAESEncryptedRequest
-                        .newBuilder()
-                        .setUsername(this.username)
-                        .addAllOthersNames(Arrays.asList(othersNames))
-                        .setUid(uid)
-                        .build();
-
-                GetAESEncryptedReply reply = blockingStub.getAESEncrypted(req);
+                GetAESEncryptedReply reply = c.GetAESEncrypted(this.username,othersNames,uid);
                 byte[] aesEncrypted = reply.getAESEncrypted().toByteArray();
                 List<byte[]> othersPubKeysBytes = reply.getOthersPublicKeysList().stream().map(ByteString::toByteArray).collect(Collectors.toList());
                 byte[] aesKeyBytes;
 
                 if (reply.getIsOwner()) {
                     //decrypt with private key in order to obtain symmetric key
-                    aesKeyBytes = getAESKeyBytes(aesEncrypted);
+                    aesKeyBytes = e.getAESKeyBytes(aesEncrypted,this.username,this.keyStore);
                     //encrypt AES with "others" public keys to send to the server
-                    List<byte[]> othersAesEncrypted = getOthersAESEncrypted(othersPubKeysBytes, aesKeyBytes);
+                    List<byte[]> othersAesEncrypted = e.getOthersAESEncrypted(othersPubKeysBytes, aesKeyBytes);
                     //read/write permissions
-                    GivePermissionRequest request = GivePermissionRequest
-                            .newBuilder()
-                            .addAllOthersNames(Arrays.asList(othersNames))
-                            .setUid(uid)
-                            .setMode(s)
-                            .addAllOtherAESEncrypted(othersAesEncrypted.stream().map(ByteString::copyFrom).collect(Collectors.toList()))
-                            .build();
-                    GivePermissionReply res = blockingStub.givePermission(request);
+                    GivePermissionReply res= c.GivePermission(othersNames,uid,s,othersAesEncrypted);
                     if (res.getOkOthers()) {
                         if (res.getOkUid()) {
                             for (String name : othersNames) {
@@ -842,109 +601,44 @@ public class Client {
         }
     }
 
+    public void revertRemoteFile() throws FileNotFoundException {
+        if (this.username != null) {
+            Map<String,String> map = getUidMap(INDEX_NAME,INDEX_UID);
+            Console console = System.console();
+            int tries = 0;
+            String filename = console.readLine("Enter filename to revert: ");
+            String fileUid = map.get(filename);
+            while (tries < 3) {
+                String passwd = new String(console.readPassword("Enter your password: "));
+                VerifyPasswordReply repPass = c.VerifyPassword(this.username,e.generateSecurePassword(passwd, this.salt));
+                if (repPass.getOkPassword()) {
+                    ListFileVersionsReply reply = c.ListFileVersions(fileUid);
+                    int version = reply.getDatesCount();
+                    for(String date : reply.getDatesList()){
+                        System.out.println("Version " + version + " modified on date " + date);
+                        version--;
+                    }
+                    String number = console.readLine("Enter version number to revert into: ");
+                    RevertMostRecentVersionReply reply1 = c.RevertMostRecentVersion(reply.getFileIds(reply.getDatesCount() - Integer.parseInt(number)),
+                            reply.getVersionsUids(reply.getDatesCount() - Integer.parseInt(number)));
 
-    public List<byte[]> getOthersAESEncrypted(List<byte[]> othersPubKeys, byte[] aesKey){
-        List<byte[]> othersAESEncrypted = new ArrayList<>();
-        for (byte[] bytes : othersPubKeys) {
-            othersAESEncrypted.add(encryptWithRSA(bytesToPubKey(bytes),aesKey));
+                    if(reply1.getOk()){
+                        System.out.println("Version reverted successfully!");
+                    } else{
+                        System.out.println("Failed to revert version!");
+                    }
+                    break;
+                }else {
+                    System.err.println("Error: Wrong password!");
+                    tries++;
+                }
+                if (tries == 3) {
+                    System.err.println("Error: Exceeded the number of tries. Client logged out.");
+                    logout();
+                }
+            }
         }
-        return othersAESEncrypted;
     }
-
-    public byte[] getAESKeyBytes(byte[] AESEncryptedBytes){
-        return decryptWithRSA(getPrivateKey(),AESEncryptedBytes);
-    }
-
-    public SecretKey generateAESKey() {
-
-        KeyGenerator keyGen = null;
-        try {
-            keyGen = KeyGenerator.getInstance("AES");
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-
-        SecureRandom secRandom = new SecureRandom();
-
-        Objects.requireNonNull(keyGen).init(256,secRandom);
-
-        return keyGen.generateKey();
-
-    }
-
-
-    public byte[] decryptSecureFile(byte[] file_bytes, byte[] AESEncrypted, byte[] iv) throws BadPaddingException, IllegalBlockSizeException {
-        byte[] aesKeybytes = getAESKeyBytes(AESEncrypted);
-        SecretKey aesKey = bytesToAESKey(aesKeybytes);
-        return decryptWithAES(aesKey,file_bytes,iv);
-    }
-
-    public byte[] decryptWithAES( SecretKey secretKey, byte[] file_bytes, byte[] iv) throws BadPaddingException, IllegalBlockSizeException {
-        Cipher cipher;
-        try {
-            IvParameterSpec ivParams = new IvParameterSpec(iv);
-            cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, ivParams);
-            return cipher.doFinal(file_bytes);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException e) {
-            e.printStackTrace();
-        }
-        return null;
-
-    }
-    public byte[] encryptWithAES( SecretKey secretKey, byte[] file_bytes, byte[] iv) {
-        Cipher cipher;
-        try {
-            cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-            IvParameterSpec ivParams = new IvParameterSpec(iv);
-
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey,ivParams);
-            return cipher.doFinal(file_bytes);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | InvalidAlgorithmParameterException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    private byte[] decryptWithRSA(Key decryptionKey, byte[] file_bytes) {
-        try {
-            Cipher rsa;
-            rsa = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-            rsa.init(Cipher.DECRYPT_MODE, decryptionKey);
-            return rsa.doFinal(file_bytes);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-    private byte[] encryptWithRSA(Key encryptionKey, byte[] file_bytes) {
-        try {
-            SecureRandom randomSecureRandom = new SecureRandom();
-            Cipher rsa;
-            rsa = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-
-            rsa.init(Cipher.ENCRYPT_MODE, encryptionKey);
-            return rsa.doFinal(file_bytes);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-    private Key bytesToPubKey(byte[] bytes){
-        try {
-            KeyFactory kf = KeyFactory.getInstance("RSA");
-            return kf.generatePublic(new X509EncodedKeySpec(bytes));
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-    private SecretKey bytesToAESKey(byte[] bytes){
-
-        return new SecretKeySpec(bytes, 0, bytes.length, "AES");
-    }
-
-
 
 
 }

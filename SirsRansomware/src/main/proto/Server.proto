@@ -144,7 +144,6 @@ message PullAllRequest{
 
 message PullSelectedRequest{
   string username = 1;
-  bytes password = 2;
   repeated string filenames = 3;
 }
 
