@@ -19,8 +19,7 @@ import java.util.Objects;
 public class EncryptionLogic {
     private final static int ITERATIONS = 10000;
 
-    public EncryptionLogic(){
-    }
+    public EncryptionLogic(){}
 
     public KeyPair generateUserKeyPair() {
         KeyPair keyPair = null;
@@ -47,6 +46,7 @@ public class EncryptionLogic {
         }
         return secretKey;
     }
+
     public byte[] generateSecurePassword(String password, byte[] salt) {
         byte[] key = null;
         try {
@@ -90,7 +90,6 @@ public class EncryptionLogic {
         return sign.verify(signature);
     }
 
-
     public PublicKey getPublicKey(byte[] ownerPublicKey){
         return (PublicKey) bytesToPubKey(ownerPublicKey);
     }
@@ -105,8 +104,6 @@ public class EncryptionLogic {
         }
         return privateKey;
     }
-
-
 
     public List<byte[]> getOthersAESEncrypted(List<byte[]> othersPubKeys, byte[] aesKey){
         List<byte[]> othersAESEncrypted = new ArrayList<>();
@@ -137,7 +134,6 @@ public class EncryptionLogic {
 
     }
 
-
     public byte[] decryptSecureFile(byte[] file_bytes, byte[] AESEncrypted, byte[] iv,String username,KeyStore keyStore) throws BadPaddingException, IllegalBlockSizeException {
         byte[] aesKeybytes = getAESKeyBytes(AESEncrypted,username,keyStore);
         SecretKey aesKey = bytesToAESKey(aesKeybytes);
@@ -157,6 +153,7 @@ public class EncryptionLogic {
         return null;
 
     }
+
     public byte[] encryptWithAES( SecretKey secretKey, byte[] file_bytes, byte[] iv) {
         Cipher cipher;
         try {
@@ -182,6 +179,7 @@ public class EncryptionLogic {
         }
         return null;
     }
+
     public byte[] encryptWithRSA(Key encryptionKey, byte[] file_bytes) {
         try {
             SecureRandom randomSecureRandom = new SecureRandom();
@@ -195,6 +193,7 @@ public class EncryptionLogic {
         }
         return null;
     }
+
     public Key bytesToPubKey(byte[] bytes){
         try {
             KeyFactory kf = KeyFactory.getInstance("RSA");
@@ -204,12 +203,9 @@ public class EncryptionLogic {
         }
         return null;
     }
-    public SecretKey bytesToAESKey(byte[] bytes){
 
+    public SecretKey bytesToAESKey(byte[] bytes){
         return new SecretKeySpec(bytes, 0, bytes.length, "AES");
     }
-
-
-
 
 }

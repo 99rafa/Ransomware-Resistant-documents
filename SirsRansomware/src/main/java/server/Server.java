@@ -416,15 +416,9 @@ public class Server {
 
         @Override
         public void salt(SaltRequest request, StreamObserver<SaltReply> responseObserver) {
+            User user = userRepository.getUserByUsername(request.getUsername());
+            SaltReply reply = SaltReply.newBuilder().setSalt(ByteString.copyFrom(user.getSalt())).build();
 
-            System.out.println("Login request received for user " + request.getUsername());
-
-            SaltReply reply;
-            if (!usernameExists(request.getUsername())) reply = SaltReply.newBuilder().setOkUsername(false).build();
-            else {
-                User user = userRepository.getUserByUsername(request.getUsername());
-                reply = SaltReply.newBuilder().setSalt(ByteString.copyFrom(user.getSalt())).setOkUsername(true).build();
-            }
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
@@ -447,18 +441,14 @@ public class Server {
             responseObserver.onCompleted();
         }
 
-        @Override
-        public void login(LoginRequest req, StreamObserver<LoginReply> responseObserver) {
-            LoginReply reply;
-            if (req.getUsername().length() > 15 || req.getUsername().length() == 0)
-                reply = LoginReply.newBuilder().setOkUsername(false).setOkPassword(false).build();
-            else {
-                if (isCorrectPassword(req.getUsername(), req.getPassword().toByteArray())) {
-                    reply = LoginReply.newBuilder().setOkUsername(true).setOkPassword(true).build();
-                    System.out.println("Granting access to user " + req.getUsername());
-                }
-                else
-                    reply = LoginReply.newBuilder().setOkUsername(true).setOkPassword(false).build();
+        public void usernameExists(UsernameExistsRequest req, StreamObserver<UsernameExistsReply> responseObserver){
+            System.out.println("Login request received for user " + req.getUsername());
+            UsernameExistsReply reply;
+            if (usernameExists(req.getUsername())){
+                reply = UsernameExistsReply.newBuilder().setOkUsername(true).build();
+            }
+            else{
+                reply = UsernameExistsReply.newBuilder().setOkUsername(false).build();
             }
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
@@ -507,7 +497,7 @@ public class Server {
 
         @Override
         public void push(PushRequest req, StreamObserver<PushReply> responseObserver) {
-
+            System.out.println("aes_client: "+req.getAESEncrypted().toByteArray());
             //TODO verify if user is authorized to do push on this file
             ByteString bs = req.getFile();
             System.out.println("Received file " + req.getFileName() + "from client " + req.getUsername());
@@ -642,6 +632,7 @@ public class Server {
             GetAESEncryptedReply reply;
             if (isOwner(req.getUsername(), req.getUid())){
                 byte[] aes = getAESEncrypted(req.getUsername(),req.getUid());
+                //System.out.println("aes_server: " + aes);
                 List<byte[]> pk = userRepository.getPublicKeysByUsernames(req.getOthersNamesList());
                 byte[] iv = fileRepository.getFileIv(req.getUid());
                 reply = GetAESEncryptedReply

@@ -219,37 +219,38 @@ public class Client {
         while (tries < 3) {
 
             String name = console.readLine("Enter your username: ");
-            String password = new String(console.readPassword("Enter your password: "));
-            //Save user salt
-            SaltReply reply = c.Salt(name);
 
+            //Save user salt
+            UsernameExistsReply reply = c.UsernameExists(name);
             if (!reply.getOkUsername()) {
                 System.err.println("Error: Username does not exist. Try again");
-                tries++;
                 continue;
-
             }
-            byte[] salt = reply.getSalt().toByteArray();
-            LoginReply response = c.Login(name,e.generateSecurePassword(password, salt));
 
-            if (response.getOkUsername()) {
-                if (response.getOkPassword()) {
-                    this.username = name;
-                    this.salt = salt;
-                    clearFileMapping();
-                    System.out.println("Successful Authentication. Welcome " + name + "!");
-                    break;
-                } else {
-                    tries++;
-                    System.err.println("Error: Wrong password.Try again");
-                }
+
+            String password = new String(console.readPassword("Enter your password: "));
+
+            VerifyPasswordReply response = c.VerifyPassword(name, e.generateSecurePassword(password, salt));
+            if (response.getOkPassword()) {
+                SaltReply replys = c.Salt(name);
+                this.username = name;
+                this.salt = replys.getSalt().toByteArray();
+                ;
+                clearFileMapping();
+                System.out.println("Successful Authentication. Welcome " + name + "!");
+                break;
+            } else {
+                tries++;
+                System.err.println("Error: Wrong password.Try again");
+            }
+            if (tries == 3) {
+                System.err.println("Error: Exceeded the number of tries. Program is closing...");
+                System.exit(0);
             }
         }
 
-        if (tries == 3) {
-            System.err.println("Error: Exceeded the number of tries. Program is closing...");
-            System.exit(0);
-        }
+
+
     }
 
     public void clearFileMapping() {
@@ -345,6 +346,7 @@ public class Client {
                         Paths.get(filePath)
                 );
 
+
                 String filename;
                 SecretKey fileSecretKey = null;
                 String partId;
@@ -358,6 +360,7 @@ public class Client {
                 }
 
                 String uid = generateFileUid(filePath, partId, filename);
+                System.out.println(uid);
 
                 byte[] digitalSignature = e.createDigitalSignature(file_bytes, e.getPrivateKey(this.username,this.keyStore));
                 int tries = 0;
@@ -380,6 +383,7 @@ public class Client {
 
                             GetPublicKeysByUsernamesReply reply = c.GetPublicKeysByUsernames(this.username);
                             encryptedAES = e.encryptWithRSA(e.bytesToPubKey(reply.getKeys(0).toByteArray()), fileSecretKey.getEncoded());
+                            System.out.println("aes_client: "+encryptedAES);
                         } else {
                             GetAESEncryptedReply res = c.GetAESEncrypted(this.username,this.username,uid);
                             iv = res.getIv().toByteArray();

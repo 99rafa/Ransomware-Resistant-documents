@@ -24,7 +24,6 @@ package proto;
 service Server {
   // Sends a greeting
   rpc Register (RegisterRequest) returns (RegisterReply) {}
-  rpc Login (LoginRequest) returns (LoginReply) {}
   rpc SayHello (HelloRequest) returns (HelloReply) {}
   rpc Push (PushRequest) returns (PushReply) {}
   rpc PullAll (PullAllRequest) returns (PullReply) {}
@@ -40,6 +39,7 @@ service Server {
   rpc HealCorruptedVersion(HealCorruptedVersionRequest) returns (HealCorruptedVersionReply) {}
   rpc RevertMostRecentVersion(RevertMostRecentVersionRequest) returns (RevertMostRecentVersionReply) {}
   rpc ListFileVersions(ListFileVersionsRequest) returns (ListFileVersionsReply) {}
+  rpc UsernameExists(UsernameExistsRequest) returns (UsernameExistsReply){}
 }
 
 message RevertMostRecentVersionRequest{
@@ -107,12 +107,17 @@ message GetPublicKeysByUsernamesReply{
 }
 
 message SaltRequest {
-  string username = 1;
+  string username=1;
 }
 
 message SaltReply {
   bytes salt = 1;
-  bool okUsername = 2;
+}
+message UsernameExistsRequest{
+  string username=1;
+}
+message UsernameExistsReply{
+  bool ok_username=1;
 }
 
 // The request message containing the user's name.
@@ -126,16 +131,6 @@ message RegisterRequest {
 // The response message containing the greetings
 message RegisterReply {
   string ok = 1;
-}
-
-message LoginRequest {
-  string username = 1;
-  bytes password = 2;
-}
-
-message LoginReply {
-  bool ok_username = 1;
-  bool ok_password = 2;
 }
 
 message PullAllRequest{

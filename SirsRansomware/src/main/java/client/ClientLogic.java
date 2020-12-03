@@ -6,6 +6,7 @@ import proto.*;
 import server.Server;
 
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -44,7 +45,6 @@ public class ClientLogic {
                 .addAllOthersNames(Arrays.asList(othersNames))
                 .setUid(uid)
                 .build());
-
     }
 
     public GetAESEncryptedReply GetAESEncrypted(String username, String name, String uid) {
@@ -61,6 +61,13 @@ public class ClientLogic {
                 .newBuilder()
                 .setUsername(username)
                 .setPassword(ByteString.copyFrom(passwd))
+                .build());
+    }
+
+    public UsernameExistsReply UsernameExists(String username){
+        return blockingStub.usernameExists(UsernameExistsRequest
+                .newBuilder()
+                .setUsername(username)
                 .build());
     }
 
@@ -117,6 +124,7 @@ public class ClientLogic {
     }
 
     public PushReply Push(byte[] iv, byte[] file, byte[] encryptedAES, String username, byte[] digitalSignature, String filename, String uid, String partId) {
+        System.out.println("aes_client: "+encryptedAES);
         return blockingStub.push(PushRequest
                 .newBuilder()
                 .setIv(ByteString.copyFrom(iv))
@@ -160,18 +168,9 @@ public class ClientLogic {
                 .build());
     }
 
-    public LoginReply Login(String name,byte[] passwd){
-        return blockingStub.login(LoginRequest.newBuilder()
-                .setUsername(name)
-                .setPassword(ByteString.copyFrom(passwd))
-                .build());
-    }
 
     public void Shutdown() throws InterruptedException {
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
     }
-
-
-
 
 }
