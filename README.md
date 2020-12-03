@@ -17,7 +17,7 @@ In order to run the program, at least 3 terminal windows must be open:
 - 1 client
 
 
-#### Server initialization
+#### 1. Server initialization
 
 Assuming `$LOCALPATH` is the root directory of the project,
 
@@ -33,7 +33,7 @@ mvn exec:java -Dexec.mainClass="server.Server" -Dexec.args="<zooPort> <zooHost> 
 - **path-to-server-private-key**:
 - **path-to-ca-certificate**:
 
-#### Backup Server initialization
+#### 2. Backup Server initialization
 
 ```bash
 mvn exec:java -Dexec.mainClass="server.Server" -Dexec.args="<partitionID> <serverID> <zooPort> <zooHost> <serverPort> <serverHost> $LOCALPATH/<path-to-trust-certificate> $LOCALPATH/<path-to-server-private-key> $LOCALPATH/<path-ca-certificate>" 
@@ -50,7 +50,7 @@ mvn exec:java -Dexec.mainClass="server.Server" -Dexec.args="<partitionID> <serve
 - **path-to-ca-certificate**:
 
 
-#### Client Initialization
+#### 3. Client Initialization
 ```bash
 mvn exec:java -Dexec.mainClass="client.Client" -Dexec.args="<zooPort> <zooHost> $LOCALPATH/<path-to-trust-certificate> $LOCALPATH/<path-to-client-private-key> $LOCALPATH/<path-ca-certificate>" 
 ```
