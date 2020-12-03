@@ -1,0 +1,1 @@
+/Users/rafael/Documents/IST/MEIC/SIRS/project/SIRS_proj1/SirsRansomware/src/assets/certs/ca.pem 0189b4d3-39cb-42dd-b54a-8dc11c71eed9 1 pem rafa

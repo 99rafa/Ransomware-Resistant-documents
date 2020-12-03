@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 /**
  * A simple client that requests a greeting from the {@link Server} with TLS.
  */
-public class ClientLogic {
+public class ClientFrontend {
     private ServerGrpc.ServerBlockingStub blockingStub;
     private ManagedChannel channel;
 
@@ -23,7 +23,7 @@ public class ClientLogic {
     /**
      * Construct client connecting to HelloWorld server at {@code host:port}.
      */
-    public ClientLogic(ServerGrpc.ServerBlockingStub blockingStub, ManagedChannel channel) {
+    public ClientFrontend(ServerGrpc.ServerBlockingStub blockingStub, ManagedChannel channel) {
         this.blockingStub = blockingStub;
         this.channel = channel;
     }

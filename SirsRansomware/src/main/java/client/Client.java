@@ -4,7 +4,6 @@ import PBKDF2.PBKDF2Main;
 import SelfSignedCertificate.SelfSignedCertificate;
 import com.google.protobuf.ByteString;
 import io.grpc.ManagedChannel;
-import io.grpc.StatusRuntimeException;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
 import io.netty.handler.ssl.SslContext;
@@ -15,10 +14,8 @@ import pt.ulisboa.tecnico.sdis.zk.ZKNaming;
 import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
 import pt.ulisboa.tecnico.sdis.zk.ZKRecord;
 import server.Server;
-import client.EncryptionLogic;
 
 import javax.crypto.*;
-import javax.crypto.spec.PBEKeySpec;
 import javax.net.ssl.SSLException;
 import java.io.*;
 import java.nio.file.Files;
@@ -26,10 +23,7 @@ import java.nio.file.Paths;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.security.spec.InvalidKeySpecException;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -55,7 +49,7 @@ public class Client {
     private final SslContext sslContext;
     private String currentPartition;
     private final EncryptionLogic e;
-    private final ClientLogic c;
+    private final ClientFrontend c;
 
     /**
      * Construct client connecting to HelloWorld server at {@code host:port}.
@@ -107,7 +101,7 @@ public class Client {
                 .sslContext(sslContext)
                 .build();
         ServerGrpc.ServerBlockingStub blockingStub = ServerGrpc.newBlockingStub(channel);
-        this.c= new ClientLogic(blockingStub, channel);
+        this.c= new ClientFrontend(blockingStub, channel);
         this.e = new EncryptionLogic();
     }
 
@@ -482,7 +476,7 @@ public class Client {
 
                             for(byte[] backup : backups){
                                 byte[] encryptedBackup = backup.clone();
-                                System.out.println(version_uid);
+                                // System.out.println(version_uid);
                                 try {
                                     decipheredFileData = e.decryptSecureFile(backup, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray(),this.username,this.keyStore);
                                 } catch (BadPaddingException | IllegalBlockSizeException ignored) { }
@@ -516,15 +510,21 @@ public class Client {
                             //PREVENTS DUPLICATE FILENAMES FROM OVERWRITING
                             int dupNumber = 1;
                             Map<String, String> map = getUidMap(INDEX_NAME, INDEX_UID,INDEX_USERNAME);
+
+                            //check if client pulls dir exists
+                            File directory = new File(PULLS_DIR + "/" + this.username + "/");
+                            if (! directory.exists()) {
+                                directory.mkdir();
+                            }
                             if (!map.containsKey(filename)) {
-                                FileUtils.writeByteArrayToFile(new File(PULLS_DIR + filename), decipheredFileData);
+                                FileUtils.writeByteArrayToFile(new File(PULLS_DIR + "/" + this.username +"/" + filename), decipheredFileData);
                                 String text = PULLS_DIR + filename + " " + file_uid + " " + partId + " " + filename + " " + this.username +"\n";
                                 appendTextToFile(text, FILE_MAPPING_PATH);
                             } else {
                                 while (map.containsKey(filename + dupNumber)) {
                                     dupNumber++;
                                 }
-                                FileUtils.writeByteArrayToFile(new File(PULLS_DIR + filename + dupNumber), decipheredFileData);
+                                FileUtils.writeByteArrayToFile(new File(PULLS_DIR + "/" + this.username + "/" + filename + dupNumber), decipheredFileData);
                                 String text = PULLS_DIR + filename + dupNumber + " " + file_uid + " " + partId + " " + filename + " " + this.username + "\n";
                                 appendTextToFile(text, FILE_MAPPING_PATH);
                             }
