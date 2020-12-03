@@ -124,7 +124,6 @@ public class ClientLogic {
     }
 
     public PushReply Push(byte[] iv, byte[] file, byte[] encryptedAES, String username, byte[] digitalSignature, String filename, String uid, String partId) {
-        System.out.println("aes_client: "+encryptedAES);
         return blockingStub.push(PushRequest
                 .newBuilder()
                 .setIv(ByteString.copyFrom(iv))

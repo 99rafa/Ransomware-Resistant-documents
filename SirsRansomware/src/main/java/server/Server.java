@@ -497,10 +497,9 @@ public class Server {
 
         @Override
         public void push(PushRequest req, StreamObserver<PushReply> responseObserver) {
-            System.out.println("aes_client: "+req.getAESEncrypted().toByteArray());
             //TODO verify if user is authorized to do push on this file
             ByteString bs = req.getFile();
-            System.out.println("Received file " + req.getFileName() + "from client " + req.getUsername());
+            System.out.println("Received file " + req.getFileName() + " from client " + req.getUsername());
             PushReply reply = null;
             String versionId = UUID.randomUUID().toString();
             byte[] bytes = bs.toByteArray();

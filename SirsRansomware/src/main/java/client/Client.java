@@ -41,6 +41,7 @@ public class Client {
     private static final int INDEX_UID = 1;
     private static final int INDEX_PART_ID = 2;
     private static final int INDEX_NAME = 3;
+    private static final int INDEX_USERNAME = 4;
     private static final Logger logger = Logger.getLogger(Client.class.getName());
     private static final String SIRS_DIR = System.getProperty("user.dir");
     private static final String FILE_MAPPING_PATH = SIRS_DIR + "/src/assets/data/fm.txt";
@@ -186,8 +187,8 @@ public class Client {
         // generate RSA Keys
         KeyPair keyPair = e.generateUserKeyPair();
         PublicKey publicKey = keyPair.getPublic();
-
-
+        //System.out.println("privateKey: " + keyPair.getPrivate());
+        //System.out.println("publicKey: " + publicKey);
         // Get the bytes of the public key
         byte[] publicKeyBytes = publicKey.getEncoded();
 
@@ -215,42 +216,34 @@ public class Client {
     public void login() {
         int tries = 0;
         Console console = System.console();
+        String name = console.readLine("Enter your username: ");
 
-        while (tries < 3) {
-
-            String name = console.readLine("Enter your username: ");
-
-            //Save user salt
-            UsernameExistsReply reply = c.UsernameExists(name);
-            if (!reply.getOkUsername()) {
-                System.err.println("Error: Username does not exist. Try again");
-                continue;
-            }
-
-
-            String password = new String(console.readPassword("Enter your password: "));
-
-            VerifyPasswordReply response = c.VerifyPassword(name, e.generateSecurePassword(password, salt));
-            if (response.getOkPassword()) {
+        //Save user salt
+        UsernameExistsReply reply = c.UsernameExists(name);
+        if (reply.getOkUsername()) {
+            while (tries < 3) {
                 SaltReply replys = c.Salt(name);
-                this.username = name;
-                this.salt = replys.getSalt().toByteArray();
-                ;
-                clearFileMapping();
-                System.out.println("Successful Authentication. Welcome " + name + "!");
-                break;
-            } else {
-                tries++;
-                System.err.println("Error: Wrong password.Try again");
+                byte[] salt = replys.getSalt().toByteArray();
+                String password = new String(console.readPassword("Enter your password: "));
+
+                VerifyPasswordReply response = c.VerifyPassword(name, e.generateSecurePassword(password, salt));
+                if (response.getOkPassword()) {
+
+                    this.username = name;
+                    this.salt = salt;
+                    //clearFileMapping();
+                    System.out.println("Successful Authentication. Welcome " + name + "!");
+                    break;
+                } else {
+                    tries++;
+                    System.err.println("Error: Wrong password.Try again");
+                }
+                if (tries == 3) {
+                    System.err.println("Error: Exceeded the number of tries. Program is closing...");
+                    System.exit(0);
+                }
             }
-            if (tries == 3) {
-                System.err.println("Error: Exceeded the number of tries. Program is closing...");
-                System.exit(0);
-            }
-        }
-
-
-
+        }else{System.err.println("Error: Username does not exist. Try to login with a different username or register");}
     }
 
     public void clearFileMapping() {
@@ -268,6 +261,7 @@ public class Client {
 
     public void logout() {
         this.username = null;
+        System.out.println("You have logout successfully");
     }
 
     public void greet(String name) {
@@ -276,7 +270,7 @@ public class Client {
         System.out.println("Greeting: " + response.getMessage());
     }
 
-    public Map<String, String> getUidMap(int index1, int index2) throws FileNotFoundException {
+    public Map<String, String> getUidMap(int index1, int index2,int index3) throws FileNotFoundException {
         Map<String, String> fileMapping = new TreeMap<>();
         try {
             new FileOutputStream(FILE_MAPPING_PATH, true).close();
@@ -287,9 +281,11 @@ public class Client {
 
         while (sc.hasNextLine()) {
             String[] s = sc.nextLine().split(" ");
-            String path = s[index1];
-            String uid = s[index2];
-            fileMapping.put(path, uid);
+            if (this.username.equals(s[index3])) {
+                String path = s[index1];
+                String uid = s[index2];
+                fileMapping.put(path, uid);
+            }
         }
         return fileMapping;
     }
@@ -306,15 +302,15 @@ public class Client {
         }
     }
 
-    public String generateFileUid(String filePath, String partId, String name) throws IOException {
-        if (!getUidMap(INDEX_PATH, INDEX_UID).containsKey(filePath)) {
+    public String generateFileUid(String filePath, String partId, String name,String username) throws IOException {
+        if (!getUidMap(INDEX_PATH, INDEX_UID,INDEX_USERNAME).containsKey(filePath)) {
             String uid = UUID.randomUUID().toString();
-            String textToAppend = filePath + " " + uid + " " + partId + " " + name + "\n";
+            String textToAppend = filePath + " " + uid + " " + partId + " " + name + " "+ username + "\n";
 
             appendTextToFile(textToAppend, FILE_MAPPING_PATH);
 
             return uid;
-        } else return getUidMap(INDEX_PATH, INDEX_UID).get(filePath);
+        } else return getUidMap(INDEX_PATH, INDEX_UID,INDEX_USERNAME).get(filePath);
     }
 
     public String getRandomPartition(){
@@ -336,7 +332,7 @@ public class Client {
         if (username != null) {
             try {
                 String filePath = System.console().readLine("File path: ");
-                boolean isNew = !getUidMap(INDEX_PATH, INDEX_UID).containsKey(filePath);
+                boolean isNew = !getUidMap(INDEX_PATH, INDEX_UID,INDEX_USERNAME).containsKey(filePath);
                 File f = new File(filePath);
                 if (!f.exists()) {
                     System.out.println("No such file");
@@ -355,12 +351,11 @@ public class Client {
                     filename = System.console().readLine("Filename: ");
                     fileSecretKey = e.generateAESKey();
                 } else{
-                    filename = getUidMap(INDEX_PATH, INDEX_NAME).get(filePath);
-                    partId = getUidMap(INDEX_PATH, INDEX_PART_ID).get(filePath);
+                    filename = getUidMap(INDEX_PATH, INDEX_NAME,INDEX_USERNAME).get(filePath);
+                    partId = getUidMap(INDEX_PATH, INDEX_PART_ID,INDEX_USERNAME).get(filePath);
                 }
 
-                String uid = generateFileUid(filePath, partId, filename);
-                System.out.println(uid);
+                String uid = generateFileUid(filePath, partId, filename,this.username);
 
                 byte[] digitalSignature = e.createDigitalSignature(file_bytes, e.getPrivateKey(this.username,this.keyStore));
                 int tries = 0;
@@ -375,6 +370,7 @@ public class Client {
                         byte[] iv;
                         if (isNew) {
 
+
                             //Generate new IV
                             Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
                             SecureRandom secureRandom = new SecureRandom();
@@ -383,17 +379,17 @@ public class Client {
 
                             GetPublicKeysByUsernamesReply reply = c.GetPublicKeysByUsernames(this.username);
                             encryptedAES = e.encryptWithRSA(e.bytesToPubKey(reply.getKeys(0).toByteArray()), fileSecretKey.getEncoded());
-                            System.out.println("aes_client: "+encryptedAES);
+                            file = e.encryptWithAES(fileSecretKey, file_bytes, iv);
+                            //System.out.println("publicKey: " + e.bytesToPubKey(reply.getKeys(0).toByteArray()));
                         } else {
                             GetAESEncryptedReply res = c.GetAESEncrypted(this.username,this.username,uid);
                             iv = res.getIv().toByteArray();
                             encryptedAES = res.getAESEncrypted().toByteArray();
-                            fileSecretKey = e.bytesToAESKey(e.getAESKeyBytes(encryptedAES,this.username,this.keyStore));
-
-                            file  = e.encryptWithAES(fileSecretKey, file_bytes , iv);
+                            SecretKey fileSecretKey1 = e.bytesToAESKey(e.getAESKeyBytes(encryptedAES,this.username,this.keyStore));
+                            file  = e.encryptWithAES(fileSecretKey1, file_bytes , iv);
+                            //System.out.println("privateKey: " + e.getPrivateKey(this.username,this.keyStore));
                         }
 
-                        file = e.encryptWithAES(fileSecretKey, file_bytes, iv);
 
                         PushReply res= c.Push(iv,file,encryptedAES,this.username,digitalSignature,filename,uid,partId);
                         if (res.getOk()) {
@@ -436,7 +432,7 @@ public class Client {
             return;
         }
         String choice = ((System.console().readLine("Select which files you want to pull, separated by a blank space. 'all' for pulling every file: ")));
-        Map<String, String> uidMap = getUidMap(INDEX_UID, INDEX_PATH);
+        Map<String, String> uidMap = getUidMap(INDEX_UID, INDEX_PATH,INDEX_USERNAME);
         int tries=0;
         while (tries < 3) {
             String passwd = new String((System.console()).readPassword("Enter a password: "));
@@ -519,17 +515,17 @@ public class Client {
                         else {
                             //PREVENTS DUPLICATE FILENAMES FROM OVERWRITING
                             int dupNumber = 1;
-                            Map<String, String> map = getUidMap(INDEX_NAME, INDEX_UID);
+                            Map<String, String> map = getUidMap(INDEX_NAME, INDEX_UID,INDEX_USERNAME);
                             if (!map.containsKey(filename)) {
                                 FileUtils.writeByteArrayToFile(new File(PULLS_DIR + filename), decipheredFileData);
-                                String text = PULLS_DIR + filename + " " + file_uid + " " + partId + " " + filename + "\n";
+                                String text = PULLS_DIR + filename + " " + file_uid + " " + partId + " " + filename + " " + this.username +"\n";
                                 appendTextToFile(text, FILE_MAPPING_PATH);
                             } else {
                                 while (map.containsKey(filename + dupNumber)) {
                                     dupNumber++;
                                 }
                                 FileUtils.writeByteArrayToFile(new File(PULLS_DIR + filename + dupNumber), decipheredFileData);
-                                String text = PULLS_DIR + filename + dupNumber + " " + file_uid + " " + partId + " " + filename + "\n";
+                                String text = PULLS_DIR + filename + dupNumber + " " + file_uid + " " + partId + " " + filename + " " + this.username + "\n";
                                 appendTextToFile(text, FILE_MAPPING_PATH);
                             }
                         }
@@ -567,7 +563,7 @@ public class Client {
                 String uid = null;
                 String[] othersNames = others.split(" ");
                 try {
-                    uid = getUidMap(INDEX_NAME, INDEX_UID).get(filename);
+                    uid = getUidMap(INDEX_NAME, INDEX_UID,INDEX_USERNAME).get(filename);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -607,7 +603,7 @@ public class Client {
 
     public void revertRemoteFile() throws FileNotFoundException {
         if (this.username != null) {
-            Map<String,String> map = getUidMap(INDEX_NAME,INDEX_UID);
+            Map<String,String> map = getUidMap(INDEX_NAME,INDEX_UID,INDEX_USERNAME);
             Console console = System.console();
             int tries = 0;
             String filename = console.readLine("Enter filename to revert: ");
