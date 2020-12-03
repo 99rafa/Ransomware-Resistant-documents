@@ -21,7 +21,9 @@ In order to run the program, at least 3 terminal windows must be open:
 
 Assuming `$LOCALPATH` is the root directory of the project,
 
-```mvn exec:java -Dexec.mainClass="server.Server" -Dexec.args="<zooPort> <zooHost> <serverPort> <serverHost> $LOCALPATH/<path-to-trust-certificate> $LOCALPATH/<path-to-server-private-key> $LOCALPATH/<path-ca-certificate>" ```
+```bash
+mvn exec:java -Dexec.mainClass="server.Server" -Dexec.args="<zooPort> <zooHost> <serverPort> <serverHost> $LOCALPATH/<path-to-trust-certificate> $LOCALPATH/<path-to-server-private-key> $LOCALPATH/<path-ca-certificate>" 
+```
 
 - **zooPort**:
 - **zooHost**:
@@ -33,7 +35,9 @@ Assuming `$LOCALPATH` is the root directory of the project,
 
 #### Backup Server initialization
 
-```mvn exec:java -Dexec.mainClass="server.Server" -Dexec.args="<partitionID> <serverID> <zooPort> <zooHost> <serverPort> <serverHost> $LOCALPATH/<path-to-trust-certificate> $LOCALPATH/<path-to-server-private-key> $LOCALPATH/<path-ca-certificate>" ```
+```bash
+mvn exec:java -Dexec.mainClass="server.Server" -Dexec.args="<partitionID> <serverID> <zooPort> <zooHost> <serverPort> <serverHost> $LOCALPATH/<path-to-trust-certificate> $LOCALPATH/<path-to-server-private-key> $LOCALPATH/<path-ca-certificate>" 
+```
 
 - **partitionID**:
 - **serverID**:
@@ -47,8 +51,9 @@ Assuming `$LOCALPATH` is the root directory of the project,
 
 
 #### Client Initialization
-
-```mvn exec:java -Dexec.mainClass="client.Client" -Dexec.args="<zooPort> <zooHost> $LOCALPATH/<path-to-trust-certificate> $LOCALPATH/<path-to-client-private-key> $LOCALPATH/<path-ca-certificate>" ```
+```bash
+mvn exec:java -Dexec.mainClass="client.Client" -Dexec.args="<zooPort> <zooHost> $LOCALPATH/<path-to-trust-certificate> $LOCALPATH/<path-to-client-private-key> $LOCALPATH/<path-ca-certificate>" 
+```
 
 - **zooPort**:
 - **zooHost**:
