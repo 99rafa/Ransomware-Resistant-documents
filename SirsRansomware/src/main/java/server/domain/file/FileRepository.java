@@ -113,6 +113,27 @@ public class FileRepository extends Repository {
         }
         return publicKeys;
     }
+    public boolean isFileWritable(String uid){
+        boolean exists=false;
+        try {
+            String sql = "SELECT uid FROM EditableFiles WHERE uid = ?";
+            PreparedStatement statement = super.getConnection().prepareStatement(sql);
+
+            //Set parameters
+
+            statement.setString(1, uid);
+
+            ResultSet rs = statement.executeQuery();
+
+            if (rs.next()) {
+                exists=true;
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return exists;
+    }
 
     public byte[] getFileOwnerPublicKey(String uid){
         try {
@@ -191,16 +212,25 @@ public class FileRepository extends Repository {
     }
 
 
-    public byte[] getAESEncrypted(String username, String uid){
+    public byte[] getAESEncrypted(String username, String uid, String mode){
         byte[] aes=null;
+
         try{
-            String sql = "SELECT AESEncrypted FROM ReadableFiles WHERE username= ? AND uid= ? ";
-            PreparedStatement statement = super.getConnection().prepareStatement(sql);
-            statement.setString(1, username);
-            statement.setString(2, uid);
+            PreparedStatement statement = null;
+            if (mode.equals("read")) {
+                String sql = "SELECT AESEncrypted FROM ReadableFiles WHERE username= ? AND uid= ? ";
+                statement = super.getConnection().prepareStatement(sql);
+                statement.setString(1, username);
+                statement.setString(2, uid);
+            }
+            else if (mode.equals("write")) {
+                String sql = "SELECT AESEncrypted FROM EditableFiles WHERE username= ? AND uid= ? ";
+                statement = super.getConnection().prepareStatement(sql);
+                statement.setString(1, username);
+                statement.setString(2, uid);
+            }
 
             ResultSet rs = statement.executeQuery();
-
             while (rs.next()) {
                 aes = rs.getBytes("AESEncrypted");
             }

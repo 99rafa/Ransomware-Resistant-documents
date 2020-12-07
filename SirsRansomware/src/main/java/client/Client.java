@@ -186,6 +186,7 @@ public class Client {
         // Get the bytes of the public key
         byte[] publicKeyBytes = publicKey.getEncoded();
 
+
         //save secret Key to key store
         X509Certificate[] certificateChain = new X509Certificate[1];
         SelfSignedCertificate certificate = new SelfSignedCertificate();
@@ -323,88 +324,92 @@ public class Client {
     }
 
     public void push() {
-        if (username != null) {
-            try {
-                String filePath = System.console().readLine("File path: ");
-                boolean isNew = !getUidMap(INDEX_PATH, INDEX_UID,INDEX_USERNAME).containsKey(filePath);
-                File f = new File(filePath);
-                if (!f.exists()) {
-                    System.out.println("No such file");
-                    return;
-                }
-                byte[] file_bytes = Files.readAllBytes(
-                        Paths.get(filePath)
-                );
+        if (username == null) {
+            System.err.println("Error: To pull files, you need to login first");
+            return;
+        }
+        int tries=0;
+        while (tries < 3) {
+            String passwd = new String((System.console()).readPassword("Enter your password: "));
+            VerifyPasswordReply repPass = c.VerifyPassword(this.username, e.generateSecurePassword(passwd, this.salt));
+            if (repPass.getOkPassword()) {
+                try {
+                    String filePath = System.console().readLine("File path: ");
+                    boolean isNew = !getUidMap(INDEX_PATH, INDEX_UID, INDEX_USERNAME).containsKey(filePath);
+                    File f = new File(filePath);
+                    if (!f.exists()) {
+                        System.out.println("No such file");
+                        return;
+                    }
+                    byte[] file_bytes = Files.readAllBytes(
+                            Paths.get(filePath)
+                    );
 
 
-                String filename;
-                SecretKey fileSecretKey = null;
-                String partId;
-                if (isNew) {
-                    partId = getRandomPartition();
-                    filename = System.console().readLine("Filename: ");
-                    fileSecretKey = e.generateAESKey();
-                } else{
-                    filename = getUidMap(INDEX_PATH, INDEX_NAME,INDEX_USERNAME).get(filePath);
-                    partId = getUidMap(INDEX_PATH, INDEX_PART_ID,INDEX_USERNAME).get(filePath);
-                }
-
-                String uid = generateFileUid(filePath, partId, filename,this.username);
-
-                byte[] digitalSignature = e.createDigitalSignature(file_bytes, e.getPrivateKey(this.username,this.keyStore));
-                int tries = 0;
-
-                while (tries < 3) {
-                    String passwd = new String((System.console()).readPassword("Enter your password: "));
-                    VerifyPasswordReply repPass= c.VerifyPassword(this.username,e.generateSecurePassword(passwd, this.salt));
-                    if (repPass.getOkPassword()){
-                        System.out.println("Sending file to server");
-                        byte[] encryptedAES;
-                        byte[] file;
-                        byte[] iv;
-                        if (isNew) {
-
-
-                            //Generate new IV
-                            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-                            SecureRandom secureRandom = new SecureRandom();
-                            iv = new byte[cipher.getBlockSize()];
-                            secureRandom.nextBytes(iv);
-
-                            GetPublicKeysByUsernamesReply reply = c.GetPublicKeysByUsernames(this.username);
-                            encryptedAES = e.encryptWithRSA(e.bytesToPubKey(reply.getKeys(0).toByteArray()), fileSecretKey.getEncoded());
-                            file = e.encryptWithAES(fileSecretKey, file_bytes, iv);
-                            //System.out.println("publicKey: " + e.bytesToPubKey(reply.getKeys(0).toByteArray()));
-                        } else {
-                            GetAESEncryptedReply res = c.GetAESEncrypted(this.username,this.username,uid);
-                            iv = res.getIv().toByteArray();
-                            encryptedAES = res.getAESEncrypted().toByteArray();
-                            SecretKey fileSecretKey1 = e.bytesToAESKey(e.getAESKeyBytes(encryptedAES,this.username,this.keyStore));
-                            file  = e.encryptWithAES(fileSecretKey1, file_bytes , iv);
-                            //System.out.println("privateKey: " + e.getPrivateKey(this.username,this.keyStore));
-                        }
-
-
-                        PushReply res= c.Push(iv,file,encryptedAES,this.username,digitalSignature,filename,uid,partId);
-                        if (res.getOk()) {
-                            System.out.println("File uploaded successfully");
-                            break;
-                        } else {
-                            System.err.println("There was a problem");
-                        }
+                    String filename;
+                    SecretKey fileSecretKey = null;
+                    String partId;
+                    if (isNew) {
+                        partId = getRandomPartition();
+                        filename = System.console().readLine("Filename: ");
+                        fileSecretKey = e.generateAESKey();
                     } else {
-                        System.err.println("Error: Wrong password!");
-                        tries++;
+                        filename = getUidMap(INDEX_PATH, INDEX_NAME, INDEX_USERNAME).get(filePath);
+                        partId = getUidMap(INDEX_PATH, INDEX_PART_ID, INDEX_USERNAME).get(filePath);
                     }
-                    if (tries == 3) {
-                        System.err.println("Error: Exceeded the number of tries. Client logged out.");
-                        logout();
+
+                    String uid = generateFileUid(filePath, partId, filename, this.username);
+                    byte[] digitalSignature = e.createDigitalSignature(file_bytes, e.getPrivateKey(this.username, this.keyStore));
+                    byte[] encryptedAES;
+                    byte[] file;
+                    byte[] iv;
+
+                    if (isNew) {
+                        //Generate new IV
+                        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+                        SecureRandom secureRandom = new SecureRandom();
+                        iv = new byte[cipher.getBlockSize()];
+                        secureRandom.nextBytes(iv);
+
+                        GetPublicKeysByUsernamesReply reply = c.GetPublicKeysByUsernames(this.username);
+                        encryptedAES = e.encryptWithRSA(e.bytesToPubKey(reply.getKeys(0).toByteArray()), fileSecretKey.getEncoded());
+                        file = e.encryptWithAES(fileSecretKey, file_bytes, iv);
+                        //System.out.println("publicKey: " + e.bytesToPubKey(reply.getKeys(0).toByteArray()));
+                    } else {
+                        GetAESEncryptedReply res = c.GetAESEncrypted(this.username, this.username, uid,"write");
+                        if (res.getAESEncrypted().toByteArray().length==0){
+                            System.err.println("Error: Only have read-only for this file permission");
+                            return;
+                        }
+                        iv = res.getIv().toByteArray();
+                        encryptedAES = res.getAESEncrypted().toByteArray();
+                        //System.out.println(Arrays.toString(encryptedAES));
+                        SecretKey fileSecretKey1 = e.bytesToAESKey(e.getAESKeyBytes(encryptedAES, this.username, this.keyStore));
+                        file = e.encryptWithAES(fileSecretKey1, file_bytes, iv);
+                        //System.out.println("privateKey: " + e.getPrivateKey(this.username,this.keyStore));
                     }
+                    System.out.println("Sending file to server");
+
+
+                    PushReply res = c.Push(iv, file, encryptedAES, this.username, digitalSignature, filename, uid, partId);
+                    if (res.getOk()) {
+                        System.out.println("File uploaded successfully");
+                        break;
+                    } else {
+                        System.err.println("There was a problem");
+                    }
+                } catch (IOException | NoSuchAlgorithmException | InvalidKeyException | SignatureException | NoSuchPaddingException e) {
+                    e.printStackTrace();
                 }
-            } catch (IOException | NoSuchAlgorithmException | InvalidKeyException | SignatureException | NoSuchPaddingException e) {
-                e.printStackTrace();
+            }else{
+                System.err.println("Error: Wrong password!");
+                tries++;
             }
-        } else System.err.println("Error: To push a file, you need to login first");
+            if (tries == 3) {
+                System.err.println("Error: Exceeded the number of tries. Client logged out.");
+                logout();
+            }
+        }
     }
 
     public void displayHelp() {
@@ -425,13 +430,13 @@ public class Client {
             System.err.println("Error: To pull files, you need to login first");
             return;
         }
-        String choice = ((System.console().readLine("Select which files you want to pull, separated by a blank space. 'all' for pulling every file: ")));
-        Map<String, String> uidMap = getUidMap(INDEX_UID, INDEX_PATH,INDEX_USERNAME);
         int tries=0;
         while (tries < 3) {
             String passwd = new String((System.console()).readPassword("Enter a password: "));
             VerifyPasswordReply repPass = c.VerifyPassword(this.username,e.generateSecurePassword(passwd, this.salt));
             if (repPass.getOkPassword()) {
+                String choice = ((System.console().readLine("Select which files you want to pull, separated by a blank space. 'all' for pulling every file: ")));
+                Map<String, String> uidMap = getUidMap(INDEX_UID, INDEX_PATH,INDEX_USERNAME);
                 PullReply reply;
                 if (choice.equals("all")) {
                     reply = c.PullAll(this.username);
@@ -518,14 +523,14 @@ public class Client {
                             }
                             if (!map.containsKey(filename)) {
                                 FileUtils.writeByteArrayToFile(new File(PULLS_DIR + "/" + this.username +"/" + filename), decipheredFileData);
-                                String text = PULLS_DIR + filename + " " + file_uid + " " + partId + " " + filename + " " + this.username +"\n";
+                                String text = PULLS_DIR + this.username + "/" + filename + " " + file_uid + " " + partId + " " + filename + " " + this.username +"\n";
                                 appendTextToFile(text, FILE_MAPPING_PATH);
                             } else {
                                 while (map.containsKey(filename + dupNumber)) {
                                     dupNumber++;
                                 }
                                 FileUtils.writeByteArrayToFile(new File(PULLS_DIR + "/" + this.username + "/" + filename + dupNumber), decipheredFileData);
-                                String text = PULLS_DIR + filename + dupNumber + " " + file_uid + " " + partId + " " + filename + " " + this.username + "\n";
+                                String text = PULLS_DIR +  this.username +"/" + filename +"(" +dupNumber+ ")" + " " + file_uid + " " + partId + " " + filename + " " + this.username + "\n";
                                 appendTextToFile(text, FILE_MAPPING_PATH);
                             }
                         }
@@ -541,25 +546,27 @@ public class Client {
                 System.err.println("Error: Exceeded the number of tries. Client logged out.");
                 logout();
             }
-
         }
     }
 
     public void givePermission() {
-        Console console = System.console();
-        String others = console.readLine("Enter the username/s to give permission, separated by a blank space: ");
-        String s = System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n");
-        while (!s.matches("write|read")){
-            System.err.println("Error: Wrong type of permission");
-            s=System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n");
+        if (username == null) {
+            System.err.println("Error: To give permission, you need to login first");
+            return;
         }
-        String filename = console.readLine("Enter the filename: ");
+        Console console = System.console();
         int tries = 0;
-
         while (tries < 3) {
             String passwd = new String((System.console()).readPassword("Enter a password: "));
             VerifyPasswordReply repPass = c.VerifyPassword(this.username,e.generateSecurePassword(passwd, this.salt));
             if (repPass.getOkPassword()) {
+                String others = console.readLine("Enter the username/s to give permission, separated by a blank space: ");
+                String s = System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n");
+                while (!s.matches("write|read")){
+                    System.err.println("Error: Wrong type of permission");
+                    s=System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n");
+                }
+                String filename = console.readLine("Enter the filename:");
                 String uid = null;
                 String[] othersNames = others.split(" ");
                 try {
@@ -567,7 +574,7 @@ public class Client {
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
-                GetAESEncryptedReply reply = c.GetAESEncrypted(this.username,othersNames,uid);
+                GetAESEncryptedReply reply = c.GetAESEncrypted(this.username,othersNames,uid,s);
                 byte[] aesEncrypted = reply.getAESEncrypted().toByteArray();
                 List<byte[]> othersPubKeysBytes = reply.getOthersPublicKeysList().stream().map(ByteString::toByteArray).collect(Collectors.toList());
                 byte[] aesKeyBytes;
@@ -577,6 +584,7 @@ public class Client {
                     aesKeyBytes = e.getAESKeyBytes(aesEncrypted,this.username,this.keyStore);
                     //encrypt AES with "others" public keys to send to the server
                     List<byte[]> othersAesEncrypted = e.getOthersAESEncrypted(othersPubKeysBytes, aesKeyBytes);
+                    //System.out.println(Arrays.toString(othersAesEncrypted.get(0)));
                     //read/write permissions
                     GivePermissionReply res= c.GivePermission(othersNames,uid,s,othersAesEncrypted);
                     if (res.getOkOthers()) {
@@ -603,15 +611,15 @@ public class Client {
 
     public void revertRemoteFile() throws FileNotFoundException {
         if (this.username != null) {
-            Map<String,String> map = getUidMap(INDEX_NAME,INDEX_UID,INDEX_USERNAME);
-            Console console = System.console();
             int tries = 0;
-            String filename = console.readLine("Enter filename to revert: ");
-            String fileUid = map.get(filename);
+            Console console = System.console();
             while (tries < 3) {
                 String passwd = new String(console.readPassword("Enter your password: "));
                 VerifyPasswordReply repPass = c.VerifyPassword(this.username,e.generateSecurePassword(passwd, this.salt));
                 if (repPass.getOkPassword()) {
+                    Map<String,String> map = getUidMap(INDEX_NAME,INDEX_UID,INDEX_USERNAME);
+                    String filename = console.readLine("Enter filename to revert: ");
+                    String fileUid = map.get(filename);
                     ListFileVersionsReply reply = c.ListFileVersions(fileUid);
                     int version = reply.getDatesCount();
                     for(String date : reply.getDatesList()){
@@ -637,7 +645,7 @@ public class Client {
                     logout();
                 }
             }
-        }
+        }System.err.println("Error: Login First");
     }
 
 

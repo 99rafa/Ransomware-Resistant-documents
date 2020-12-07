@@ -38,21 +38,23 @@ public class ClientFrontend {
                 .build());
     }
 
-    public GetAESEncryptedReply GetAESEncrypted(String username, String[] othersNames, String uid) {
+    public GetAESEncryptedReply GetAESEncrypted(String username, String[] othersNames, String uid,String mode) {
         return blockingStub.getAESEncrypted(GetAESEncryptedRequest
                 .newBuilder()
                 .setUsername(username)
                 .addAllOthersNames(Arrays.asList(othersNames))
                 .setUid(uid)
+                .setMode(mode)
                 .build());
     }
 
-    public GetAESEncryptedReply GetAESEncrypted(String username, String name, String uid) {
+    public GetAESEncryptedReply GetAESEncrypted(String username, String name, String uid,String mode) {
         return blockingStub.getAESEncrypted(GetAESEncryptedRequest
                 .newBuilder()
                 .setUsername(username)
                 .addAllOthersNames(Collections.singleton(name))
                 .setUid(uid)
+                .setMode(mode)
                 .build());
     }
 
@@ -136,6 +138,7 @@ public class ClientFrontend {
                 .setPartId(partId)
                 .build());
     }
+
 
     public GetPublicKeysByUsernamesReply GetPublicKeysByUsernames(String username) {
         return blockingStub.getPublicKeysByUsernames(GetPublicKeysByUsernamesRequest

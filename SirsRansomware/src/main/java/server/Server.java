@@ -554,7 +554,8 @@ public class Server {
                         file_bytes));
                 reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(mostRecentVersion.getVersionUid())));
                 reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
-                reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),file.getUid())));
+                reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),file.getUid(),"read")));
+
             }
             reply.setOk(true);
             responseObserver.onNext(reply.build());
@@ -590,7 +591,7 @@ public class Server {
                                 file_bytes));
                         reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(mostRecentVersion.getVersionUid()))); //alterei isto pq tava a dar mal
                         reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
-                        reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),file.getUid()))); //o getAES vai buscar o uid e nao o most recent Version uid
+                        reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),file.getUid(),"read"))); //o getAES vai buscar o uid e nao o most recent Version uid
                         break;
                     }
                 }
@@ -628,24 +629,29 @@ public class Server {
         }
         @Override
         public void getAESEncrypted(GetAESEncryptedRequest req, StreamObserver<GetAESEncryptedReply> responseObserver){
-            GetAESEncryptedReply reply;
-            if (isOwner(req.getUsername(), req.getUid())){
-                byte[] aes = getAESEncrypted(req.getUsername(),req.getUid());
-                //System.out.println("aes_server: " + aes);
-                List<byte[]> pk = userRepository.getPublicKeysByUsernames(req.getOthersNamesList());
-                byte[] iv = fileRepository.getFileIv(req.getUid());
-                reply = GetAESEncryptedReply
-                        .newBuilder()
-                        .setIsOwner(true)
-                        .setAESEncrypted(ByteString.copyFrom(aes))
-                        .addAllOthersPublicKeys(
-                                pk.stream()
-                                        .map(ByteString::copyFrom)
-                                        .collect(Collectors.toList())
-                        )
-                        .setIv(ByteString.copyFrom(iv))
-                        .build();
-            } else reply = GetAESEncryptedReply.newBuilder().setIsOwner(false).build();
+            GetAESEncryptedReply.Builder replyBuilder;
+            boolean owner=false;
+            if (isOwner(req.getUsername(),req.getUid())){
+                owner=true;
+            }
+            byte[] aes = getAESEncrypted(req.getUsername(),req.getUid(),req.getMode());
+            //System.out.println(Arrays.toString(aes));
+            //System.out.println("aes_server: " + aes);
+            List<byte[]> pk = userRepository.getPublicKeysByUsernames(req.getOthersNamesList());
+            byte[] iv = fileRepository.getFileIv(req.getUid());
+            replyBuilder = GetAESEncryptedReply
+                    .newBuilder()
+                    .setIsOwner(owner)
+                    .addAllOthersPublicKeys(
+                            pk.stream()
+                                    .map(ByteString::copyFrom)
+                                    .collect(Collectors.toList())
+                    )
+                    .setIv(ByteString.copyFrom(iv));
+            if (aes!=null) {
+                replyBuilder.setAESEncrypted(ByteString.copyFrom(aes));
+            }
+            GetAESEncryptedReply reply = replyBuilder.build();
 
 
             responseObserver.onNext(reply);
@@ -812,8 +818,8 @@ public class Server {
             return userRepository.getPublicKey(username);
         }
 
-        private byte[] getAESEncrypted(String username, String uid){
-            return fileRepository.getAESEncrypted(username,uid);
+        private byte[] getAESEncrypted(String username, String uid,String mode){
+            return fileRepository.getAESEncrypted(username,uid,mode);
         }
         private boolean isOwner(String username, String uid){
             return userRepository.isOwner(username,uid);

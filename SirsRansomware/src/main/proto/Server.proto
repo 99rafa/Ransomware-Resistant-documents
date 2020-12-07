@@ -201,6 +201,7 @@ message GetAESEncryptedRequest{
   string username=1;
   repeated string othersNames=2;
   string uid=3;
+  string mode=4;
 }
 
 message GetAESEncryptedReply{
@@ -208,6 +209,7 @@ message GetAESEncryptedReply{
   bytes AESEncrypted=2;
   repeated bytes othersPublicKeys=3;
   bytes iv = 4;
+  bool can_write=5;
 }
 message VerifyPasswordRequest{
   string username=1;
@@ -216,6 +218,8 @@ message VerifyPasswordRequest{
 message VerifyPasswordReply{
   bool ok_password=1;
 }
+
+
 
 
 

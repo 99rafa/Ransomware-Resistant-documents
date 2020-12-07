@@ -8,7 +8,6 @@
 
 Our software was developed in **java** and built with **maven**.
 
-
 ## Running
 
 In order to run the program, at least 3 terminal windows must be open:
@@ -16,47 +15,50 @@ In order to run the program, at least 3 terminal windows must be open:
 - 1+ backup server(s)
 - 1 client
 
+#### 0. Installing and compiling project 
+
+Run script **init.sh** to install and compile the project 
 
 #### 1. Server initialization
 
 Assuming `$LOCALPATH` is the root directory of the project,
 
 ```bash
-mvn exec:java -Dexec.mainClass="server.Server" -Dexec.args="<zooPort> <zooHost> <serverPort> <serverHost> $LOCALPATH/<path-to-trust-certificate> $LOCALPATH/<path-to-server-private-key> $LOCALPATH/<path-ca-certificate>" 
+mvn exec:java -Dexec.mainClass="server.Server" -Dexec.args="<zooPort> <zooHost> <serverPort> <serverHost> $LOCALPATH/<path-to-trust-certificate> $LOCALPATH/<path-to-server-private-key> $LOCALPATH/<path-to-certificate-authority>" 
 ```
 
-- **zooPort**:
-- **zooHost**:
-- **serverPort**:
-- **serverHost**:
-- **path-to-cert-certificate**:
-- **path-to-server-private-key**:
-- **path-to-ca-certificate**:
+- **zooPort**: zookeeper(port)
+- **zooHost**: zookeeper(host)
+- **serverPort**: server(port)
+- **serverHost**: server(host)
+- **path-to-trust-certificate**: path to the trustable server's certificate
+- **path-to-server-private-key**: path to the server's private key
+- **path-to-certificate-authority**: path to the certificate authority
 
 #### 2. Backup Server initialization
 
 ```bash
-mvn exec:java -Dexec.mainClass="server.Server" -Dexec.args="<partitionID> <serverID> <zooPort> <zooHost> <serverPort> <serverHost> $LOCALPATH/<path-to-trust-certificate> $LOCALPATH/<path-to-server-private-key> $LOCALPATH/<path-ca-certificate>" 
+mvn exec:java -Dexec.mainClass="server.BackupServer" -Dexec.args="<partitionID> <serverID> <zooPort> <zooHost> <backupServerPort> <backupServerHost> $LOCALPATH/<path-to-trust-certificate> $LOCALPATH/<path-to-backupServer-private-key> $LOCALPATH/<path-to-certificate-authority>" 
 ```
 
-- **partitionID**:
-- **serverID**:
-- **zooPort**:
-- **zooHost**:
-- **serverPort**:
-- **serverHost**:
-- **path-to-cert-certificate**:
-- **path-to-server-private-key**:
-- **path-to-ca-certificate**:
+- **partitionID**: Id of the partition(integer)
+- **serverID**: Id of the server(integer)
+- **zooPort**: zookeeper(port)
+- **zooHost**: zookeeper(host)
+- **backupServerPort**: backupServer(port)
+- **backupServerHost**: backupServer(host)
+- **path-to-trust-certificate**: path to the trustable backup server's certificate
+- **path-to-server-private-key**: path to the backup server's private key
+- **path-to-certificate-authority**:path to the certificate authority
 
 
 #### 3. Client Initialization
 ```bash
-mvn exec:java -Dexec.mainClass="client.Client" -Dexec.args="<zooPort> <zooHost> $LOCALPATH/<path-to-trust-certificate> $LOCALPATH/<path-to-client-private-key> $LOCALPATH/<path-ca-certificate>" 
+mvn exec:java -Dexec.mainClass="client.Client" -Dexec.args="<zooPort> <zooHost> $LOCALPATH/<path-to-trust-certificate> $LOCALPATH/<path-to-client-private-key> $LOCALPATH/<path-to-certificate-authority>" 
 ```
 
-- **zooPort**:
-- **zooHost**:
-- **path-to-cert-certificate**:
-- **path-to-client-private-key**:
-- **path-to-ca-certificate**:
+- **zooPort**: zookeeper(port)
+- **zooHost**: zookeeper(host)
+- **path-to-trust-certificate**: path to the trustable client's certificate
+- **path-to-client-private-key**: path to the client's private key
+- **path-to-certificate-authority**:path to the certificate authority
