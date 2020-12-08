@@ -279,13 +279,14 @@ public class Server {
         public void listFileVersions(ListFileVersionsRequest request, StreamObserver<ListFileVersionsReply> responseObserver) {
             List<FileVersion> versions = this.fileVersionRepository
                     .getFileVersions(request.getFileUid());
+
             ListFileVersionsReply reply = ListFileVersionsReply
                     .newBuilder()
                     .addAllDates(
                             versions.stream()
                                     .map(l ->
                                     {
-                                        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+                                        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss aa");
                                         return dateFormat.format(l.getDate());
                                     })
                                     .collect(Collectors.toList())
@@ -371,7 +372,7 @@ public class Server {
         }
 
         public void usernameExists(UsernameExistsRequest req, StreamObserver<UsernameExistsReply> responseObserver) {
-            System.out.println("Checking if user " + req.getUsername() + "exists");
+            System.out.println("Checking if user " + req.getUsername() + " exists");
             UsernameExistsReply reply;
             if (usernameExists(req.getUsername())) {
                 reply = UsernameExistsReply.newBuilder().setOkUsername(true).build();
@@ -425,7 +426,7 @@ public class Server {
 
         @Override
         public void push(PushRequest req, StreamObserver<PushReply> responseObserver) {
-            //TODO verify if user is authorized to do push on this file
+
             ByteString bs = req.getFile();
             System.out.println("Received file " + req.getFileName() + " from client " + req.getUsername());
             PushReply reply = null;

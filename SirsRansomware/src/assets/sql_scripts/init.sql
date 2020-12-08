@@ -28,7 +28,7 @@ CREATE TABLE FileVersions
     version_uid       VARCHAR(100) PRIMARY KEY,
     file_uid          VARCHAR(100)    NOT NULL,
     creator           VARCHAR(30)     NOT NULL,
-    date              DATETIME        NOT NULL,
+    ts              DATETIME        NOT NULL,
     digital_signature VARBINARY(2048) NOT NULL,
     FOREIGN KEY (file_uid) REFERENCES Files (uid),
     FOREIGN KEY (creator) REFERENCES Users (username)

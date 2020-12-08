@@ -1,0 +1,1 @@
+/Users/rafael/Documents/IST/MEIC/SIRS/project/SIRS_proj1/SirsRansomware/src/assets/certs/server1.key 4c35aad1-da42-4b1f-974b-8122bc8b4e5a 1 a a

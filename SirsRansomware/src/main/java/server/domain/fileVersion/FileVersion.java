@@ -6,6 +6,7 @@ import server.database.DatabaseObject;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Date;
 
@@ -67,7 +68,6 @@ public class FileVersion implements DatabaseObject {
             //Prepared statement
             String sql = "INSERT INTO FileVersions VALUES (?,?,?,?,?)";
             PreparedStatement s = connector.connection.prepareStatement(sql);
-
             //Set parameters
             s.setString(1, this.versionUid);
             s.setString(2, this.fileUid);

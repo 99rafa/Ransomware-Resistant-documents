@@ -163,7 +163,7 @@ public class Client {
             else System.out.println("Password don't match. Try again");
         }
 
-        System.out.println("Will try to register " + name + " ...");
+        System.out.println("Registering user " + name + " ...");
         // generate RSA Keys
         KeyPair keyPair = e.generateUserKeyPair();
         PublicKey publicKey = keyPair.getPublic();
@@ -387,8 +387,8 @@ public class Client {
         System.out.println("pull - receives files from server");
         System.out.println("push - sends file to server");
         System.out.println("give_perm - give read/write file access permission to user/s");
-        System.out.println("logout - exits client");
         System.out.println("revertRemoteFile - reverts a file to a previous version");
+        System.out.println("logout - exits client");
         System.out.println("exit - exits client");
     }
 
@@ -613,6 +613,7 @@ public class Client {
                     String fileUid = map.get(filename);
                     ListFileVersionsReply reply = c.ListFileVersions(fileUid);
                     int version = reply.getDatesCount();
+
                     for (String date : reply.getDatesList()) {
                         System.out.println("Version " + version + " modified on date " + date);
                         version--;
