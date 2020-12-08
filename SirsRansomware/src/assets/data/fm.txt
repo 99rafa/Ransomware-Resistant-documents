@@ -1,0 +1,1 @@
+/Users/rafael/Documents/IST/MEIC/SIRS/project/SIRS_proj1/SirsRansomware/src/assets/certs/server1.key b7856d7c-f4db-4a25-b745-27f521796647 1 ola rafa

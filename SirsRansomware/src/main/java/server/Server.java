@@ -154,8 +154,8 @@ public class Server {
 
         if (args.length != 7) {
             System.out.println(
-                    "USAGE: ServerTls id partId zooHost zooPort host port certChainFilePath privateKeyFilePath " +
-                            "trustCertCollectionFilePath\n  Note: You only need to supply trustCertCollectionFilePath if you want " +
+                    "USAGE: ServerTls zooHost zooPort host port certChainFilePath privateKeyFilePath " +
+                            "[trustCertCollectionFilePath]\n  Note: You only need to supply trustCertCollectionFilePath if you want " +
                             "to enable Mutual TLS.");
             System.exit(0);
         }
@@ -442,7 +442,7 @@ public class Server {
         }
 
         public void usernameExists(UsernameExistsRequest req, StreamObserver<UsernameExistsReply> responseObserver){
-            System.out.println("Login request received for user " + req.getUsername());
+            System.out.println("Checking if user " + req.getUsername() + "exists");
             UsernameExistsReply reply;
             if (usernameExists(req.getUsername())){
                 reply = UsernameExistsReply.newBuilder().setOkUsername(true).build();

@@ -27,16 +27,14 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-/**
- * A simple client that requests a greeting from the {@link Server} with TLS.
- */
+
 public class Client {
     private static final int INDEX_PATH = 0;
     private static final int INDEX_UID = 1;
     private static final int INDEX_PART_ID = 2;
     private static final int INDEX_NAME = 3;
     private static final int INDEX_USERNAME = 4;
-    private static final Logger logger = Logger.getLogger(Client.class.getName());
+
     private static final String SIRS_DIR = System.getProperty("user.dir");
     private static final String FILE_MAPPING_PATH = SIRS_DIR + "/src/assets/data/fm.txt";
     private static final String PULLS_DIR = SIRS_DIR + "/src/assets/clientPulls/";
@@ -47,13 +45,10 @@ public class Client {
     private final String zooHost;
     private final String zooPort;
     private final SslContext sslContext;
-    private String currentPartition;
     private final EncryptionLogic e;
     private final ClientFrontend c;
 
-    /**
-     * Construct client connecting to HelloWorld server at {@code host:port}.
-     */
+
     public Client(String zooHost,
                   String zooPort,
                   SslContext sslContext) {
@@ -62,7 +57,6 @@ public class Client {
         this.zooPort = zooPort;
         this.sslContext = sslContext;
 
-        Random random = new Random();
         String path;
 
         Console console = System.console();
@@ -118,10 +112,7 @@ public class Client {
         return builder.build();
     }
 
-    /**
-     * Greet server. If provided, the first element of {@code args} is the name to use in the
-     * greeting.
-     */
+
     public static void main(String[] args) throws Exception {
         if (args.length != 5) {
             System.out.println("USAGE: host port trustCertCollectionFilePath " +
@@ -138,6 +129,7 @@ public class Client {
             Scanner in = new Scanner(System.in);
             boolean running = true;
             while (running) {
+                System.out.print("Enter command ( Type 'help' for help menu ): ");
                 String cmd = in.nextLine();
                 switch (cmd) {
                     case "greet" -> client.greet(in.nextLine());
@@ -345,7 +337,6 @@ public class Client {
                             Paths.get(filePath)
                     );
 
-
                     String filename;
                     SecretKey fileSecretKey = null;
                     String partId;
@@ -496,7 +487,6 @@ public class Client {
                                 System.err.println("This file got corrupted!");
                                 continue;
                             }
-                            //TODO SEND HEALTHY VERSION
                             HealCorruptedVersionReply reply2 = c.HealCorruptedVersion(version_uid,file_uid,healthyVersion,partId);
 
                             if(reply2.getOk()){
@@ -566,15 +556,40 @@ public class Client {
                     System.err.println("Error: Wrong type of permission");
                     s=System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n");
                 }
-                String filename = console.readLine("Enter the filename:");
+                String filename = console.readLine("Enter the filename: ");
                 String uid = null;
                 String[] othersNames = others.split(" ");
+                List<String> existingNames = new ArrayList<>();
+                for (String name : othersNames) {
+                    if (name.equals(this.username))
+                        System.err.println("Error: Cannot give permission to user " + this.username + ". Ignoring..");
+                    else {
+                        UsernameExistsReply reply = c.UsernameExists(name);
+                        if (reply.getOkUsername()) {
+                            existingNames.add(name);
+                        } else
+                            System.err.println("Error: username " + name + " does not exist in the database. Ignoring..");
+                    }
+                }
+
+                if (existingNames.size() == 0 ) return;
+
                 try {
                     uid = getUidMap(INDEX_NAME, INDEX_UID,INDEX_USERNAME).get(filename);
+
+                    if (uid == null) {
+                        System.err.println("Error: File " + filename + " does not exist in the system");
+                        return;
+                    }
+
+
                 } catch (FileNotFoundException e) {
-                    e.printStackTrace();
+                    System.err.println("Error: File not found exception");
+                    return;
                 }
-                GetAESEncryptedReply reply = c.GetAESEncrypted(this.username,othersNames,uid,s);
+
+
+                GetAESEncryptedReply reply = c.GetAESEncrypted(this.username, existingNames.toArray(new String[0]),uid,s);
                 byte[] aesEncrypted = reply.getAESEncrypted().toByteArray();
                 List<byte[]> othersPubKeysBytes = reply.getOthersPublicKeysList().stream().map(ByteString::toByteArray).collect(Collectors.toList());
                 byte[] aesKeyBytes;
@@ -594,9 +609,9 @@ public class Client {
                             }
                             break;
                         }
-                    } else System.out.println("Username do not exist");
+                    } else System.err.println("Error: Username do not exist");
                     break;
-                } else System.out.println("You are not the owner of this file, you cannot give permission");
+                } else System.err.println("Error: You are not the owner of this file, you cannot give permission");
                 break;
             } else {
                 System.err.println("Error: Wrong password!");

@@ -140,7 +140,7 @@ public class BackupServer {
 
         if ( args.length != 9) {
             System.out.println(
-                    "USAGE: HelloWorldServerTls port certChainFilePath privateKeyFilePath " +
+                    "USAGE: ID partID zooHost zooPort host port certChainFilePath privateKeyFilePath " +
                             "[trustCertCollectionFilePath]\n  Note: You only need to supply trustCertCollectionFilePath if you want " +
                             "to enable Mutual TLS.");
             System.exit(0);
