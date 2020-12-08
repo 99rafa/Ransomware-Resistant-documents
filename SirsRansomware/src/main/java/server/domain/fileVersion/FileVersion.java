@@ -29,10 +29,6 @@ public class FileVersion implements DatabaseObject {
     public FileVersion() {
     }
 
-    public String getCreator() {
-        return creator;
-    }
-
     public void setCreator(String creator) {
         this.creator = creator;
     }
@@ -77,7 +73,7 @@ public class FileVersion implements DatabaseObject {
             s.setString(2, this.fileUid);
             s.setString(3, this.creator);
             s.setTimestamp(4, new Timestamp(this.date.getTime()));
-            s.setBytes(5,this.digitalSignature);
+            s.setBytes(5, this.digitalSignature);
             s.executeUpdate();
 
             connector.connection.commit();

@@ -16,7 +16,6 @@ import java.util.Date;
  * This class uses the Bouncycastle lightweight API to generate X.509 certificates programmatically.
  *
  * @author abdul
- *
  */
 public class SelfSignedCertificate {
 
@@ -41,31 +40,31 @@ public class SelfSignedCertificate {
     }
 
     @SuppressWarnings("deprecation")
-    public X509Certificate createCertificate() throws Exception{
+    public X509Certificate createCertificate() throws Exception {
         X509Certificate cert = null;
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(CERTIFICATE_ALGORITHM);
         keyPairGenerator.initialize(CERTIFICATE_BITS, new SecureRandom());
         KeyPair keyPair = keyPairGenerator.generateKeyPair();
 
         // GENERATE THE X509 CERTIFICATE
-        X509V3CertificateGenerator v3CertGen =  new X509V3CertificateGenerator();
+        X509V3CertificateGenerator v3CertGen = new X509V3CertificateGenerator();
         v3CertGen.setSerialNumber(BigInteger.valueOf(System.currentTimeMillis()));
         v3CertGen.setIssuerDN(new X509Principal(CERTIFICATE_DN));
         v3CertGen.setNotBefore(new Date(System.currentTimeMillis() - 1000L * 60 * 60 * 24));
-        v3CertGen.setNotAfter(new Date(System.currentTimeMillis() + (1000L * 60 * 60 * 24 * 365*10)));
+        v3CertGen.setNotAfter(new Date(System.currentTimeMillis() + (1000L * 60 * 60 * 24 * 365 * 10)));
         v3CertGen.setSubjectDN(new X509Principal(CERTIFICATE_DN));
         v3CertGen.setPublicKey(keyPair.getPublic());
         v3CertGen.setSignatureAlgorithm("SHA256WithRSAEncryption");
         cert = v3CertGen.generateX509Certificate(keyPair.getPrivate());
-        saveCert(cert,keyPair.getPrivate());
+        saveCert(cert, keyPair.getPrivate());
         return cert;
     }
 
     private void saveCert(X509Certificate cert, PrivateKey key) throws Exception {
         KeyStore keyStore = KeyStore.getInstance("PKCS12");
         keyStore.load(new FileInputStream("src/assets/keyStores/trustCertsServerKeyStore.p12"), "w7my3n,~yvF-;Py3".toCharArray());
-        keyStore.setKeyEntry(CERTIFICATE_ALIAS, key, "".toCharArray(),  new java.security.cert.Certificate[]{cert});
+        keyStore.setKeyEntry(CERTIFICATE_ALIAS, key, "".toCharArray(), new java.security.cert.Certificate[]{cert});
         //File file = new File(".", CERTIFICATE_NAME);
-        keyStore.store( new FileOutputStream("src/assets/keyStores/trustCertsServerKeyStore.p12"), "w7my3n,~yvF-;Py3".toCharArray() );
+        keyStore.store(new FileOutputStream("src/assets/keyStores/trustCertsServerKeyStore.p12"), "w7my3n,~yvF-;Py3".toCharArray());
     }
 }

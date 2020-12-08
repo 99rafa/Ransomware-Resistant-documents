@@ -1,7 +1,6 @@
 package server.domain.file;
 
 
-import com.google.protobuf.ByteString;
 import server.database.Repository;
 
 import java.sql.Connection;
@@ -9,7 +8,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class FileRepository extends Repository {
@@ -72,7 +70,7 @@ public class FileRepository extends Repository {
         return file;
     }
 
-    public List<byte[]> getPublicKeysByFile(String uid){
+    public List<byte[]> getPublicKeysByFile(String uid) {
         List<byte[]> publicKeys = new ArrayList<>();
         List<String> usernames = new ArrayList<>();
         try {
@@ -92,7 +90,7 @@ public class FileRepository extends Repository {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        for(String username : usernames){
+        for (String username : usernames) {
             try {
 
                 String sql = "SELECT public_key FROM Users WHERE username = ?";
@@ -113,29 +111,8 @@ public class FileRepository extends Repository {
         }
         return publicKeys;
     }
-    public boolean isFileWritable(String uid){
-        boolean exists=false;
-        try {
-            String sql = "SELECT uid FROM EditableFiles WHERE uid = ?";
-            PreparedStatement statement = super.getConnection().prepareStatement(sql);
 
-            //Set parameters
-
-            statement.setString(1, uid);
-
-            ResultSet rs = statement.executeQuery();
-
-            if (rs.next()) {
-                exists=true;
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return exists;
-    }
-
-    public byte[] getFileOwnerPublicKey(String uid){
+    public byte[] getFileOwnerPublicKey(String uid) {
         try {
             String owner = "";
             String sql = "SELECT creator FROM FileVersions WHERE version_uid = ?";
@@ -168,7 +145,7 @@ public class FileRepository extends Repository {
         return null;
     }
 
-    public byte[] getFileIv(String uid){
+    public byte[] getFileIv(String uid) {
         try {
             String sql = "SELECT iv FROM Files WHERE uid = ?";
             PreparedStatement statement = super.getConnection().prepareStatement(sql);
@@ -212,24 +189,24 @@ public class FileRepository extends Repository {
     }
 
 
-    public byte[] getAESEncrypted(String username, String uid, String mode){
-        byte[] aes=null;
+    public byte[] getAESEncrypted(String username, String uid, String mode) {
+        byte[] aes = null;
 
-        try{
+        try {
             PreparedStatement statement = null;
             if (mode.equals("read")) {
                 String sql = "SELECT AESEncrypted FROM ReadableFiles WHERE username= ? AND uid= ? ";
                 statement = super.getConnection().prepareStatement(sql);
                 statement.setString(1, username);
                 statement.setString(2, uid);
-            }
-            else if (mode.equals("write")) {
+            } else if (mode.equals("write")) {
                 String sql = "SELECT AESEncrypted FROM EditableFiles WHERE username= ? AND uid= ? ";
                 statement = super.getConnection().prepareStatement(sql);
                 statement.setString(1, username);
                 statement.setString(2, uid);
             }
 
+            assert statement != null;
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
                 aes = rs.getBytes("AESEncrypted");
@@ -241,28 +218,4 @@ public class FileRepository extends Repository {
         return aes;
     }
 
-    public List<File> getUserEditableFiles(String username) {
-        List<File> files = new ArrayList<>();
-        try {
-            String sql = "SELECT Files.uid,owner,name,part_id FROM Files,EditableFiles WHERE Files.uid = EditableFiles.uid AND username = ?";
-            PreparedStatement statement = super.getConnection().prepareStatement(sql);
-
-            //Set parameters
-            statement.setString(1, username);
-
-            ResultSet rs = statement.executeQuery();
-            while (rs.next()) {
-                File file = new File();
-                file.setUid(rs.getString("uid"));
-                file.setOwner(rs.getString("owner"));
-                file.setName(rs.getString("name"));
-                file.setPartition(rs.getString("part_id"));
-                files.add(file);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return files;
-    }
 }

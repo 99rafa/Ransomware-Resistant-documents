@@ -38,14 +38,6 @@ public class File implements DatabaseObject {
     public File() {
     }
 
-    public byte[] getOwnerAESEncrypted() {
-        return ownerAESEncrypted;
-    }
-
-    public void setOwnerAESEncrypted(byte[] ownerAESEncrypted) {
-        this.ownerAESEncrypted = ownerAESEncrypted;
-    }
-
     public byte[] getIv() {
         return iv;
     }
@@ -54,9 +46,6 @@ public class File implements DatabaseObject {
         this.iv = iv;
     }
 
-    public List<String> getVersions() {
-        return versions;
-    }
 
     public void setVersions(List<String> versions) {
         this.versions = versions;
@@ -94,9 +83,6 @@ public class File implements DatabaseObject {
         this.partition = partition;
     }
 
-    public void addVersion(String versionId) {
-        this.versions.add(versionId);
-    }
 
 
     @Override
@@ -111,7 +97,7 @@ public class File implements DatabaseObject {
             s.setString(2, this.owner);
             s.setString(3, this.name);
             s.setString(4, this.partition);
-            s.setBytes(5,this.iv);
+            s.setBytes(5, this.iv);
             s.executeUpdate();
 
             sql = "INSERT INTO EditableFiles VALUES (?,?,?)";

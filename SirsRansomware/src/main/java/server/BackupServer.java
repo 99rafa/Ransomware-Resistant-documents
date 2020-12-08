@@ -13,28 +13,17 @@ import proto.*;
 import pt.ulisboa.tecnico.sdis.zk.ZKNaming;
 import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
 
-import java.io.Console;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateException;
-import java.util.logging.Logger;
 
 /**
  * Server that manages startup/shutdown of a {@code Greeter} server with TLS enabled.
  */
 public class BackupServer {
     private static final String SIRS_DIR = System.getProperty("user.dir");
-    private Server server;
-
-    private final String id;
-    private final String partId;
     private final String zooHost;
     private final String zooPort;
     private final String zooPath;
@@ -43,19 +32,18 @@ public class BackupServer {
     private final String certChainFilePath;
     private final String privateKeyFilePath;
     private final String trustCertCollectionFilePath;
+    private Server server;
     private ZKNaming zkNaming;
 
     public BackupServer(String id,
-                  String partId,
-                  String zooPort,
-                  String zooHost,
-                  String port,
-                  String host,
-                  String certChainFilePath,
-                  String privateKeyFilePath,
-                  String trustCertCollectionFilePath) {
-        this.id = id;
-        this.partId = partId;
+                        String partId,
+                        String zooPort,
+                        String zooHost,
+                        String port,
+                        String host,
+                        String certChainFilePath,
+                        String privateKeyFilePath,
+                        String trustCertCollectionFilePath) {
         this.zooPort = zooPort;
         this.zooHost = zooHost;
         this.zooPath = "/sirs/ransomware/backups/" + partId + "_" + id;
@@ -65,6 +53,33 @@ public class BackupServer {
         this.privateKeyFilePath = privateKeyFilePath;
         this.trustCertCollectionFilePath = trustCertCollectionFilePath;
 
+    }
+
+    /**
+     * Main launches the server from the command line.
+     */
+    public static void main(String[] args) throws IOException, InterruptedException {
+
+        if (args.length != 9) {
+            System.out.println(
+                    "USAGE: ID partID zooHost zooPort host port certChainFilePath privateKeyFilePath " +
+                            "[trustCertCollectionFilePath]\n  Note: You only need to supply trustCertCollectionFilePath if you want " +
+                            "to enable Mutual TLS.");
+            System.exit(0);
+        }
+
+        final BackupServer server = new BackupServer(
+                args[0],
+                args[1],
+                args[2],
+                args[3],
+                args[4],
+                args[5],
+                args[6],
+                args[7],
+                args[8]);
+        server.start();
+        server.blockUntilShutdown();
     }
 
     private void addToZooKeeper() {
@@ -106,16 +121,13 @@ public class BackupServer {
                 .start();
         addToZooKeeper();
         System.out.println("Server started, listening on " + this.port);
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override
-            public void run() {
-                // Use stderr here since the logger may have been reset by its JVM shutdown hook.
-                System.err.println("*** shutting down gRPC server since JVM is shutting down");
-                removeFromZooKeeper();
-                BackupServer.this.stop();
-                System.err.println("*** server shut down");
-            }
-        });
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            // Use stderr here since the logger may have been reset by its JVM shutdown hook.
+            System.err.println("*** shutting down gRPC server since JVM is shutting down");
+            removeFromZooKeeper();
+            BackupServer.this.stop();
+            System.err.println("*** server shut down");
+        }));
     }
 
     private void stop() {
@@ -131,33 +143,6 @@ public class BackupServer {
         if (server != null) {
             server.awaitTermination();
         }
-    }
-
-    /**
-     * Main launches the server from the command line.
-     */
-    public static void main(String[] args) throws IOException, InterruptedException {
-
-        if ( args.length != 9) {
-            System.out.println(
-                    "USAGE: ID partID zooHost zooPort host port certChainFilePath privateKeyFilePath " +
-                            "[trustCertCollectionFilePath]\n  Note: You only need to supply trustCertCollectionFilePath if you want " +
-                            "to enable Mutual TLS.");
-            System.exit(0);
-        }
-
-        final BackupServer server = new BackupServer(
-                args[0],
-                args[1],
-                args[2],
-                args[3],
-                args[4],
-                args[5],
-                args[6],
-                args[7],
-                args[8]);
-        server.start();
-        server.blockUntilShutdown();
     }
 
     static class BackupServerImpl extends BackupServerGrpc.BackupServerImplBase {

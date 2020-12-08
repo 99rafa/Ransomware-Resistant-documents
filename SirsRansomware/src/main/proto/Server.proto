@@ -107,17 +107,17 @@ message GetPublicKeysByUsernamesReply{
 }
 
 message SaltRequest {
-  string username=1;
+  string username = 1;
 }
 
 message SaltReply {
   bytes salt = 1;
 }
 message UsernameExistsRequest{
-  string username=1;
+  string username = 1;
 }
 message UsernameExistsReply{
-  bool ok_username=1;
+  bool ok_username = 1;
 }
 
 // The request message containing the user's name.
@@ -125,7 +125,7 @@ message RegisterRequest {
   string username = 1;
   bytes password = 2;
   bytes salt = 3;
-  bytes publicKey=4;
+  bytes publicKey = 4;
 }
 
 // The response message containing the greetings
@@ -188,8 +188,8 @@ message HelloReply {
 message GivePermissionRequest{
   repeated string othersNames = 1;
   string uid = 2;
-  string mode=3;
-  repeated bytes OtherAESEncrypted= 4;
+  string mode = 3;
+  repeated bytes OtherAESEncrypted = 4;
 
 }
 
@@ -198,25 +198,25 @@ message GivePermissionReply{
   bool ok_uid = 2;
 }
 message GetAESEncryptedRequest{
-  string username=1;
-  repeated string othersNames=2;
-  string uid=3;
-  string mode=4;
+  string username = 1;
+  repeated string othersNames = 2;
+  string uid = 3;
+  string mode = 4;
 }
 
 message GetAESEncryptedReply{
-  bool is_owner =1;
-  bytes AESEncrypted=2;
-  repeated bytes othersPublicKeys=3;
+  bool is_owner = 1;
+  bytes AESEncrypted = 2;
+  repeated bytes othersPublicKeys = 3;
   bytes iv = 4;
-  bool can_write=5;
+  bool can_write = 5;
 }
 message VerifyPasswordRequest{
-  string username=1;
-  bytes password=2;
+  string username = 1;
+  bytes password = 2;
 }
 message VerifyPasswordReply{
-  bool ok_password=1;
+  bool ok_password = 1;
 }
 
 

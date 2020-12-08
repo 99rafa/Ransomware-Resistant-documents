@@ -48,10 +48,6 @@ public class User implements DatabaseObject {
 
     }
 
-    public List<String> getCreatedVersions() {
-        return createdVersions;
-    }
-
     public void setCreatedVersions(List<String> createdVersions) {
         this.createdVersions = createdVersions;
     }
@@ -72,16 +68,9 @@ public class User implements DatabaseObject {
         this.passHash = passHash;
     }
 
-    public List<String> getEditableFiles() {
-        return editableFiles;
-    }
 
     public void setEditableFiles(List<String> editableFiles) {
         this.editableFiles = editableFiles;
-    }
-
-    public List<String> getReadableFiles() {
-        return readableFiles;
     }
 
     public void setReadableFiles(List<String> readableFiles) {
@@ -104,29 +93,20 @@ public class User implements DatabaseObject {
         this.iterations = iterations;
     }
 
-    public List<String> getOwnedFiles() {
-        return ownedFiles;
-    }
 
     public void setOwnedFiles(List<String> ownedFiles) {
         this.ownedFiles = ownedFiles;
     }
 
-    public void addEditableFile(String file) {
-        this.editableFiles.add(file);
+
+
+    public byte[] getPublicKey() {
+        return publicKey;
     }
 
-    public void addReadableFile(String file) {
-        this.readableFiles.add(file);
+    public void setPublicKey(byte[] publicKey) {
+        this.publicKey = publicKey;
     }
-
-    public void addOwnedFile(String file) {
-        this.ownedFiles.add(file);
-    }
-
-    public byte[] getPublicKey() { return publicKey; }
-
-    public void setPublicKey(byte[] publicKey) { this.publicKey = publicKey; }
 
 
     @Override

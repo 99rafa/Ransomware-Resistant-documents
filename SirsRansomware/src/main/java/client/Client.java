@@ -13,7 +13,6 @@ import proto.*;
 import pt.ulisboa.tecnico.sdis.zk.ZKNaming;
 import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
 import pt.ulisboa.tecnico.sdis.zk.ZKRecord;
-import server.Server;
 
 import javax.crypto.*;
 import javax.net.ssl.SSLException;
@@ -24,7 +23,6 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.*;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 
@@ -38,15 +36,13 @@ public class Client {
     private static final String SIRS_DIR = System.getProperty("user.dir");
     private static final String FILE_MAPPING_PATH = SIRS_DIR + "/src/assets/data/fm.txt";
     private static final String PULLS_DIR = SIRS_DIR + "/src/assets/clientPulls/";
-
-    private String username = null;
-    private byte[] salt = null;
-    KeyStore keyStore;
     private final String zooHost;
     private final String zooPort;
-    private final SslContext sslContext;
     private final EncryptionLogic e;
     private final ClientFrontend c;
+    KeyStore keyStore;
+    private String username = null;
+    private byte[] salt = null;
 
 
     public Client(String zooHost,
@@ -55,7 +51,6 @@ public class Client {
 
         this.zooHost = zooHost;
         this.zooPort = zooPort;
-        this.sslContext = sslContext;
 
         String path;
 
@@ -95,7 +90,7 @@ public class Client {
                 .sslContext(sslContext)
                 .build();
         ServerGrpc.ServerBlockingStub blockingStub = ServerGrpc.newBlockingStub(channel);
-        this.c= new ClientFrontend(blockingStub, channel);
+        this.c = new ClientFrontend(blockingStub, channel);
         this.e = new EncryptionLogic();
     }
 
@@ -132,7 +127,6 @@ public class Client {
                 System.out.print("Enter command ( Type 'help' for help menu ): ");
                 String cmd = in.nextLine();
                 switch (cmd) {
-                    case "greet" -> client.greet(in.nextLine());
                     case "login" -> client.login();
                     case "register" -> client.register();
                     case "help" -> client.displayHelp();
@@ -159,7 +153,7 @@ public class Client {
 
         while (!match) {
             passwd = new String(console.readPassword("Enter a password: "));
-            while(passwd.length() < 8 || passwd.length() > 25){
+            while (passwd.length() < 8 || passwd.length() > 25) {
                 System.out.println("Password must be between 8 and 25 characters, try again");
                 passwd = new String(console.readPassword("Enter a password: "));
             }
@@ -195,7 +189,7 @@ public class Client {
         }
 
         byte[] salt = PBKDF2Main.getNextSalt();
-        RegisterReply response = c.Register(name,e.generateSecurePassword(passwd,salt),publicKeyBytes,salt);
+        RegisterReply response = c.Register(name, e.generateSecurePassword(passwd, salt), publicKeyBytes, salt);
         System.out.println(response.getOk());
         //this.username = name;
     }
@@ -230,20 +224,9 @@ public class Client {
                     System.exit(0);
                 }
             }
-        }else{System.err.println("Error: Username does not exist. Try to login with a different username or register");}
-    }
-
-    public void clearFileMapping() {
-
-        PrintWriter writer = null;
-        try {
-            writer = new PrintWriter(FILE_MAPPING_PATH);
-        } catch (FileNotFoundException e) {
-            System.err.println("Error: File not found. Ignored ");
-            return;
+        } else {
+            System.err.println("Error: Username does not exist. Try to login with a different username or register");
         }
-        writer.print("");
-        writer.close();
     }
 
     public void logout() {
@@ -251,13 +234,7 @@ public class Client {
         System.out.println("You have logout successfully");
     }
 
-    public void greet(String name) {
-        System.out.println("Will try to greet " + name + " ...");
-        HelloReply response= c.Hello(name);
-        System.out.println("Greeting: " + response.getMessage());
-    }
-
-    public Map<String, String> getUidMap(int index1, int index2,int index3) throws FileNotFoundException {
+    public Map<String, String> getUidMap(int index1, int index2, int index3) throws FileNotFoundException {
         Map<String, String> fileMapping = new TreeMap<>();
         try {
             new FileOutputStream(FILE_MAPPING_PATH, true).close();
@@ -289,20 +266,20 @@ public class Client {
         }
     }
 
-    public String generateFileUid(String filePath, String partId, String name,String username) throws IOException {
-        if (!getUidMap(INDEX_PATH, INDEX_UID,INDEX_USERNAME).containsKey(filePath)) {
+    public String generateFileUid(String filePath, String partId, String name, String username) throws IOException {
+        if (!getUidMap(INDEX_PATH, INDEX_UID, INDEX_USERNAME).containsKey(filePath)) {
             String uid = UUID.randomUUID().toString();
-            String textToAppend = filePath + " " + uid + " " + partId + " " + name + " "+ username + "\n";
+            String textToAppend = filePath + " " + uid + " " + partId + " " + name + " " + username + "\n";
 
             appendTextToFile(textToAppend, FILE_MAPPING_PATH);
 
             return uid;
-        } else return getUidMap(INDEX_PATH, INDEX_UID,INDEX_USERNAME).get(filePath);
+        } else return getUidMap(INDEX_PATH, INDEX_UID, INDEX_USERNAME).get(filePath);
     }
 
-    public String getRandomPartition(){
+    public String getRandomPartition() {
         Random random = new Random();
-        ZKNaming zkNaming = new ZKNaming(this.zooHost,this.zooPort);
+        ZKNaming zkNaming = new ZKNaming(this.zooHost, this.zooPort);
         ArrayList<ZKRecord> recs = null;
         try {
             recs = new ArrayList<>(zkNaming.listRecords("/sirs/ransomware/backups"));
@@ -320,7 +297,7 @@ public class Client {
             System.err.println("Error: To pull files, you need to login first");
             return;
         }
-        int tries=0;
+        int tries = 0;
         while (tries < 3) {
             String passwd = new String((System.console()).readPassword("Enter your password: "));
             VerifyPasswordReply repPass = c.VerifyPassword(this.username, e.generateSecurePassword(passwd, this.salt));
@@ -367,8 +344,8 @@ public class Client {
                         file = e.encryptWithAES(fileSecretKey, file_bytes, iv);
                         //System.out.println("publicKey: " + e.bytesToPubKey(reply.getKeys(0).toByteArray()));
                     } else {
-                        GetAESEncryptedReply res = c.GetAESEncrypted(this.username, this.username, uid,"write");
-                        if (res.getAESEncrypted().toByteArray().length==0){
+                        GetAESEncryptedReply res = c.GetAESEncrypted(this.username, this.username, uid, "write");
+                        if (res.getAESEncrypted().toByteArray().length == 0) {
                             System.err.println("Error: Only have read-only for this file permission");
                             return;
                         }
@@ -392,7 +369,7 @@ public class Client {
                 } catch (IOException | NoSuchAlgorithmException | InvalidKeyException | SignatureException | NoSuchPaddingException e) {
                     e.printStackTrace();
                 }
-            }else{
+            } else {
                 System.err.println("Error: Wrong password!");
                 tries++;
             }
@@ -404,7 +381,6 @@ public class Client {
     }
 
     public void displayHelp() {
-        System.out.println("greet - sends greet to server");
         System.out.println("login - logins on file server");
         System.out.println("register - registers on file server server");
         System.out.println("help - displays help message");
@@ -421,24 +397,23 @@ public class Client {
             System.err.println("Error: To pull files, you need to login first");
             return;
         }
-        int tries=0;
+        int tries = 0;
         while (tries < 3) {
             String passwd = new String((System.console()).readPassword("Enter a password: "));
-            VerifyPasswordReply repPass = c.VerifyPassword(this.username,e.generateSecurePassword(passwd, this.salt));
+            VerifyPasswordReply repPass = c.VerifyPassword(this.username, e.generateSecurePassword(passwd, this.salt));
             if (repPass.getOkPassword()) {
                 String choice = ((System.console().readLine("Select which files you want to pull, separated by a blank space. 'all' for pulling every file: ")));
-                Map<String, String> uidMap = getUidMap(INDEX_UID, INDEX_PATH,INDEX_USERNAME);
+                Map<String, String> uidMap = getUidMap(INDEX_UID, INDEX_PATH, INDEX_USERNAME);
                 PullReply reply;
                 if (choice.equals("all")) {
                     reply = c.PullAll(this.username);
                 } else {
                     String[] fileNames = choice.split(" ");
-                    reply = c.PullSelected(this.username,fileNames);
+                    reply = c.PullSelected(this.username, fileNames);
                 }
                 if (!reply.getOk()) {
                     System.err.println("Error: Something wrong with operations in server!");
-                }
-                else {
+                } else {
                     for (int i = 0; i < reply.getFilenamesCount(); i++) {
                         System.out.println("Received file " + reply.getFilenames(i));
                         String version_uid = reply.getVersionUids(i);
@@ -454,15 +429,16 @@ public class Client {
 
                         byte[] decipheredFileData = new byte[0];
                         try {
-                            decipheredFileData = e.decryptSecureFile(file_data, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray(),this.username,this.keyStore);
-                        } catch (BadPaddingException | IllegalBlockSizeException ignored) { }
+                            decipheredFileData = e.decryptSecureFile(file_data, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray(), this.username, this.keyStore);
+                        } catch (BadPaddingException | IllegalBlockSizeException ignored) {
+                        }
 
                         PublicKey pk = e.getPublicKey(ownerPublicKey);
                         //VERIFY SIGNATURE
                         if (!e.verifyDigitalSignature(decipheredFileData, digitalSignature, pk)) { //dies here wrong IV
                             System.err.println(" Error: Signature verification failed");
 
-                            RetrieveHealthyVersionsReply reply1  = c.RetrieveHealthyVersions(version_uid);
+                            RetrieveHealthyVersionsReply reply1 = c.RetrieveHealthyVersions(version_uid);
 
                             byte[] healthyVersion = null;
                             boolean hasHealthy = false;
@@ -470,32 +446,32 @@ public class Client {
                                     .map(ByteString::toByteArray)
                                     .collect(Collectors.toList());
 
-                            for(byte[] backup : backups){
+                            for (byte[] backup : backups) {
                                 byte[] encryptedBackup = backup.clone();
                                 // System.out.println(version_uid);
                                 try {
-                                    decipheredFileData = e.decryptSecureFile(backup, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray(),this.username,this.keyStore);
-                                } catch (BadPaddingException | IllegalBlockSizeException ignored) { }
+                                    decipheredFileData = e.decryptSecureFile(backup, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray(), this.username, this.keyStore);
+                                } catch (BadPaddingException | IllegalBlockSizeException ignored) {
+                                }
 
-                                if(e.verifyDigitalSignature(decipheredFileData, digitalSignature, pk)){
+                                if (e.verifyDigitalSignature(decipheredFileData, digitalSignature, pk)) {
                                     healthyVersion = encryptedBackup;
                                     hasHealthy = true;
                                     break;
                                 }
                             }
-                            if(!hasHealthy){
+                            if (!hasHealthy) {
                                 System.err.println("This file got corrupted!");
                                 continue;
                             }
-                            HealCorruptedVersionReply reply2 = c.HealCorruptedVersion(version_uid,file_uid,healthyVersion,partId);
+                            HealCorruptedVersionReply reply2 = c.HealCorruptedVersion(version_uid, file_uid, healthyVersion, partId);
 
-                            if(reply2.getOk()){
+                            if (reply2.getOk()) {
                                 System.out.println("Version correctly healed in server");
-                            } else{
+                            } else {
                                 System.err.println("Error healing server version!");
                             }
-                        }
-                        else {
+                        } else {
                             System.out.println("Signature correctly verified");
                         }
                         if (uidMap.containsKey(file_uid))
@@ -504,23 +480,23 @@ public class Client {
                         else {
                             //PREVENTS DUPLICATE FILENAMES FROM OVERWRITING
                             int dupNumber = 1;
-                            Map<String, String> map = getUidMap(INDEX_NAME, INDEX_UID,INDEX_USERNAME);
+                            Map<String, String> map = getUidMap(INDEX_NAME, INDEX_UID, INDEX_USERNAME);
 
                             //check if client pulls dir exists
                             File directory = new File(PULLS_DIR + "/" + this.username + "/");
-                            if (! directory.exists()) {
+                            if (!directory.exists()) {
                                 directory.mkdir();
                             }
                             if (!map.containsKey(filename)) {
-                                FileUtils.writeByteArrayToFile(new File(PULLS_DIR + "/" + this.username +"/" + filename), decipheredFileData);
-                                String text = PULLS_DIR + this.username + "/" + filename + " " + file_uid + " " + partId + " " + filename + " " + this.username +"\n";
+                                FileUtils.writeByteArrayToFile(new File(PULLS_DIR + "/" + this.username + "/" + filename), decipheredFileData);
+                                String text = PULLS_DIR + this.username + "/" + filename + " " + file_uid + " " + partId + " " + filename + " " + this.username + "\n";
                                 appendTextToFile(text, FILE_MAPPING_PATH);
                             } else {
                                 while (map.containsKey(filename + dupNumber)) {
                                     dupNumber++;
                                 }
                                 FileUtils.writeByteArrayToFile(new File(PULLS_DIR + "/" + this.username + "/" + filename + dupNumber), decipheredFileData);
-                                String text = PULLS_DIR +  this.username +"/" + filename +"(" +dupNumber+ ")" + " " + file_uid + " " + partId + " " + filename + " " + this.username + "\n";
+                                String text = PULLS_DIR + this.username + "/" + filename + "(" + dupNumber + ")" + " " + file_uid + " " + partId + " " + filename + " " + this.username + "\n";
                                 appendTextToFile(text, FILE_MAPPING_PATH);
                             }
                         }
@@ -528,7 +504,7 @@ public class Client {
 
                 }
                 break;
-            }else {
+            } else {
                 System.err.println("Error: Wrong password!");
                 tries++;
             }
@@ -548,16 +524,16 @@ public class Client {
         int tries = 0;
         while (tries < 3) {
             String passwd = new String((System.console()).readPassword("Enter a password: "));
-            VerifyPasswordReply repPass = c.VerifyPassword(this.username,e.generateSecurePassword(passwd, this.salt));
+            VerifyPasswordReply repPass = c.VerifyPassword(this.username, e.generateSecurePassword(passwd, this.salt));
             if (repPass.getOkPassword()) {
                 String others = console.readLine("Enter the username/s to give permission, separated by a blank space: ");
                 String s = System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n");
-                while (!s.matches("write|read")){
+                while (!s.matches("write|read")) {
                     System.err.println("Error: Wrong type of permission");
-                    s=System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n");
+                    s = System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n");
                 }
                 String filename = console.readLine("Enter the filename: ");
-                String uid = null;
+                String uid;
                 String[] othersNames = others.split(" ");
                 List<String> existingNames = new ArrayList<>();
                 for (String name : othersNames) {
@@ -572,10 +548,10 @@ public class Client {
                     }
                 }
 
-                if (existingNames.size() == 0 ) return;
+                if (existingNames.size() == 0) return;
 
                 try {
-                    uid = getUidMap(INDEX_NAME, INDEX_UID,INDEX_USERNAME).get(filename);
+                    uid = getUidMap(INDEX_NAME, INDEX_UID, INDEX_USERNAME).get(filename);
 
                     if (uid == null) {
                         System.err.println("Error: File " + filename + " does not exist in the system");
@@ -589,19 +565,19 @@ public class Client {
                 }
 
 
-                GetAESEncryptedReply reply = c.GetAESEncrypted(this.username, existingNames.toArray(new String[0]),uid,s);
+                GetAESEncryptedReply reply = c.GetAESEncrypted(this.username, existingNames.toArray(new String[0]), uid, s);
                 byte[] aesEncrypted = reply.getAESEncrypted().toByteArray();
                 List<byte[]> othersPubKeysBytes = reply.getOthersPublicKeysList().stream().map(ByteString::toByteArray).collect(Collectors.toList());
                 byte[] aesKeyBytes;
 
                 if (reply.getIsOwner()) {
                     //decrypt with private key in order to obtain symmetric key
-                    aesKeyBytes = e.getAESKeyBytes(aesEncrypted,this.username,this.keyStore);
+                    aesKeyBytes = e.getAESKeyBytes(aesEncrypted, this.username, this.keyStore);
                     //encrypt AES with "others" public keys to send to the server
                     List<byte[]> othersAesEncrypted = e.getOthersAESEncrypted(othersPubKeysBytes, aesKeyBytes);
                     //System.out.println(Arrays.toString(othersAesEncrypted.get(0)));
                     //read/write permissions
-                    GivePermissionReply res= c.GivePermission(othersNames,uid,s,othersAesEncrypted);
+                    GivePermissionReply res = c.GivePermission(othersNames, uid, s, othersAesEncrypted);
                     if (res.getOkOthers()) {
                         if (res.getOkUid()) {
                             for (String name : othersNames) {
@@ -630,14 +606,14 @@ public class Client {
             Console console = System.console();
             while (tries < 3) {
                 String passwd = new String(console.readPassword("Enter your password: "));
-                VerifyPasswordReply repPass = c.VerifyPassword(this.username,e.generateSecurePassword(passwd, this.salt));
+                VerifyPasswordReply repPass = c.VerifyPassword(this.username, e.generateSecurePassword(passwd, this.salt));
                 if (repPass.getOkPassword()) {
-                    Map<String,String> map = getUidMap(INDEX_NAME,INDEX_UID,INDEX_USERNAME);
+                    Map<String, String> map = getUidMap(INDEX_NAME, INDEX_UID, INDEX_USERNAME);
                     String filename = console.readLine("Enter filename to revert: ");
                     String fileUid = map.get(filename);
                     ListFileVersionsReply reply = c.ListFileVersions(fileUid);
                     int version = reply.getDatesCount();
-                    for(String date : reply.getDatesList()){
+                    for (String date : reply.getDatesList()) {
                         System.out.println("Version " + version + " modified on date " + date);
                         version--;
                     }
@@ -645,13 +621,13 @@ public class Client {
                     RevertMostRecentVersionReply reply1 = c.RevertMostRecentVersion(reply.getFileIds(reply.getDatesCount() - Integer.parseInt(number)),
                             reply.getVersionsUids(reply.getDatesCount() - Integer.parseInt(number)));
 
-                    if(reply1.getOk()){
+                    if (reply1.getOk()) {
                         System.out.println("Version reverted successfully!");
-                    } else{
+                    } else {
                         System.out.println("Failed to revert version!");
                     }
                     break;
-                }else {
+                } else {
                     System.err.println("Error: Wrong password!");
                     tries++;
                 }
@@ -660,7 +636,8 @@ public class Client {
                     logout();
                 }
             }
-        }System.err.println("Error: Login First");
+        }
+        System.err.println("Error: Login First");
     }
 
 

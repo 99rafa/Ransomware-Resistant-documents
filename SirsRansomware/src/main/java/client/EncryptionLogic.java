@@ -19,7 +19,8 @@ import java.util.Objects;
 public class EncryptionLogic {
     private final static int ITERATIONS = 10000;
 
-    public EncryptionLogic(){}
+    public EncryptionLogic() {
+    }
 
     public KeyPair generateUserKeyPair() {
         KeyPair keyPair = null;
@@ -33,18 +34,6 @@ public class EncryptionLogic {
             e.printStackTrace();
         }
         return keyPair;
-    }
-
-    private SecretKey retrieveStoredKey(KeyStore keyStore) {
-        SecretKey secretKey = null;
-        try {
-            //TODO provide a password
-            secretKey = (SecretKey) keyStore.getKey("db-encryption-secret", "".toCharArray());
-            System.out.println(keyStore.containsAlias("db-encryption-secret"));
-        } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException e) {
-            e.printStackTrace();
-        }
-        return secretKey;
     }
 
     public byte[] generateSecurePassword(String password, byte[] salt) {
@@ -90,11 +79,11 @@ public class EncryptionLogic {
         return sign.verify(signature);
     }
 
-    public PublicKey getPublicKey(byte[] ownerPublicKey){
+    public PublicKey getPublicKey(byte[] ownerPublicKey) {
         return (PublicKey) bytesToPubKey(ownerPublicKey);
     }
 
-    public PrivateKey getPrivateKey(String username,KeyStore keyStore) {
+    public PrivateKey getPrivateKey(String username, KeyStore keyStore) {
         PrivateKey privateKey = null;
         try {
             //TODO provide a password
@@ -105,16 +94,16 @@ public class EncryptionLogic {
         return privateKey;
     }
 
-    public List<byte[]> getOthersAESEncrypted(List<byte[]> othersPubKeys, byte[] aesKey){
+    public List<byte[]> getOthersAESEncrypted(List<byte[]> othersPubKeys, byte[] aesKey) {
         List<byte[]> othersAESEncrypted = new ArrayList<>();
         for (byte[] bytes : othersPubKeys) {
-            othersAESEncrypted.add(encryptWithRSA(bytesToPubKey(bytes),aesKey));
+            othersAESEncrypted.add(encryptWithRSA(bytesToPubKey(bytes), aesKey));
         }
         return othersAESEncrypted;
     }
 
-    public byte[] getAESKeyBytes(byte[] AESEncryptedBytes,String username,KeyStore keyStore){
-        return decryptWithRSA(getPrivateKey(username,keyStore),AESEncryptedBytes);
+    public byte[] getAESKeyBytes(byte[] AESEncryptedBytes, String username, KeyStore keyStore) {
+        return decryptWithRSA(getPrivateKey(username, keyStore), AESEncryptedBytes);
     }
 
     public SecretKey generateAESKey() {
@@ -128,19 +117,19 @@ public class EncryptionLogic {
 
         SecureRandom secRandom = new SecureRandom();
 
-        Objects.requireNonNull(keyGen).init(256,secRandom);
+        Objects.requireNonNull(keyGen).init(256, secRandom);
 
         return keyGen.generateKey();
 
     }
 
-    public byte[] decryptSecureFile(byte[] file_bytes, byte[] AESEncrypted, byte[] iv,String username,KeyStore keyStore) throws BadPaddingException, IllegalBlockSizeException {
-        byte[] aesKeybytes = getAESKeyBytes(AESEncrypted,username,keyStore);
+    public byte[] decryptSecureFile(byte[] file_bytes, byte[] AESEncrypted, byte[] iv, String username, KeyStore keyStore) throws BadPaddingException, IllegalBlockSizeException {
+        byte[] aesKeybytes = getAESKeyBytes(AESEncrypted, username, keyStore);
         SecretKey aesKey = bytesToAESKey(aesKeybytes);
-        return decryptWithAES(aesKey,file_bytes,iv);
+        return decryptWithAES(aesKey, file_bytes, iv);
     }
 
-    public byte[] decryptWithAES( SecretKey secretKey, byte[] file_bytes, byte[] iv) throws BadPaddingException, IllegalBlockSizeException {
+    public byte[] decryptWithAES(SecretKey secretKey, byte[] file_bytes, byte[] iv) throws BadPaddingException, IllegalBlockSizeException {
         Cipher cipher;
         try {
             IvParameterSpec ivParams = new IvParameterSpec(iv);
@@ -154,13 +143,13 @@ public class EncryptionLogic {
 
     }
 
-    public byte[] encryptWithAES( SecretKey secretKey, byte[] file_bytes, byte[] iv) {
+    public byte[] encryptWithAES(SecretKey secretKey, byte[] file_bytes, byte[] iv) {
         Cipher cipher;
         try {
             cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
             IvParameterSpec ivParams = new IvParameterSpec(iv);
 
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey,ivParams);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivParams);
             return cipher.doFinal(file_bytes);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException | InvalidAlgorithmParameterException e) {
             e.printStackTrace();
@@ -182,7 +171,6 @@ public class EncryptionLogic {
 
     public byte[] encryptWithRSA(Key encryptionKey, byte[] file_bytes) {
         try {
-            SecureRandom randomSecureRandom = new SecureRandom();
             Cipher rsa;
             rsa = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 
@@ -194,7 +182,7 @@ public class EncryptionLogic {
         return null;
     }
 
-    public Key bytesToPubKey(byte[] bytes){
+    public Key bytesToPubKey(byte[] bytes) {
         try {
             KeyFactory kf = KeyFactory.getInstance("RSA");
             return kf.generatePublic(new X509EncodedKeySpec(bytes));
@@ -204,7 +192,7 @@ public class EncryptionLogic {
         return null;
     }
 
-    public SecretKey bytesToAESKey(byte[] bytes){
+    public SecretKey bytesToAESKey(byte[] bytes) {
         return new SecretKeySpec(bytes, 0, bytes.length, "AES");
     }
 

@@ -23,26 +23,19 @@ import server.domain.fileVersion.FileVersionRepository;
 import server.domain.user.User;
 import server.domain.user.UserRepository;
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLException;
 import java.io.Console;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -54,6 +47,7 @@ public class Server {
 
     private static final Logger logger = Logger.getLogger(Server.class.getName());
     private static final String SIRS_DIR = System.getProperty("user.dir");
+    private static ZKNaming zkNaming;
     private final String zooPort;
     private final String zooHost;
     private final String zooPath;
@@ -63,10 +57,6 @@ public class Server {
     private final String privateKeyFilePath;
     private final String trustCertCollectionFilePath;
     private io.grpc.Server server;
-    private static ZKNaming zkNaming;
-    private KeyStore keyStore;
-    private KeyStore trustCertStore;
-    private KeyStore trustStore;
 
     public Server(String zooPort,
                   String zooHost,
@@ -96,7 +86,6 @@ public class Server {
         try {
             assert ks != null;
             ks.load(new FileInputStream("src/assets/keyStores/privateKeyServerKeyStore.p12"), "5Xa)^WU_(rw$<}p%".toCharArray());
-            this.keyStore = ks;
         } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
             e.printStackTrace();
         }
@@ -111,7 +100,6 @@ public class Server {
         try {
             assert trustCertKeyStore != null;
             trustCertKeyStore.load(new FileInputStream("src/assets/keyStores/trustCertsServerKeyStore.p12"), "w7my3n,~yvF-;Py3".toCharArray());
-            this.trustCertStore = trustCertKeyStore;
         } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
             e.printStackTrace();
         }
@@ -126,7 +114,6 @@ public class Server {
         try {
             assert trustStore != null;
             trustStore.load(new FileInputStream("src/assets/keyStores/truststore.p12"), "w?#Sf@ZAL*tY7fVx".toCharArray());
-            this.trustStore = trustStore;
         } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
             e.printStackTrace();
         }
@@ -170,24 +157,9 @@ public class Server {
                 args[6]);
         server.start();
 
-        //server.greet("Server");
         server.blockUntilShutdown();
 
 
-    }
-
-    public static SecretKey readKey(String secretKeyPath) throws Exception {
-        byte[] encoded = readFile(secretKeyPath);
-        SecretKeySpec keySpec = new SecretKeySpec(encoded, "AES");
-        return keySpec;
-    }
-
-    private static byte[] readFile(String path) throws FileNotFoundException, IOException {
-        FileInputStream fis = new FileInputStream(path);
-        byte[] content = new byte[fis.available()];
-        fis.read(content);
-        fis.close();
-        return content;
     }
 
     private SslContextBuilder getSslContextBuilder() {
@@ -203,9 +175,6 @@ public class Server {
     private void start() throws IOException {
         server = NettyServerBuilder.forAddress(new InetSocketAddress(host, Integer.parseInt(port)))
                 .addService(new ServerImp(
-                        this.keyStore,
-                        this.trustCertStore,
-                        this.trustStore,
                         this.certChainFilePath,
                         this.privateKeyFilePath,
                         this.trustCertCollectionFilePath)
@@ -253,38 +222,6 @@ public class Server {
         }
     }
 
-    private static PrivateKey readPrivateKey(String privateKeyPath) {
-        String key = null;
-        try {
-            key = Files.readString(Paths.get(privateKeyPath), Charset.defaultCharset());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        assert key != null;
-        String privateKeyPEM = key
-                .replace("-----BEGIN PRIVATE KEY-----", "")
-                .replaceAll(System.lineSeparator(), "")
-                .replace("-----END PRIVATE KEY-----", "");
-
-        byte[] encoded = Base64.getDecoder().decode(privateKeyPEM);
-
-        KeyFactory keyFactory = null;
-        try {
-            keyFactory = KeyFactory.getInstance("RSA");
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
-        try {
-            assert keyFactory != null;
-            return keyFactory.generatePrivate(keySpec);
-        } catch (InvalidKeySpecException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     /**
      * Await termination on the main thread since the grpc library uses daemon threads.
      */
@@ -299,21 +236,16 @@ public class Server {
         private final String certChainFilePath;
         private final String privateKeyFilePath;
         private final String trustCertCollectionFilePath;
-        private KeyStore keyStore;
-        private KeyStore trustCertStore;
-        private KeyStore trustStore;
-        private ManagedChannel channel;
         Connector c;
         UserRepository userRepository;
         FileRepository fileRepository;
         FileVersionRepository fileVersionRepository;
 
-        public ServerImp(KeyStore keyStore,
-                KeyStore trustCertStore,
-                KeyStore trustStore,
-                String certChainFilePath,
-                String privateKeyFilePath,
-                String trustCertCollectionFilePath
+
+        public ServerImp(
+                         String certChainFilePath,
+                         String privateKeyFilePath,
+                         String trustCertCollectionFilePath
         ) {
             this.certChainFilePath = certChainFilePath;
             this.privateKeyFilePath = privateKeyFilePath;
@@ -323,9 +255,6 @@ public class Server {
                 userRepository = new UserRepository(c.getConnection());
                 fileRepository = new FileRepository(c.getConnection());
                 fileVersionRepository = new FileVersionRepository(c.getConnection());
-                this.keyStore = keyStore;
-                this.trustCertStore = trustCertStore;
-                this.trustStore = trustStore;
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -335,7 +264,7 @@ public class Server {
         public void revertMostRecentVersion(RevertMostRecentVersionRequest request, StreamObserver<RevertMostRecentVersionReply> responseObserver) {
             try {
                 List<String> servers = getZooPaths("/sirs/ransomware/backups");
-                byte[] file = getBackup(servers.get(0),request.getVersionUid()).toByteArray();
+                byte[] file = getBackup(servers.get(0), request.getVersionUid()).toByteArray();
                 FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), file);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -356,20 +285,20 @@ public class Server {
                             versions.stream()
                                     .map(l ->
                                     {
-                                        DateFormat dateFormat = new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
+                                        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
                                         return dateFormat.format(l.getDate());
                                     })
                                     .collect(Collectors.toList())
                     )
                     .addAllFileIds(
                             versions.stream()
-                            .map(FileVersion::getFileUid)
-                            .collect(Collectors.toList())
+                                    .map(FileVersion::getFileUid)
+                                    .collect(Collectors.toList())
                     )
                     .addAllVersionsUids(
                             versions.stream()
-                            .map(FileVersion::getVersionUid)
-                            .collect(Collectors.toList())
+                                    .map(FileVersion::getVersionUid)
+                                    .collect(Collectors.toList())
                     )
                     .build();
             responseObserver.onNext(reply);
@@ -380,9 +309,9 @@ public class Server {
         public void retrieveHealthyVersions(RetrieveHealthyVersionsRequest request, StreamObserver<RetrieveHealthyVersionsReply> responseObserver) {
             List<String> servers = getZooPaths("/sirs/ransomware/backups");
             List<ByteString> backup_versions = new ArrayList<>();
-            for(String backup : servers){
+            for (String backup : servers) {
                 try {
-                    backup_versions.add(getBackup(backup,request.getUid()));
+                    backup_versions.add(getBackup(backup, request.getUid()));
                 } catch (SSLException e) {
                     e.printStackTrace();
                 }
@@ -400,7 +329,7 @@ public class Server {
         public void healCorruptedVersion(HealCorruptedVersionRequest request, StreamObserver<HealCorruptedVersionReply> responseObserver) {
             try {
                 FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), request.getFile().toByteArray());
-                replicateFile(request.getPartId(),request.getFile(),request.getVersionUid());
+                replicateFile(request.getPartId(), request.getFile(), request.getVersionUid());
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -426,7 +355,7 @@ public class Server {
         @Override
         public void register(RegisterRequest req, StreamObserver<RegisterReply> responseObserver) {
 
-            System.out.println("Received register request for user " +  req.getUsername());
+            System.out.println("Received register request for user " + req.getUsername());
 
             RegisterReply reply;
             if (req.getUsername().length() > 15 || req.getUsername().length() == 0)
@@ -434,20 +363,19 @@ public class Server {
             else if (usernameExists(req.getUsername()))
                 reply = RegisterReply.newBuilder().setOk("Duplicate user with username " + req.getUsername()).build();
             else {
-                registerUser(req.getUsername(), req.getPassword().toByteArray(), req.getSalt().toByteArray(),req.getPublicKey().toByteArray());
+                registerUser(req.getUsername(), req.getPassword().toByteArray(), req.getSalt().toByteArray(), req.getPublicKey().toByteArray());
                 reply = RegisterReply.newBuilder().setOk("User " + req.getUsername() + " registered successfully").build();
             }
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
 
-        public void usernameExists(UsernameExistsRequest req, StreamObserver<UsernameExistsReply> responseObserver){
+        public void usernameExists(UsernameExistsRequest req, StreamObserver<UsernameExistsReply> responseObserver) {
             System.out.println("Checking if user " + req.getUsername() + "exists");
             UsernameExistsReply reply;
-            if (usernameExists(req.getUsername())){
+            if (usernameExists(req.getUsername())) {
                 reply = UsernameExistsReply.newBuilder().setOkUsername(true).build();
-            }
-            else{
+            } else {
                 reply = UsernameExistsReply.newBuilder().setOkUsername(false).build();
             }
             responseObserver.onNext(reply);
@@ -516,7 +444,7 @@ public class Server {
             registerFileVersion(versionId, req.getUid(), req.getUsername(), req.getDigitalSignature().toByteArray());
             //REPLICATE CHANGE TO BACKUPS
             try {
-                replicateFile(req.getPartId(),req.getFile(),versionId);
+                replicateFile(req.getPartId(), req.getFile(), versionId);
 
             } catch (SSLException e) {
                 e.printStackTrace();
@@ -536,30 +464,34 @@ public class Server {
             List<File> readableFiles = this.fileRepository.getUserReadableFiles(req.getUsername());
             for (File file : readableFiles) {
                 System.out.println("Sending file " + file.getName() + " " + file.getUid() + " to client " + req.getUsername());
-                FileVersion mostRecentVersion = fileVersionRepository.getMostRecentVersion(file.getUid());
-                byte[] file_bytes = new byte[0];
-                try {
-                    file_bytes = Files.readAllBytes(
-                            Paths.get(SIRS_DIR + "/src/assets/serverFiles/" + file.getUid()));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                reply.addVersionUids(mostRecentVersion.getVersionUid());
-                reply.addFileUids(file.getUid());
-                reply.addFilenames(file.getName());
-                reply.addOwners(file.getOwner());
-                reply.addIvs(ByteString.copyFrom(file.getIv()));
-                reply.addPartIds(file.getPartition());
-                reply.addFiles(ByteString.copyFrom(
-                        file_bytes));
-                reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(mostRecentVersion.getVersionUid())));
-                reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
-                reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),file.getUid(),"read")));
+                buildPullReply(reply, file, req.getUsername());
 
             }
             reply.setOk(true);
             responseObserver.onNext(reply.build());
             responseObserver.onCompleted();
+        }
+
+        private void buildPullReply(PullReply.Builder reply, File file, String username) {
+            FileVersion mostRecentVersion = fileVersionRepository.getMostRecentVersion(file.getUid());
+            byte[] file_bytes = new byte[0];
+            try {
+                file_bytes = Files.readAllBytes(
+                        Paths.get(SIRS_DIR + "/src/assets/serverFiles/" + file.getUid()));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            reply.addVersionUids(mostRecentVersion.getVersionUid());
+            reply.addFileUids(file.getUid());
+            reply.addFilenames(file.getName());
+            reply.addOwners(file.getOwner());
+            reply.addIvs(ByteString.copyFrom(file.getIv()));
+            reply.addPartIds(file.getPartition());
+            reply.addFiles(ByteString.copyFrom(
+                    file_bytes));
+            reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(mostRecentVersion.getVersionUid())));
+            reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
+            reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(username, file.getUid(), "read")));
         }
 
         @Override
@@ -573,25 +505,7 @@ public class Server {
                 for (File file : readableFiles) {
                     if (req.getFilenames(i).equals(file.getName())) {
                         System.out.println("Sending file " + file.getName() + " to client " + req.getUsername());
-                        FileVersion mostRecentVersion = fileVersionRepository.getMostRecentVersion(file.getUid());
-                        byte[] file_bytes = new byte[0];
-                        try {
-                            file_bytes = Files.readAllBytes(
-                                    Paths.get(SIRS_DIR + "/src/assets/serverFiles/" + file.getUid()));
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        reply.addVersionUids(mostRecentVersion.getVersionUid());
-                        reply.addFileUids(file.getUid());
-                        reply.addFilenames(file.getName());
-                        reply.addOwners(file.getOwner());
-                        reply.addIvs(ByteString.copyFrom(file.getIv()));
-                        reply.addPartIds(file.getPartition());
-                        reply.addFiles(ByteString.copyFrom(
-                                file_bytes));
-                        reply.addPublicKeys(ByteString.copyFrom(fileRepository.getFileOwnerPublicKey(mostRecentVersion.getVersionUid()))); //alterei isto pq tava a dar mal
-                        reply.addDigitalSignatures(ByteString.copyFrom(mostRecentVersion.getDigitalSignature()));
-                        reply.addAESEncrypted(ByteString.copyFrom(getAESEncrypted(req.getUsername(),file.getUid(),"read"))); //o getAES vai buscar o uid e nao o most recent Version uid
+                        buildPullReply(reply, file, req.getUsername());
                         break;
                     }
                 }
@@ -617,7 +531,7 @@ public class Server {
 
             if (allUsernamesExist(req.getOthersNamesList())) {
                 if (filenameExists(req.getUid())) {
-                    giveUsersPermission(req.getOthersNamesList(), req.getUid(), req.getMode(),req.getOtherAESEncryptedList().stream().map(ByteString::toByteArray).collect(Collectors.toList()));
+                    giveUsersPermission(req.getOthersNamesList(), req.getUid(), req.getMode(), req.getOtherAESEncryptedList().stream().map(ByteString::toByteArray).collect(Collectors.toList()));
                     reply = GivePermissionReply.newBuilder().setOkOthers(true).setOkUid(true).build();
                 }
             } else
@@ -627,16 +541,15 @@ public class Server {
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
+
         @Override
-        public void getAESEncrypted(GetAESEncryptedRequest req, StreamObserver<GetAESEncryptedReply> responseObserver){
+        public void getAESEncrypted(GetAESEncryptedRequest req, StreamObserver<GetAESEncryptedReply> responseObserver) {
             GetAESEncryptedReply.Builder replyBuilder;
-            boolean owner=false;
-            if (isOwner(req.getUsername(),req.getUid())){
-                owner=true;
+            boolean owner = false;
+            if (isOwner(req.getUsername(), req.getUid())) {
+                owner = true;
             }
-            byte[] aes = getAESEncrypted(req.getUsername(),req.getUid(),req.getMode());
-            //System.out.println(Arrays.toString(aes));
-            //System.out.println("aes_server: " + aes);
+            byte[] aes = getAESEncrypted(req.getUsername(), req.getUid(), req.getMode());
             List<byte[]> pk = userRepository.getPublicKeysByUsernames(req.getOthersNamesList());
             byte[] iv = fileRepository.getFileIv(req.getUid());
             replyBuilder = GetAESEncryptedReply
@@ -648,7 +561,7 @@ public class Server {
                                     .collect(Collectors.toList())
                     )
                     .setIv(ByteString.copyFrom(iv));
-            if (aes!=null) {
+            if (aes != null) {
                 replyBuilder.setAESEncrypted(ByteString.copyFrom(aes));
             }
             GetAESEncryptedReply reply = replyBuilder.build();
@@ -657,14 +570,14 @@ public class Server {
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
+
         @Override
-        public void verifyPassword(VerifyPasswordRequest req, StreamObserver<VerifyPasswordReply> responseObserver){
+        public void verifyPassword(VerifyPasswordRequest req, StreamObserver<VerifyPasswordReply> responseObserver) {
             VerifyPasswordReply reply;
             if (isCorrectPassword(req.getUsername(), req.getPassword().toByteArray())) {
-                reply= VerifyPasswordReply.newBuilder().setOkPassword(true).build();
-            }
-            else{
-                reply=VerifyPasswordReply.newBuilder().setOkPassword(false).build();
+                reply = VerifyPasswordReply.newBuilder().setOkPassword(true).build();
+            } else {
+                reply = VerifyPasswordReply.newBuilder().setOkPassword(false).build();
             }
 
             responseObserver.onNext(reply);
@@ -673,13 +586,13 @@ public class Server {
 
         public void replicateFile(String partId, ByteString file, String versionId) throws SSLException {
             List<String> servers = getZooPaths("/sirs/ransomware/backups");
-            for(String server : servers){
+            for (String server : servers) {
                 String pair = server.split("/")[4];
                 String part = pair.split("_")[0];
                 String id = pair.split("_")[1];
-                if(part.equals(partId)){
+                if (part.equals(partId)) {
                     System.out.println("Sending backup to server " + id);
-                    backupFile(server,file,versionId);
+                    backupFile(server, file, versionId);
                 }
 
             }
@@ -752,7 +665,7 @@ public class Server {
                             .build()
             );
 
-            if(reply.getOk())
+            if (reply.getOk())
                 System.out.println("Backup version stored in backupServer");
             else
                 System.out.println("Backup version failed to store");
@@ -774,13 +687,13 @@ public class Server {
             user.saveInDatabase(this.c);
         }
 
-        private void registerFile(String uid, String filename, String owner, String partId, byte[] AESEncrypted,byte[] iv) {
+        private void registerFile(String uid, String filename, String owner, String partId, byte[] AESEncrypted, byte[] iv) {
             server.domain.file.File file = new server.domain.file.File(uid, owner, filename, partId, AESEncrypted, iv);
             file.saveInDatabase(this.c);
         }
 
         private void registerFileVersion(String versionId, String fileId, String creator, byte[] digitalSignature) {
-            FileVersion fileVersion = new FileVersion(versionId, fileId, creator, new Date(System.currentTimeMillis()),digitalSignature);
+            FileVersion fileVersion = new FileVersion(versionId, fileId, creator, new Date(System.currentTimeMillis()), digitalSignature);
             fileVersion.saveInDatabase(this.c);
         }
 
@@ -788,9 +701,10 @@ public class Server {
             User user = userRepository.getUserByUsername(name);
             return user.getUsername() != null && user.getPassHash() != null && user.getSalt() != null;
         }
+
         private boolean allUsernamesExist(List<String> names) {
-            boolean bool=true;
-            for(String name : names) {
+            boolean bool = true;
+            for (String name : names) {
                 User user = userRepository.getUserByUsername(name);
                 if (user.getUsername() == null || user.getPassHash() == null || user.getSalt() == null || user.getPublicKey() == null) {
                     bool = false;
@@ -805,37 +719,19 @@ public class Server {
             return file.getUid() != null && file.getName() != null && file.getPartition() != null && file.getOwner() != null;
         }
 
-        private void giveUsersPermission(List<String> usernames, String uid, String mode, List<byte[]> AESEncrypted ) {
-            for (int i=0; i < usernames.size();i++) {
+        private void giveUsersPermission(List<String> usernames, String uid, String mode, List<byte[]> AESEncrypted) {
+            for (int i = 0; i < usernames.size(); i++) {
                 userRepository.setUserPermissionFile(usernames.get(i), uid, mode, AESEncrypted.get(i));
             }
         }
-        private List<String> getUsersWithPermission(String uid, String mode){
-            return userRepository.getUsersWithPermissions(uid,mode);
+
+        private byte[] getAESEncrypted(String username, String uid, String mode) {
+            return fileRepository.getAESEncrypted(username, uid, mode);
         }
 
-        private byte[] getPublicKey(String username){
-            return userRepository.getPublicKey(username);
+        private boolean isOwner(String username, String uid) {
+            return userRepository.isOwner(username, uid);
         }
 
-        private byte[] getAESEncrypted(String username, String uid,String mode){
-            return fileRepository.getAESEncrypted(username,uid,mode);
-        }
-        private boolean isOwner(String username, String uid){
-            return userRepository.isOwner(username,uid);
-        }
-
-
-        private SecretKey retrieveStoredKey() {
-            SecretKey secretKey = null;
-            try {
-                //TODO provide a password
-                secretKey = (SecretKey) this.keyStore.getKey("db-encryption-secret", "".toCharArray());
-                System.out.println(keyStore.containsAlias("db-encryption-secret"));
-            } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException e) {
-                e.printStackTrace();
-            }
-            return secretKey;
-        }
     }
 }

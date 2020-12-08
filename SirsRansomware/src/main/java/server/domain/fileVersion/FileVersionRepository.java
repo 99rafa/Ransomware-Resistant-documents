@@ -15,33 +15,9 @@ public class FileVersionRepository extends Repository {
         super(c);
     }
 
-    public FileVersion getFileVersionByUID(String uid) {
-
-        FileVersion version = new FileVersion();
-        try {
-            String sql = "SELECT version_uid,file_uid,digital_signature,creator,date FROM FileVersions WHERE version_uid = ?";
-            PreparedStatement statement = super.getConnection().prepareStatement(sql);
-
-            //Set parameters
-            statement.setString(1, uid);
-
-            ResultSet rs = statement.executeQuery();
-            while (rs.next()) {
-                version.setVersionUid(uid);
-                version.setFileUid(rs.getString("file_uid"));
-                version.setCreator(rs.getString("creator"));
-                version.setDate(rs.getDate("date"));
-                version.setDigitalSignature(rs.getBytes("digital_signature"));
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return version;
-    }
-
-    public List<FileVersion> getFileVersions(String uid){
-        List<FileVersion> versions = new ArrayList<>(){};
+    public List<FileVersion> getFileVersions(String uid) {
+        List<FileVersion> versions = new ArrayList<>() {
+        };
         try {
             String sql = "SELECT version_uid,file_uid,digital_signature,creator,date FROM FileVersions WHERE file_uid = ? ORDER BY date DESC";
             PreparedStatement statement = super.getConnection().prepareStatement(sql);

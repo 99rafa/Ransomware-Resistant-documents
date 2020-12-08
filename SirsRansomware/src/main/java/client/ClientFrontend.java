@@ -6,7 +6,6 @@ import proto.*;
 import server.Server;
 
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +37,7 @@ public class ClientFrontend {
                 .build());
     }
 
-    public GetAESEncryptedReply GetAESEncrypted(String username, String[] othersNames, String uid,String mode) {
+    public GetAESEncryptedReply GetAESEncrypted(String username, String[] othersNames, String uid, String mode) {
         return blockingStub.getAESEncrypted(GetAESEncryptedRequest
                 .newBuilder()
                 .setUsername(username)
@@ -48,7 +47,7 @@ public class ClientFrontend {
                 .build());
     }
 
-    public GetAESEncryptedReply GetAESEncrypted(String username, String name, String uid,String mode) {
+    public GetAESEncryptedReply GetAESEncrypted(String username, String name, String uid, String mode) {
         return blockingStub.getAESEncrypted(GetAESEncryptedRequest
                 .newBuilder()
                 .setUsername(username)
@@ -66,7 +65,7 @@ public class ClientFrontend {
                 .build());
     }
 
-    public UsernameExistsReply UsernameExists(String username){
+    public UsernameExistsReply UsernameExists(String username) {
         return blockingStub.usernameExists(UsernameExistsRequest
                 .newBuilder()
                 .setUsername(username)
@@ -154,7 +153,7 @@ public class ClientFrontend {
                 .build());
     }
 
-    public RegisterReply Register(String name, byte[] passwd,byte[] publicKeyBytes,byte[] salt) {
+    public RegisterReply Register(String name, byte[] passwd, byte[] publicKeyBytes, byte[] salt) {
         return blockingStub.register(RegisterRequest.newBuilder()
                 .setUsername(name)
                 .setPassword(ByteString.copyFrom(passwd))
@@ -163,7 +162,7 @@ public class ClientFrontend {
                 .build());
     }
 
-    public SaltReply Salt(String name){
+    public SaltReply Salt(String name) {
         return blockingStub.salt(SaltRequest
                 .newBuilder()
                 .setUsername(name)

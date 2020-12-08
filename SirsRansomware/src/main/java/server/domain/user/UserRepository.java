@@ -36,62 +36,19 @@ public class UserRepository extends Repository {
         return userPassword;
     }
 
-    public byte[] getPasswordSalt(String username) {
-        byte[] passSalt = null;
-        try {
 
-            String sql = "SELECT salt FROM Users WHERE username = ?";
-            PreparedStatement statement = super.getConnection().prepareStatement(sql);
-
-            //Set parameters
-
-            statement.setString(1, username);
-
-            ResultSet rs = statement.executeQuery();
-
-            if (rs.next()) {
-                passSalt = rs.getBytes("salt");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return passSalt;
-    }
-
-    public int getPasswordIterations(String username) {
-        int passIterations = 0;
-        try {
-
-            String sql = "SELECT iterations FROM Users WHERE username = ?";
-            PreparedStatement statement = super.getConnection().prepareStatement(sql);
-
-            //Set parameters
-
-            statement.setString(1, username);
-
-            ResultSet rs = statement.executeQuery();
-
-            if (rs.next()) {
-                passIterations = rs.getInt("iterations");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return passIterations;
-    }
-
-    public void setUserPermissionFile(String username, String uid, String mode,byte[] AESEncrypted) {
+    public void setUserPermissionFile(String username, String uid, String mode, byte[] AESEncrypted) {
         switch (mode) {
-            case "read" -> addUserToReadableFiles(username, uid,AESEncrypted);
+            case "read" -> addUserToReadableFiles(username, uid, AESEncrypted);
             case "write" -> {
-                addUserToEditableFiles(username, uid,AESEncrypted);
-                addUserToReadableFiles(username, uid,AESEncrypted);
+                addUserToEditableFiles(username, uid, AESEncrypted);
+                addUserToReadableFiles(username, uid, AESEncrypted);
             }
             default -> System.out.println("It should not happen");
         }
     }
 
-    public void addUserToEditableFiles(String username, String uid,byte[] AESEncrypted) {
+    public void addUserToEditableFiles(String username, String uid, byte[] AESEncrypted) {
         try {
 
             String sql = "INSERT INTO EditableFiles VALUES (?,?,?)";
@@ -99,49 +56,7 @@ public class UserRepository extends Repository {
 
             s.setString(1, username);
             s.setString(2, uid);
-            s.setBytes(3,AESEncrypted);
-            s.executeUpdate();
-
-            super.getConnection().commit();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            //Rollback changes in case of failure
-            try {
-                super.getConnection().rollback();
-            } catch (SQLException ignored) {}
-        }
-    }
-    public byte[] getPublicKey(String username){
-        byte[] publicKey = null;
-        try {
-            String sql = "SELECT public_key FROM Users WHERE username = ?";
-            PreparedStatement statement = super.getConnection().prepareStatement(sql);
-
-            //Set parameters
-
-            statement.setString(1, username);
-
-            ResultSet rs = statement.executeQuery();
-
-            if (rs.next()) {
-                publicKey = rs.getBytes("public_key");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return publicKey;
-    }
-
-    public void addUserToReadableFiles(String username, String uid,byte[] AESEncrypted) {
-        try {
-
-            String sql = "INSERT INTO ReadableFiles VALUES (?,?,?)";
-            PreparedStatement s = super.getConnection().prepareStatement(sql);
-
-
-            s.setString(1, username);
-            s.setString(2, uid);
-            s.setBytes(3,AESEncrypted);
+            s.setBytes(3, AESEncrypted);
             s.executeUpdate();
 
             super.getConnection().commit();
@@ -154,8 +69,34 @@ public class UserRepository extends Repository {
             }
         }
     }
-    public boolean isOwner(String username, String uid){
-        boolean bool =false;
+
+
+
+    public void addUserToReadableFiles(String username, String uid, byte[] AESEncrypted) {
+        try {
+
+            String sql = "INSERT INTO ReadableFiles VALUES (?,?,?)";
+            PreparedStatement s = super.getConnection().prepareStatement(sql);
+
+
+            s.setString(1, username);
+            s.setString(2, uid);
+            s.setBytes(3, AESEncrypted);
+            s.executeUpdate();
+
+            super.getConnection().commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            //Rollback changes in case of failure
+            try {
+                super.getConnection().rollback();
+            } catch (SQLException ignored) {
+            }
+        }
+    }
+
+    public boolean isOwner(String username, String uid) {
+        boolean bool = false;
         try {
             String sql = "SELECT owner FROM Files WHERE uid = ?";
             PreparedStatement statement = super.getConnection().prepareStatement(sql);
@@ -165,8 +106,8 @@ public class UserRepository extends Repository {
 
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
-                if(rs.getString("owner").equals(username)){
-                    bool=true;
+                if (rs.getString("owner").equals(username)) {
+                    bool = true;
                 }
             }
 
@@ -178,47 +119,9 @@ public class UserRepository extends Repository {
 
     }
 
-    public List<String> getUsersWithPermissions(String uid, String mode) {
-        List<String> usernames= new ArrayList<>();
-        if (mode.equals("read")) {
-            try {
-
-                String sql = "SELECT username FROM ReadableFiles WHERE uid = ?";
-                PreparedStatement s = super.getConnection().prepareStatement(sql);
-                s.setString(1, uid);
-
-                ResultSet rs = s.executeQuery();
-                while (rs.next()) {
-                    usernames.add(rs.getString("username"));
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        else if (mode.equals("write")) {
-            try {
-
-                String sql = "SELECT username FROM EditableFiles WHERE uid = ?";
-                PreparedStatement s = super.getConnection().prepareStatement(sql);
-                s.setString(1, uid);
-
-                ResultSet rs = s.executeQuery();
-                while (rs.next()) {
-                    usernames.add(rs.getString("username"));
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
-        else {
-            System.out.println("Não pode acontecer");
-        }
-        return usernames;
-    }
-
-    public List<byte[]> getPublicKeysByUsernames(List<String> usernames){
+    public List<byte[]> getPublicKeysByUsernames(List<String> usernames) {
         List<byte[]> publicKeys = new ArrayList<>();
-        for(String username : usernames){
+        for (String username : usernames) {
             try {
 
                 String sql = "SELECT public_key FROM Users WHERE username = ?";
