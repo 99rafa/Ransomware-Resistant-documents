@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 
 
 /**
- * Server that manages startup/shutdown of a {@code Greeter} server with TLS enabled.
+ * Server that manages startup/shutdown of a server with TLS enabled.
  */
 public class Server {
 

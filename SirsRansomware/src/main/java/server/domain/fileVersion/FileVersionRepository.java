@@ -46,7 +46,7 @@ public class FileVersionRepository extends Repository {
     public FileVersion getMostRecentVersion(String fileUid) {
         FileVersion version = new FileVersion();
         try {
-            String sql = "SELECT version_uid,file_uid,digital_signature,creator,ts FROM FileVersions WHERE file_uid = ? ORDER BY date DESC LIMIT 1";
+            String sql = "SELECT version_uid,file_uid,digital_signature,creator,ts FROM FileVersions WHERE file_uid = ? ORDER BY ts DESC LIMIT 1";
             PreparedStatement statement = super.getConnection().prepareStatement(sql);
 
             //Set parameters
@@ -57,7 +57,7 @@ public class FileVersionRepository extends Repository {
                 version.setVersionUid(rs.getString("version_uid"));
                 version.setFileUid(fileUid);
                 version.setCreator(rs.getString("creator"));
-                version.setDate(rs.getDate("ts"));
+                version.setDate(rs.getTimestamp("ts"));
                 version.setDigitalSignature(rs.getBytes("digital_signature"));
             }
 

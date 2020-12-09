@@ -54,8 +54,11 @@ public class Client {
 
         String path;
 
+        //client does not need to know key store implementation
+        /*
         Console console = System.console();
         String passwd = new String(console.readPassword("Enter private Key keyStore password: "));
+         */
         KeyStore ks = null;
         try {
             ks = KeyStore.getInstance("PKCS12");
@@ -146,6 +149,11 @@ public class Client {
 
     public void register() {
 
+        if (this.username != null) {
+            System.err.println("Error: User already logged in. Log out first to register a user");
+            return;
+        }
+
         Console console = System.console();
         String name = console.readLine("Enter a username: ");
         boolean match = false;
@@ -197,6 +205,13 @@ public class Client {
     public void login() {
         int tries = 0;
         Console console = System.console();
+
+        if (this.username != null) {
+            System.err.println("Error: User already logged in. Log out first to log in with another user");
+            return;
+        }
+
+
         String name = console.readLine("Enter your username: ");
 
         //Save user salt
@@ -527,7 +542,7 @@ public class Client {
             VerifyPasswordReply repPass = c.VerifyPassword(this.username, e.generateSecurePassword(passwd, this.salt));
             if (repPass.getOkPassword()) {
                 String others = console.readLine("Enter the username/s to give permission, separated by a blank space: ");
-                String s = System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n");
+                String s = System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\nType of permission: ");
                 while (!s.matches("write|read")) {
                     System.err.println("Error: Wrong type of permission");
                     s = System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n");
