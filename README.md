@@ -1,4 +1,4 @@
-# SIRS_proj1 - Ransomware Resistant Documents
+# SIRS project - Ransomware Resistant Documents
 1st project for SIRS course - MEIC-A, Group 39:
 - Afonso Paredes, ist189401
 - Mateus Monteiro, ist189506
@@ -62,3 +62,12 @@ mvn exec:java -Dexec.mainClass="client.Client" -Dexec.args="<zooPort> <zooHost> 
 - **path-to-trust-certificate**: path to the trustable client's certificate
 - **path-to-client-private-key**: path to the client's private key
 - **path-to-certificate-authority**:path to the certificate authority
+
+## Requirements
+
+The requirements needed to run the program are:
+- Linux 64-bit (whichever distribution the user prefers, although we recommend Ubuntu 18.04.1 LTS)
+- Java 15
+- Maven
+- MySQL 
+- ZooKeeper name Server / zkNaming
