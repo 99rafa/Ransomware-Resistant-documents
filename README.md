@@ -6,9 +6,17 @@
 
 ## Setup
 
-Our software was developed in **java** and built with **maven**.
+#### Requirements
 
-## Running
+The requirements needed to run the program are:
+- Linux 64-bit (whichever distribution the user prefers, although we recommend Ubuntu 18.04.1 LTS)
+- Java 15
+- Maven
+- MySQL 
+- ZooKeeper name Server / zkNaming
+
+
+## Usage
 
 In order to run the program, at least 3 terminal windows must be open:
 - 1 server
@@ -63,11 +71,4 @@ mvn exec:java -Dexec.mainClass="client.Client" -Dexec.args="<zooPort> <zooHost> 
 - **path-to-client-private-key**: path to the client's private key
 - **path-to-certificate-authority**:path to the certificate authority
 
-## Requirements
 
-The requirements needed to run the program are:
-- Linux 64-bit (whichever distribution the user prefers, although we recommend Ubuntu 18.04.1 LTS)
-- Java 15
-- Maven
-- MySQL 
-- ZooKeeper name Server / zkNaming
