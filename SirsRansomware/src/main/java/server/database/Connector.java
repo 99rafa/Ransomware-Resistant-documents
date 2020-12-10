@@ -9,7 +9,6 @@ public class Connector {
 
     private static final String DB_URL = "jdbc:mysql://localhost:3306/ransomdb";
 
-
     public Connection connection;
 
     public Connector(String user, String password) throws SQLException {
