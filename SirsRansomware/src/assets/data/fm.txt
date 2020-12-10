@@ -1,2 +1,0 @@
-/home/mateus/bob 186c8466-b30e-4df0-a0fc-776e0173e84a 2 bob bob
-/home/mateus/Desktop/Tecnico/sirs/project/SIRS_proj1/SirsRansomware/src/assets/clientPulls/alicia/bob 186c8466-b30e-4df0-a0fc-776e0173e84a 2 bob alicia
