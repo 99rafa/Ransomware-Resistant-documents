@@ -81,6 +81,7 @@ public class Client {
         ZKRecord record = null;
         try {
             record = zkNaming.lookup(path);
+            System.out.println("");
         } catch (ZKNamingException e) {
             e.printStackTrace();
         }
@@ -113,7 +114,7 @@ public class Client {
 
     public static void main(String[] args) throws Exception {
         if (args.length != 5) {
-            System.out.println("USAGE: host port trustCertCollectionFilePath " +
+            System.out.println("USAGE: zooHost zooPort trustCertCollectionFilePath " +
                     "clientCertChainFilePath clientPrivateKeyFilePath");
             System.exit(0);
         }
@@ -605,16 +606,26 @@ public class Client {
                     return;
                 }
 
-
+                // Gets the owners encrypted key
                 GetAESEncryptedReply reply = c.GetAESEncrypted(this.username, existingNames.toArray(new String[0]), uid, s);
                 byte[] aesEncrypted = reply.getAESEncrypted().toByteArray();
-                List<byte[]> othersPubKeysBytes = reply.getOthersPublicKeysList().stream().map(ByteString::toByteArray).collect(Collectors.toList());
+
+                //Get users to give permission public keys
+                List<byte[]> othersPubKeysBytes = reply
+                        .getOthersPublicKeysList()
+                        .stream()
+                        .map(ByteString::toByteArray)
+                        .collect(Collectors.toList());
+
+
                 byte[] aesKeyBytes;
                 if (reply.getIsOwner()) {
                     //decrypt with private key in order to obtain symmetric key
                     aesKeyBytes = e.getAESKeyBytes(aesEncrypted, this.username, this.keyStore);
+
                     //encrypt AES with "others" public keys to send to the server
                     List<byte[]> othersAesEncrypted = e.getOthersAESEncrypted(othersPubKeysBytes, aesKeyBytes);
+
                     //System.out.println(Arrays.toString(othersAesEncrypted.get(0)));
                     //read/write permissions
                     GivePermissionReply res = c.GivePermission(othersNames, uid, s, othersAesEncrypted);

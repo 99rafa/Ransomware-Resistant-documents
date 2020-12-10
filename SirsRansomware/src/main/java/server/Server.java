@@ -56,15 +56,22 @@ public class Server {
     private final String certChainFilePath;
     private final String privateKeyFilePath;
     private final String trustCertCollectionFilePath;
+    private final String user;
+    private final String pass;
+
     private io.grpc.Server server;
 
-    public Server(String zooPort,
+    public Server(String user,
+                  String pass,
+                  String zooPort,
                   String zooHost,
                   String port,
                   String host,
                   String certChainFilePath,
                   String privateKeyFilePath,
                   String trustCertCollectionFilePath) {
+        this.user = user;
+        this.pass = pass;
         this.zooPort = zooPort;
         this.zooHost = zooHost;
         this.zooPath = "/sirs/ransomware/server";
@@ -139,9 +146,9 @@ public class Server {
      */
     public static void main(String[] args) throws IOException, InterruptedException {
 
-        if (args.length != 7) {
+        if (args.length != 9) {
             System.out.println(
-                    "USAGE: ServerTls zooHost zooPort host port certChainFilePath privateKeyFilePath " +
+                    "USAGE: ServerTls dbuser dbpass zooHost zooPort host port certChainFilePath privateKeyFilePath " +
                             "[trustCertCollectionFilePath]\n  Note: You only need to supply trustCertCollectionFilePath if you want " +
                             "to enable Mutual TLS.");
             System.exit(0);
@@ -154,7 +161,9 @@ public class Server {
                 args[3],
                 args[4],
                 args[5],
-                args[6]);
+                args[6],
+                args[7],
+                args[8]);
         server.start();
 
         server.blockUntilShutdown();
@@ -175,6 +184,8 @@ public class Server {
     private void start() throws IOException {
         server = NettyServerBuilder.forAddress(new InetSocketAddress(host, Integer.parseInt(port)))
                 .addService(new ServerImp(
+                        this.user,
+                        this.pass,
                         this.certChainFilePath,
                         this.privateKeyFilePath,
                         this.trustCertCollectionFilePath)
@@ -203,9 +214,9 @@ public class Server {
 
     private void addToZooKeeper() {
 
-        zkNaming = new ZKNaming(zooHost, zooPort);
+        zkNaming = new ZKNaming(this.zooHost, this.zooPort);
         try {
-            zkNaming.rebind(this.zooPath, host, this.port);
+            zkNaming.rebind(this.zooPath, this.host, this.port);
         } catch (ZKNamingException e) {
             e.printStackTrace();
         }
@@ -215,7 +226,7 @@ public class Server {
         if (zkNaming != null) {
             // remove
             try {
-                zkNaming.unbind(this.zooPath, host, this.port);
+                zkNaming.unbind(this.zooPath, this.host, this.port);
             } catch (ZKNamingException e) {
                 e.printStackTrace();
             }
@@ -242,7 +253,8 @@ public class Server {
         FileVersionRepository fileVersionRepository;
 
 
-        public ServerImp(
+        public ServerImp(String user,
+                         String pass,
                          String certChainFilePath,
                          String privateKeyFilePath,
                          String trustCertCollectionFilePath
@@ -251,7 +263,7 @@ public class Server {
             this.privateKeyFilePath = privateKeyFilePath;
             this.trustCertCollectionFilePath = trustCertCollectionFilePath;
             try {
-                c = new Connector();
+                c = new Connector(user,pass);
                 userRepository = new UserRepository(c.getConnection());
                 fileRepository = new FileRepository(c.getConnection());
                 fileVersionRepository = new FileVersionRepository(c.getConnection());
