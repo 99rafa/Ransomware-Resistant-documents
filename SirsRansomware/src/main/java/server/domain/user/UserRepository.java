@@ -36,21 +36,48 @@ public class UserRepository extends Repository {
         return userPassword;
     }
 
+    private boolean userAllowed(String username , String uid, String mode){
+        try {
+            String sql = "";
+
+            if (mode.equals("write")) {
+                sql = "SELECT * FROM EditableFiles WHERE uid = ? and username= ?";
+            }
+            else if (mode.equals("read")) {
+                sql = "SELECT * FROM ReadableFiles WHERE uid = ? and username= ?";
+
+
+            }
+
+            PreparedStatement  statement = super.getConnection().prepareStatement(sql);
+            statement.setString(1, uid);
+            statement.setString(2, username);
+
+            ResultSet rs = statement.executeQuery();
+            return rs.next();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+    }
 
     public void setUserPermissionFile(String username, String uid, String mode, byte[] AESEncrypted) {
         switch (mode) {
-            case "read" -> addUserToReadableFiles(username, uid, AESEncrypted);
+            case "read" -> { if (!userAllowed(username,uid,mode)){ addUserToReadableFiles(username, uid, AESEncrypted);}
+            }
             case "write" -> {
-                addUserToEditableFiles(username, uid, AESEncrypted);
-                addUserToReadableFiles(username, uid, AESEncrypted);
+                if (!userAllowed(username,uid,mode)) addUserToEditableFiles(username, uid, AESEncrypted);
+                if (!userAllowed(username,uid,"read")) addUserToReadableFiles(username, uid, AESEncrypted);
             }
             default -> System.out.println("It should not happen");
         }
     }
 
+
     public void addUserToEditableFiles(String username, String uid, byte[] AESEncrypted) {
         try {
-
             String sql = "INSERT INTO EditableFiles VALUES (?,?,?)";
             PreparedStatement s = super.getConnection().prepareStatement(sql);
 

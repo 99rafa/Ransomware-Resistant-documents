@@ -249,6 +249,25 @@ public class Client {
         System.out.println("You have logout successfully");
     }
 
+    public boolean filenameExists(int index1,int index2, String filename) throws FileNotFoundException {
+        boolean exists=false;
+        try {
+            new FileOutputStream(FILE_MAPPING_PATH, true).close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Scanner sc = new Scanner(new File(FILE_MAPPING_PATH));
+
+        while (sc.hasNextLine()) {
+            String[] s = sc.nextLine().split(" ");
+            if (this.username.equals(s[index1]) && filename.equals(s[index2])){
+                exists=true;
+
+            }
+        }
+        return exists;
+    }
+
     public Map<String, String> getUidMap(int index1, int index2, int index3) throws FileNotFoundException {
         Map<String, String> fileMapping = new TreeMap<>();
         try {
@@ -329,13 +348,20 @@ public class Client {
                             Paths.get(filePath)
                     );
 
-                    String filename;
+                    String filename = null;
                     SecretKey fileSecretKey = null;
                     String partId;
                     if (isNew) {
-                        partId = getRandomPartition();
-                        filename = System.console().readLine("Filename: ");
+                        boolean dupFileName=true;
+                        while (dupFileName) {
+                            filename = System.console().readLine("Filename: ");
+                            dupFileName=filenameExists(INDEX_USERNAME,INDEX_NAME,filename);
+                            if (dupFileName) {
+                                System.err.println("Error: Filename already exists");
+                            }
+                        }
                         fileSecretKey = e.generateAESKey();
+                        partId = getRandomPartition();
                     } else {
                         filename = getUidMap(INDEX_PATH, INDEX_NAME, INDEX_USERNAME).get(filePath);
                         partId = getUidMap(INDEX_PATH, INDEX_PART_ID, INDEX_USERNAME).get(filePath);
@@ -361,7 +387,7 @@ public class Client {
                     } else {
                         GetAESEncryptedReply res = c.GetAESEncrypted(this.username, this.username, uid, "write");
                         if (res.getAESEncrypted().toByteArray().length == 0) {
-                            System.err.println("Error: You have read-only for this file permission");
+                            System.err.println("Error: You have read-only permission for this file ");
                             return;
                         }
                         iv = res.getIv().toByteArray();
@@ -545,7 +571,7 @@ public class Client {
                 String s = System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\nType of permission: ");
                 while (!s.matches("write|read")) {
                     System.err.println("Error: Wrong type of permission");
-                    s = System.console().readLine("\"Select what type of permission:\\n -> 'read' for read permission\\n -> 'write' for read/write permission\\nType of permission: ");
+                    s = System.console().readLine("Type of permission: ");
                 }
                 String filename = console.readLine("Enter the filename: ");
                 String uid;
@@ -584,7 +610,6 @@ public class Client {
                 byte[] aesEncrypted = reply.getAESEncrypted().toByteArray();
                 List<byte[]> othersPubKeysBytes = reply.getOthersPublicKeysList().stream().map(ByteString::toByteArray).collect(Collectors.toList());
                 byte[] aesKeyBytes;
-
                 if (reply.getIsOwner()) {
                     //decrypt with private key in order to obtain symmetric key
                     aesKeyBytes = e.getAESKeyBytes(aesEncrypted, this.username, this.keyStore);
