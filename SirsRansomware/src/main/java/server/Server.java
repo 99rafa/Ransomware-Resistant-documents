@@ -638,7 +638,7 @@ public class Server {
             }
             assert record != null;
             channel = NettyChannelBuilder.forTarget(record.getURI())
-                    //.overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
+                    .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
                     .sslContext(buildSslContext(trustCertCollectionFilePath, certChainFilePath, privateKeyFilePath))
                     .build();
             blockingStub = BackupServerGrpc.newBlockingStub(channel);
