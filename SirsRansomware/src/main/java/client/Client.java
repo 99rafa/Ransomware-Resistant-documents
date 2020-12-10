@@ -361,7 +361,7 @@ public class Client {
                     } else {
                         GetAESEncryptedReply res = c.GetAESEncrypted(this.username, this.username, uid, "write");
                         if (res.getAESEncrypted().toByteArray().length == 0) {
-                            System.err.println("Error: Only have read-only for this file permission");
+                            System.err.println("Error: You have read-only for this file permission");
                             return;
                         }
                         iv = res.getIv().toByteArray();
@@ -626,6 +626,11 @@ public class Client {
                     Map<String, String> map = getUidMap(INDEX_NAME, INDEX_UID, INDEX_USERNAME);
                     String filename = console.readLine("Enter filename to revert: ");
                     String fileUid = map.get(filename);
+                    GetAESEncryptedReply res = c.GetAESEncrypted(this.username, this.username, fileUid, "write");
+                    if (res.getAESEncrypted().toByteArray().length == 0) {
+                        System.err.println("Error: You have read-only for this file permission");
+                        return;
+                    }
                     ListFileVersionsReply reply = c.ListFileVersions(fileUid);
                     int version = reply.getDatesCount();
 
@@ -652,7 +657,7 @@ public class Client {
                     logout();
                 }
             }
-        }
+        } else
         System.err.println("Error: Login First");
     }
 
