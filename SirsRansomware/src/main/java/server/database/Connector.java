@@ -8,14 +8,12 @@ import java.sql.SQLException;
 public class Connector {
 
     private static final String DB_URL = "jdbc:mysql://localhost:3306/ransomdb";
-    private static final String USER = "mateus";
-    private static final String PASSWORD = "pass";
 
 
     public Connection connection;
 
-    public Connector() throws SQLException {
-        this.connection = DriverManager.getConnection(DB_URL, USER, PASSWORD);
+    public Connector(String user, String password) throws SQLException {
+        this.connection = DriverManager.getConnection(DB_URL, user, password);
         this.connection.setAutoCommit(false);
     }
 
