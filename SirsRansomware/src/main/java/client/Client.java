@@ -545,7 +545,7 @@ public class Client {
                 String s = System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\nType of permission: ");
                 while (!s.matches("write|read")) {
                     System.err.println("Error: Wrong type of permission");
-                    s = System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\n");
+                    s = System.console().readLine("\"Select what type of permission:\\n -> 'read' for read permission\\n -> 'write' for read/write permission\\nType of permission: ");
                 }
                 String filename = console.readLine("Enter the filename: ");
                 String uid;
@@ -628,7 +628,7 @@ public class Client {
                     String fileUid = map.get(filename);
                     GetAESEncryptedReply res = c.GetAESEncrypted(this.username, this.username, fileUid, "write");
                     if (res.getAESEncrypted().toByteArray().length == 0) {
-                        System.err.println("Error: You have read-only for this file permission");
+                        System.err.println("Error: You have read-only permission for this file");
                         return;
                     }
                     ListFileVersionsReply reply = c.ListFileVersions(fileUid);
