@@ -1,16 +1,5 @@
-The test credentials (CONFIRMEDTESTKEY) have been generated with the following
+The test credentials have been generated with the following
 commands:
-
-Bad credentials (badclient.* / badserver.*):
-============================================
-
-These are self-signed certificates:
-
-$ openssl req -x509 -newkey rsa:2048 -keyout badserver.key -out badserver.pem \
-  -days 3650 -nodes
-
-When prompted for certificate information, everything is default except the
-common name which is set to badserver.test.google.com.
 
 
 Valid test credentials:
@@ -35,19 +24,6 @@ common name which is set to testclient.
 
 $ openssl x509 -req -CA ca.pem -CAkey ca.key -CAcreateserial -in client.csr \
   -out client.pem -days 3650
-
-server0 is issued by CA:
-------------------------
-
-$ openssl genrsa -out server0.key.rsa 2048
-$ openssl pkcs8 -topk8 -in server0.key.rsa -out server0.key -nocrypt
-$ openssl req -new -key server0.key -out server0.csr
-
-When prompted for certificate information, everything is default except the
-common name which is set to *.test.google.com.au.
-
-$ openssl x509 -req -CA ca.pem -CAkey ca.key -CAcreateserial -in server0.csr \
-  -out server0.pem -days 3650
 
 server1 is issued by CA with a special config for subject alternative names:
 ----------------------------------------------------------------------------
