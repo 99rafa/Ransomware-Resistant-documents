@@ -24,14 +24,18 @@ import server.domain.user.User;
 import server.domain.user.UserRepository;
 
 import javax.net.ssl.SSLException;
-import java.io.Console;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -69,7 +73,7 @@ public class Server {
                   String host,
                   String certChainFilePath,
                   String privateKeyFilePath,
-                  String trustCertCollectionFilePath) {
+                  String trustCertCollectionFilePath) throws Exception {
         this.user = user;
         this.pass = pass;
         this.zooPort = zooPort;
@@ -127,10 +131,7 @@ public class Server {
         } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
             e.printStackTrace();
         }
-
-
     }
-
     private static SslContext buildSslContext(String trustCertCollectionFilePath,
                                               String clientCertChainFilePath,
                                               String clientPrivateKeyFilePath) throws SSLException {
@@ -147,7 +148,7 @@ public class Server {
     /**
      * Main launches the server from the command line.
      */
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws Exception {
 
         if (args.length != 9) {
             System.out.println(
@@ -156,6 +157,7 @@ public class Server {
                             "to enable Mutual TLS.");
             System.exit(0);
         }
+
 
         final Server server = new Server(
                 args[0],
@@ -278,15 +280,21 @@ public class Server {
 
         @Override
         public void revertMostRecentVersion(RevertMostRecentVersionRequest request, StreamObserver<RevertMostRecentVersionReply> responseObserver) {
+
+            System.out.println();
+            System.out.println("Received revert most recent version request");
+
             try {
                 //Gets all backups currently up
                 List<String> servers = getZooPaths(BACKUP_ZOO_PATH);
+                System.out.println();
                 for (String server : servers) {
                     String pair = server.split("/")[4];
                     String part = pair.split("_")[0];
                     String id = pair.split("_")[1];
                     //Asks a backup that serves the file to revert it
                     if (part.equals(request.getPartId())) {
+                        System.out.println("Rolling back to version " + request + " of file " + request.getFileUid());
                         byte[] file = getBackup(server, request.getVersionUid()).toByteArray();
                         FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), file);
                         break;
@@ -336,6 +344,10 @@ public class Server {
 
         @Override
         public void retrieveHealthyVersions(RetrieveHealthyVersionsRequest request, StreamObserver<RetrieveHealthyVersionsReply> responseObserver) {
+
+            System.out.println();
+            System.out.println("Received retrieve healthy versions request");
+
             //Gets all available backup servers
             List<String> servers = getZooPaths(BACKUP_ZOO_PATH);
             List<ByteString> backup_versions = new ArrayList<>();
@@ -347,6 +359,7 @@ public class Server {
                     e.printStackTrace();
                 }
             }
+            System.out.println("Retrieving healthy versions of file " + request.getUid());
             RetrieveHealthyVersionsReply reply = RetrieveHealthyVersionsReply
                     .newBuilder()
                     .addAllFiles(backup_versions)
@@ -358,8 +371,13 @@ public class Server {
 
         @Override
         public void healCorruptedVersion(HealCorruptedVersionRequest request, StreamObserver<HealCorruptedVersionReply> responseObserver) {
+
+            System.out.println();
+            System.out.println("Received heal corrupted version request");
+
             try {
                 //Overwrites current version with healthy one
+                System.out.println("Healing corrupted version " + request.getVersionUid() + " of file " + request.getFileUid());
                 FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), request.getFile().toByteArray());
                 replicateFile(request.getPartId(), request.getFile(), request.getVersionUid());
             } catch (IOException e) {
@@ -386,7 +404,7 @@ public class Server {
 
         @Override
         public void register(RegisterRequest req, StreamObserver<RegisterReply> responseObserver) {
-
+            System.out.println();
             System.out.println("Received register request for user " + req.getUsername());
 
             RegisterReply reply;
@@ -397,6 +415,7 @@ public class Server {
             else if (usernameExists(req.getUsername()))
                 reply = RegisterReply.newBuilder().setOk("Duplicate user with username " + req.getUsername()).build();
             else {
+                System.out.println("Registering user " + req.getUsername());
                 registerUser(req.getUsername(), req.getPassword().toByteArray(), req.getSalt().toByteArray(), req.getPublicKey().toByteArray());
                 reply = RegisterReply.newBuilder().setOk("User " + req.getUsername() + " registered successfully").build();
             }
@@ -461,6 +480,7 @@ public class Server {
         public void push(PushRequest req, StreamObserver<PushReply> responseObserver) {
 
             ByteString bs = req.getFile();
+            System.out.println();
             System.out.println("Received file " + req.getFileName() + " from client " + req.getUsername());
             PushReply reply = null;
             String versionId = UUID.randomUUID().toString();
@@ -492,6 +512,7 @@ public class Server {
         @Override
         public void pullAll(PullAllRequest req, StreamObserver<PullReply> responseObserver) {
 
+            System.out.println();
             System.out.println("Pull All request received");
 
             PullReply.Builder reply = PullReply.newBuilder();
@@ -533,6 +554,7 @@ public class Server {
         @Override
         public void pullSelected(PullSelectedRequest req, StreamObserver<PullReply> responseObserver) {
 
+            System.out.println();
             System.out.println("Pull Selected request received");
 
             PullReply.Builder reply = PullReply.newBuilder();
@@ -561,6 +583,7 @@ public class Server {
         @Override
         public void givePermission(GivePermissionRequest req, StreamObserver<GivePermissionReply> responseObserver) {
 
+            System.out.println();
             System.out.println("Received a give permission request");
 
             GivePermissionReply reply = null;
@@ -575,7 +598,7 @@ public class Server {
             } else
                 reply = GivePermissionReply.newBuilder().setOkOthers(false).setOkUid(false).build();
 
-
+            System.out.println("Granting permission to requested users for file " + req.getUid());
             responseObserver.onNext(reply);
             responseObserver.onCompleted();
         }
@@ -653,9 +676,6 @@ public class Server {
             return recs.stream().map(ZKRecord::getPath).collect(Collectors.toList());
         }
 
-        /**
-         * Construct client connecting to HelloWorld server at {@code host:port}.
-         */
         public ByteString getBackup(String zooPath, String uid) throws SSLException {
             ZKRecord record = null;
             ByteString bytes;
