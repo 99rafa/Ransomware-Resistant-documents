@@ -653,8 +653,10 @@ public class Client {
                 VerifyPasswordReply repPass = c.VerifyPassword(this.username, e.generateSecurePassword(passwd, this.salt));
                 if (repPass.getOkPassword()) {
                     Map<String, String> map = getUidMap(INDEX_NAME, INDEX_UID, INDEX_USERNAME);
+                    Map<String, String> map1 = getUidMap(INDEX_NAME, INDEX_PART_ID, INDEX_USERNAME);
                     String filename = console.readLine("Enter filename to revert: ");
                     String fileUid = map.get(filename);
+                    String partId= map1.get(filename);
                     GetAESEncryptedReply res = c.GetAESEncrypted(this.username, this.username, fileUid, "write");
                     if (res.getAESEncrypted().toByteArray().length == 0) {
                         System.err.println("Error: You have read-only permission for this file");
@@ -669,7 +671,7 @@ public class Client {
                     }
                     String number = console.readLine("Enter version number to revert into: ");
                     RevertMostRecentVersionReply reply1 = c.RevertMostRecentVersion(reply.getFileIds(reply.getDatesCount() - Integer.parseInt(number)),
-                            reply.getVersionsUids(reply.getDatesCount() - Integer.parseInt(number)));
+                            reply.getVersionsUids(reply.getDatesCount() - Integer.parseInt(number)),partId);
 
                     if (reply1.getOk()) {
                         System.out.println("Version reverted successfully!");

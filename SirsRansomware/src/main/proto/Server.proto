@@ -45,6 +45,7 @@ service Server {
 message RevertMostRecentVersionRequest{
   string version_uid = 1;
   string file_uid = 2;
+  string part_id =3;
 }
 
 message RevertMostRecentVersionReply{
