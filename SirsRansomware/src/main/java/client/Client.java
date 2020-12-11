@@ -133,13 +133,13 @@ public class Client {
                 switch (cmd) {
                     case "login" -> client.login();
                     case "register" -> client.register();
-                    case "help" -> client.displayHelp();
+                    case "push" -> client.push();
                     case "pull" -> client.pull();
                     case "givePerm" -> client.givePermission();
-                    case "push" -> client.push();
+                    case "rollBackVersion" -> client.revertRemoteFile();
                     case "logout" -> client.logout();
-                    case "revertRemoteFile" -> client.revertRemoteFile();
                     case "exit" -> running = false;
+                    case "help" -> client.displayHelp();
                     default -> System.err.println("Error: Command not recognized");
                 }
             }
@@ -195,6 +195,7 @@ public class Client {
             e.printStackTrace();
         }
 
+        //get salt to produce KDF password hashing
         byte[] salt = PBKDF2Main.getNextSalt();
         RegisterReply response = c.Register(name, e.generateSecurePassword(passwd, salt), publicKeyBytes, salt);
         System.out.println(response.getOk());
@@ -212,10 +213,10 @@ public class Client {
 
         String name = console.readLine("Enter your username: ");
 
-        //Save user salt
         UsernameExistsReply reply = c.UsernameExists(name);
         if (reply.getOkUsername()) {
             while (tries < 3) {
+                //get salt used to produce password in order to compute given password salt and compare
                 SaltReply replys = c.Salt(name);
                 byte[] salt = replys.getSalt().toByteArray();
                 String password = new String(console.readPassword("Enter your password: "));
@@ -225,7 +226,7 @@ public class Client {
 
                     this.username = name;
                     this.salt = salt;
-                    //clearFileMapping();
+
                     System.out.println("Successful Authentication. Welcome " + name + "!");
                     break;
                 } else {
@@ -247,6 +248,7 @@ public class Client {
         System.out.println("You have logout successfully");
     }
 
+    //check if filename already exists in the file manager file
     public boolean filenameExists(int index1,int index2, String filename) throws FileNotFoundException {
         boolean exists=false;
         try {
@@ -266,6 +268,7 @@ public class Client {
         return exists;
     }
 
+    //get entries from uid map that verify given index 1,2 and 3
     public Map<String, String> getUidMap(int index1, int index2, int index3) throws FileNotFoundException {
         Map<String, String> fileMapping = new TreeMap<>();
         try {
@@ -309,6 +312,7 @@ public class Client {
         } else return getUidMap(INDEX_PATH, INDEX_UID, INDEX_USERNAME).get(filePath);
     }
 
+    //choose a random partition in order to save a new file
     public String getRandomPartition() {
         Random random = new Random();
         ZKNaming zkNaming = new ZKNaming(this.zooHost, this.zooPort);
@@ -350,6 +354,7 @@ public class Client {
                     SecretKey fileSecretKey = null;
                     String partId;
                     if (isNew) {
+                        //avoid having files with duplicate file names
                         boolean dupFileName=true;
                         while (dupFileName) {
                             filename = System.console().readLine("Filename: ");
@@ -361,6 +366,7 @@ public class Client {
                         fileSecretKey = e.generateAESKey();
                         partId = getRandomPartition();
                     } else {
+                        //it is already in the fm (file manager) file
                         filename = getUidMap(INDEX_PATH, INDEX_NAME, INDEX_USERNAME).get(filePath);
                         partId = getUidMap(INDEX_PATH, INDEX_PART_ID, INDEX_USERNAME).get(filePath);
                     }
@@ -378,8 +384,11 @@ public class Client {
                         iv = new byte[cipher.getBlockSize()];
                         secureRandom.nextBytes(iv);
 
+                        //get user public key
                         GetPublicKeysByUsernamesReply reply = c.GetPublicKeysByUsernames(this.username);
+                        //encrypt file symmetric key with user's public key
                         encryptedAES = e.encryptWithRSA(e.bytesToPubKey(reply.getKeys(0).toByteArray()), fileSecretKey.getEncoded());
+                        //encrypt file with symmetric key
                         file = e.encryptWithAES(fileSecretKey, file_bytes, iv);
                     } else {
                         GetAESEncryptedReply res = c.GetAESEncrypted(this.username, this.username, uid, "write");
@@ -423,7 +432,7 @@ public class Client {
         System.out.println("pull - receives files from server");
         System.out.println("push - sends file to server");
         System.out.println("givePerm - give read/write file access permission to user/s");
-        System.out.println("revertRemoteFile - reverts a file to a previous version");
+        System.out.println("rollBackVersion - reverts a file to a previous version");
         System.out.println("logout - exits client");
         System.out.println("exit - exits client");
     }
@@ -461,19 +470,21 @@ public class Client {
                         byte[] digitalSignature = reply.getDigitalSignatures(i).toByteArray();
                         byte[] ownerPublicKey = reply.getPublicKeys(i).toByteArray();
 
-                        //IF FILE EXISTS OVERWRITE IT
+                        //if file exists, overwrite it
 
                         byte[] decipheredFileData = new byte[0];
                         try {
+                            //decrypt file with symmetric key
                             decipheredFileData = e.decryptSecureFile(file_data, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray(), this.username, this.keyStore);
                         } catch (BadPaddingException | IllegalBlockSizeException ignored) {
                         }
 
                         PublicKey pk = e.getPublicKey(ownerPublicKey);
-                        //VERIFY SIGNATURE
+                        //verify file signature
+
                         if (!e.verifyDigitalSignature(decipheredFileData, digitalSignature, pk)) { //dies here wrong IV
                             System.err.println(" Error: Signature verification failed");
-
+                            //if signature does not match, we will check for an healthy copy of that version in the backup servers
                             RetrieveHealthyVersionsReply reply1 = c.RetrieveHealthyVersions(version_uid);
 
                             byte[] healthyVersion = null;
@@ -495,6 +506,7 @@ public class Client {
                                     break;
                                 }
                             }
+                            //if there is no copy of an healthy version the backups, the file got corrupted
                             if (!hasHealthy) {
                                 System.err.println("This file got corrupted!");
                                 continue;
@@ -511,9 +523,9 @@ public class Client {
                         }
                         if (uidMap.containsKey(file_uid))
                             FileUtils.writeByteArrayToFile(new File(uidMap.get(file_uid)), decipheredFileData);
-                            //ELSE CREATE IT
+                            //else create it
                         else {
-                            //PREVENTS DUPLICATE FILENAMES FROM OVERWRITING
+                            //prevents duplicate names from overwriting
                             int dupNumber = 1;
                             Map<String, String> map = getUidMap(INDEX_NAME, INDEX_UID, INDEX_USERNAME);
 
@@ -603,7 +615,7 @@ public class Client {
                 GetAESEncryptedReply reply = c.GetAESEncrypted(this.username, existingNames.toArray(new String[0]), uid, s);
                 byte[] aesEncrypted = reply.getAESEncrypted().toByteArray();
 
-                //Get users to give permission public keys
+                //Get users' whose permission is being assigned public keys
                 List<byte[]> othersPubKeysBytes = reply
                         .getOthersPublicKeysList()
                         .stream()
@@ -619,7 +631,6 @@ public class Client {
                     //encrypt AES with "others" public keys to send to the server
                     List<byte[]> othersAesEncrypted = e.getOthersAESEncrypted(othersPubKeysBytes, aesKeyBytes);
 
-                    //System.out.println(Arrays.toString(othersAesEncrypted.get(0)));
                     //read/write permissions
                     GivePermissionReply res = c.GivePermission(othersNames, uid, s, othersAesEncrypted);
                     if (res.getOkOthers()) {
@@ -654,7 +665,7 @@ public class Client {
                 if (repPass.getOkPassword()) {
                     Map<String, String> map = getUidMap(INDEX_NAME, INDEX_UID, INDEX_USERNAME);
                     Map<String, String> map1 = getUidMap(INDEX_NAME, INDEX_PART_ID, INDEX_USERNAME);
-                    String filename = console.readLine("Enter filename to revert: ");
+                    String filename = console.readLine("Enter filename to roll back: ");
                     String fileUid = map.get(filename);
                     String partId= map1.get(filename);
                     GetAESEncryptedReply res = c.GetAESEncrypted(this.username, this.username, fileUid, "write");
@@ -662,6 +673,7 @@ public class Client {
                         System.err.println("Error: You have read-only permission for this file");
                         return;
                     }
+                    //get list of all available versions for that file
                     ListFileVersionsReply reply = c.ListFileVersions(fileUid);
                     int version = reply.getDatesCount();
 
