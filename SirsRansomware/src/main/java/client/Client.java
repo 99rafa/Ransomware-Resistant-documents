@@ -137,8 +137,8 @@ public class Client {
                     case "register" -> client.register();
                     case "push" -> client.push();
                     case "pull" -> client.pull();
-                    case "givePerm" -> client.givePermission();
-                    case "rollBackVersion" -> client.revertRemoteFile();
+                    case "giveperm" -> client.givePermission();
+                    case "rollback" -> client.revertRemoteFile();
                     case "logout" -> client.logout();
                     case "exit" -> running = false;
                     case "help" -> client.displayHelp();
@@ -433,8 +433,8 @@ public class Client {
         System.out.println("help - displays help message");
         System.out.println("pull - receives files from server");
         System.out.println("push - sends file to server");
-        System.out.println("givePerm - give read/write file access permission to user/s");
-        System.out.println("rollBackVersion - reverts a file to a previous version");
+        System.out.println("giveperm - give read/write file access permission to user/s");
+        System.out.println("rollback - reverts a file to a previous version");
         System.out.println("logout - exits client");
         System.out.println("exit - exits client");
     }
