@@ -17,11 +17,16 @@ import pt.ulisboa.tecnico.sdis.zk.ZKRecord;
 import javax.crypto.*;
 import javax.net.ssl.SSLException;
 import java.io.*;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -111,15 +116,12 @@ public class Client {
         return builder.build();
     }
 
-
     public static void main(String[] args) throws Exception {
         if (args.length != 5) {
             System.out.println("USAGE: zooHost zooPort trustCertCollectionFilePath " +
                     "clientCertChainFilePath clientPrivateKeyFilePath");
             System.exit(0);
         }
-
-
         /* Use default CA. Only for real server certificates. */
         Client client = new Client(args[0], args[1],
                 buildSslContext(args[2], args[3], args[4]));
