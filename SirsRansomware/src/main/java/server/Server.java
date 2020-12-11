@@ -24,14 +24,18 @@ import server.domain.user.User;
 import server.domain.user.UserRepository;
 
 import javax.net.ssl.SSLException;
-import java.io.Console;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -69,7 +73,7 @@ public class Server {
                   String host,
                   String certChainFilePath,
                   String privateKeyFilePath,
-                  String trustCertCollectionFilePath) {
+                  String trustCertCollectionFilePath) throws Exception {
         this.user = user;
         this.pass = pass;
         this.zooPort = zooPort;
@@ -124,10 +128,7 @@ public class Server {
         } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
             e.printStackTrace();
         }
-
-
     }
-
     private static SslContext buildSslContext(String trustCertCollectionFilePath,
                                               String clientCertChainFilePath,
                                               String clientPrivateKeyFilePath) throws SSLException {
@@ -144,7 +145,7 @@ public class Server {
     /**
      * Main launches the server from the command line.
      */
-    public static void main(String[] args) throws IOException, InterruptedException {
+    public static void main(String[] args) throws Exception {
 
         if (args.length != 9) {
             System.out.println(
@@ -153,6 +154,7 @@ public class Server {
                             "to enable Mutual TLS.");
             System.exit(0);
         }
+
 
         final Server server = new Server(
                 args[0],
