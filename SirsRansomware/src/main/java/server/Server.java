@@ -276,8 +276,18 @@ public class Server {
         public void revertMostRecentVersion(RevertMostRecentVersionRequest request, StreamObserver<RevertMostRecentVersionReply> responseObserver) {
             try {
                 List<String> servers = getZooPaths("/sirs/ransomware/backups");
-                byte[] file = getBackup(servers.get(0), request.getVersionUid()).toByteArray();
-                FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), file);
+                for (String server : servers) {
+                    String pair = server.split("/")[4];
+                    String part = pair.split("_")[0];
+                    String id = pair.split("_")[1];
+                    if (part.equals(request.getPartId())) {
+                        byte[] file = getBackup(server, request.getVersionUid()).toByteArray();
+                        FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), file);
+                        break;
+                    }
+
+                }
+
             } catch (IOException e) {
                 e.printStackTrace();
             }

@@ -99,12 +99,13 @@ public class ClientFrontend {
 
     }
 
-    public RevertMostRecentVersionReply RevertMostRecentVersion(String file_uid, String version_uid) {
+    public RevertMostRecentVersionReply RevertMostRecentVersion(String file_uid, String version_uid, String partId) {
         return blockingStub.revertMostRecentVersion(
                 RevertMostRecentVersionRequest
                         .newBuilder()
                         .setFileUid(file_uid)
                         .setVersionUid(version_uid)
+                        .setPartId(partId)
                         .build());
     }
 
