@@ -140,7 +140,7 @@ public class Client {
                     case "logout" -> client.logout();
                     case "revertRemoteFile" -> client.revertRemoteFile();
                     case "exit" -> running = false;
-                    default -> System.out.println("Command not recognized");
+                    default -> System.err.println("Error: Command not recognized");
                 }
             }
         } finally {
@@ -163,21 +163,19 @@ public class Client {
         while (!match) {
             passwd = new String(console.readPassword("Enter a password: "));
             while (passwd.length() < 8 || passwd.length() > 25) {
-                System.out.println("Password must be between 8 and 25 characters, try again");
+                System.err.println("Error: Password must be between 8 and 25 characters, try again");
                 passwd = new String(console.readPassword("Enter a password: "));
             }
             String confirmation = new String(console.readPassword("Confirm your password: "));
             if (passwd.equals(confirmation))
                 match = true;
-            else System.out.println("Password don't match. Try again");
+            else System.err.println("Error: Password don't match. Try again");
         }
 
         System.out.println("Registering user " + name + " ...");
         // generate RSA Keys
         KeyPair keyPair = e.generateUserKeyPair();
         PublicKey publicKey = keyPair.getPublic();
-        //System.out.println("privateKey: " + keyPair.getPrivate());
-        //System.out.println("publicKey: " + publicKey);
         // Get the bytes of the public key
         byte[] publicKeyBytes = publicKey.getEncoded();
 
@@ -200,7 +198,6 @@ public class Client {
         byte[] salt = PBKDF2Main.getNextSalt();
         RegisterReply response = c.Register(name, e.generateSecurePassword(passwd, salt), publicKeyBytes, salt);
         System.out.println(response.getOk());
-        //this.username = name;
     }
 
     public void login() {
@@ -329,7 +326,7 @@ public class Client {
 
     public void push() {
         if (username == null) {
-            System.err.println("Error: To pull files, you need to login first");
+            System.err.println("Error: To push files, you need to login first");
             return;
         }
         int tries = 0;
@@ -342,7 +339,7 @@ public class Client {
                     boolean isNew = !getUidMap(INDEX_PATH, INDEX_UID, INDEX_USERNAME).containsKey(filePath);
                     File f = new File(filePath);
                     if (!f.exists()) {
-                        System.out.println("No such file");
+                        System.err.println("Error: No such file");
                         return;
                     }
                     byte[] file_bytes = Files.readAllBytes(
@@ -384,7 +381,6 @@ public class Client {
                         GetPublicKeysByUsernamesReply reply = c.GetPublicKeysByUsernames(this.username);
                         encryptedAES = e.encryptWithRSA(e.bytesToPubKey(reply.getKeys(0).toByteArray()), fileSecretKey.getEncoded());
                         file = e.encryptWithAES(fileSecretKey, file_bytes, iv);
-                        //System.out.println("publicKey: " + e.bytesToPubKey(reply.getKeys(0).toByteArray()));
                     } else {
                         GetAESEncryptedReply res = c.GetAESEncrypted(this.username, this.username, uid, "write");
                         if (res.getAESEncrypted().toByteArray().length == 0) {
@@ -393,10 +389,8 @@ public class Client {
                         }
                         iv = res.getIv().toByteArray();
                         encryptedAES = res.getAESEncrypted().toByteArray();
-                        //System.out.println(Arrays.toString(encryptedAES));
                         SecretKey fileSecretKey1 = e.bytesToAESKey(e.getAESKeyBytes(encryptedAES, this.username, this.keyStore));
                         file = e.encryptWithAES(fileSecretKey1, file_bytes, iv);
-                        //System.out.println("privateKey: " + e.getPrivateKey(this.username,this.keyStore));
                     }
                     System.out.println("Sending file to server");
 
@@ -490,7 +484,6 @@ public class Client {
 
                             for (byte[] backup : backups) {
                                 byte[] encryptedBackup = backup.clone();
-                                // System.out.println(version_uid);
                                 try {
                                     decipheredFileData = e.decryptSecureFile(backup, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray(), this.username, this.keyStore);
                                 } catch (BadPaddingException | IllegalBlockSizeException ignored) {
@@ -681,7 +674,7 @@ public class Client {
                     if (reply1.getOk()) {
                         System.out.println("Version reverted successfully!");
                     } else {
-                        System.out.println("Failed to revert version!");
+                        System.err.println("Error: Failed to revert version!");
                     }
                     break;
                 } else {
