@@ -82,6 +82,7 @@ public class Server {
         this.trustCertCollectionFilePath = trustCertCollectionFilePath;
 
 
+        // Private Key KeyStore
         Console console = System.console();
         String passwd = new String(console.readPassword("Enter private Key keyStore password: "));
         KeyStore ks = null;
@@ -97,6 +98,7 @@ public class Server {
             e.printStackTrace();
         }
 
+        //Trust Certificate Key Store
         passwd = new String(console.readPassword("Enter trust cert keyStore password: "));
         KeyStore trustCertKeyStore = null;
         try {
@@ -111,6 +113,7 @@ public class Server {
             e.printStackTrace();
         }
 
+        //Trust Store Key Store
         passwd = new String(console.readPassword("Enter trustStore password: "));
         KeyStore trustStore = null;
         try {
@@ -244,10 +247,11 @@ public class Server {
 
     static class ServerImp extends ServerGrpc.ServerImplBase {
         private final static int ITERATIONS = 10000;
+        private final static String BACKUP_ZOO_PATH = "/sirs/ransomware/backups";
         private final String certChainFilePath;
         private final String privateKeyFilePath;
         private final String trustCertCollectionFilePath;
-        Connector c;
+        Connector connector;
         UserRepository userRepository;
         FileRepository fileRepository;
         FileVersionRepository fileVersionRepository;
@@ -263,10 +267,10 @@ public class Server {
             this.privateKeyFilePath = privateKeyFilePath;
             this.trustCertCollectionFilePath = trustCertCollectionFilePath;
             try {
-                c = new Connector(user,pass);
-                userRepository = new UserRepository(c.getConnection());
-                fileRepository = new FileRepository(c.getConnection());
-                fileVersionRepository = new FileVersionRepository(c.getConnection());
+                this.connector = new Connector(user,pass);
+                this.userRepository = new UserRepository(connector.getConnection());
+                this.fileRepository = new FileRepository(connector.getConnection());
+                this.fileVersionRepository = new FileVersionRepository(connector.getConnection());
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -275,11 +279,13 @@ public class Server {
         @Override
         public void revertMostRecentVersion(RevertMostRecentVersionRequest request, StreamObserver<RevertMostRecentVersionReply> responseObserver) {
             try {
-                List<String> servers = getZooPaths("/sirs/ransomware/backups");
+                //Gets all backups currently up
+                List<String> servers = getZooPaths(BACKUP_ZOO_PATH);
                 for (String server : servers) {
                     String pair = server.split("/")[4];
                     String part = pair.split("_")[0];
                     String id = pair.split("_")[1];
+                    //Asks a backup that serves the file to revert it
                     if (part.equals(request.getPartId())) {
                         byte[] file = getBackup(server, request.getVersionUid()).toByteArray();
                         FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), file);
@@ -330,10 +336,12 @@ public class Server {
 
         @Override
         public void retrieveHealthyVersions(RetrieveHealthyVersionsRequest request, StreamObserver<RetrieveHealthyVersionsReply> responseObserver) {
-            List<String> servers = getZooPaths("/sirs/ransomware/backups");
+            //Gets all available backup servers
+            List<String> servers = getZooPaths(BACKUP_ZOO_PATH);
             List<ByteString> backup_versions = new ArrayList<>();
             for (String backup : servers) {
                 try {
+                    //Gets the same file version from every backup that has it
                     backup_versions.add(getBackup(backup, request.getUid()));
                 } catch (SSLException e) {
                     e.printStackTrace();
@@ -351,6 +359,7 @@ public class Server {
         @Override
         public void healCorruptedVersion(HealCorruptedVersionRequest request, StreamObserver<HealCorruptedVersionReply> responseObserver) {
             try {
+                //Overwrites current version with healthy one
                 FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), request.getFile().toByteArray());
                 replicateFile(request.getPartId(), request.getFile(), request.getVersionUid());
             } catch (IOException e) {
@@ -381,8 +390,10 @@ public class Server {
             System.out.println("Received register request for user " + req.getUsername());
 
             RegisterReply reply;
+            //Username validation
             if (req.getUsername().length() > 15 || req.getUsername().length() == 0)
                 reply = RegisterReply.newBuilder().setOk("Username must have between 1 and 15 characters").build();
+            //Duplicated username
             else if (usernameExists(req.getUsername()))
                 reply = RegisterReply.newBuilder().setOk("Duplicate user with username " + req.getUsername()).build();
             else {
@@ -484,6 +495,8 @@ public class Server {
             System.out.println("Pull All request received");
 
             PullReply.Builder reply = PullReply.newBuilder();
+
+            //Gets all files that the given user can read
             List<File> readableFiles = this.fileRepository.getUserReadableFiles(req.getUsername());
             for (File file : readableFiles) {
                 System.out.println("Sending file " + file.getName() + " " + file.getUid() + " to client " + req.getUsername());
@@ -552,7 +565,9 @@ public class Server {
 
             GivePermissionReply reply = null;
 
+            //Verifies if users exist in the database
             if (allUsernamesExist(req.getOthersNamesList())) {
+                //Verifies if file exists in the database
                 if (filenameExists(req.getUid())) {
                     giveUsersPermission(req.getOthersNamesList(), req.getUid(), req.getMode(), req.getOtherAESEncryptedList().stream().map(ByteString::toByteArray).collect(Collectors.toList()));
                     reply = GivePermissionReply.newBuilder().setOkOthers(true).setOkUid(true).build();
@@ -572,8 +587,11 @@ public class Server {
             if (isOwner(req.getUsername(), req.getUid())) {
                 owner = true;
             }
+            //Gets file key encrypted with user's public key
             byte[] aes = getAESEncrypted(req.getUsername(), req.getUid(), req.getMode());
+            //Gets all users public keys to give permission
             List<byte[]> pk = userRepository.getPublicKeysByUsernames(req.getOthersNamesList());
+            //Gets the iv used in the file encryption
             byte[] iv = fileRepository.getFileIv(req.getUid());
             replyBuilder = GetAESEncryptedReply
                     .newBuilder()
@@ -608,7 +626,9 @@ public class Server {
         }
 
         public void replicateFile(String partId, ByteString file, String versionId) throws SSLException {
-            List<String> servers = getZooPaths("/sirs/ransomware/backups");
+            //Gets all available backups
+            List<String> servers = getZooPaths(BACKUP_ZOO_PATH);
+            //Sends file version to store in the backups that serve that file
             for (String server : servers) {
                 String pair = server.split("/")[4];
                 String part = pair.split("_")[0];
@@ -640,6 +660,7 @@ public class Server {
             ZKRecord record = null;
             ByteString bytes;
             BackupServerGrpc.BackupServerBlockingStub blockingStub;
+            //Builds communication channel with a given backup
             ManagedChannel channel;
             try {
                 record = zkNaming.lookup(zooPath);
@@ -652,6 +673,7 @@ public class Server {
                     .sslContext(buildSslContext(trustCertCollectionFilePath, certChainFilePath, privateKeyFilePath))
                     .build();
             blockingStub = BackupServerGrpc.newBlockingStub(channel);
+            //Retrieves wanted file
             bytes = blockingStub.getBackup(
                     GetBackupRequest
                             .newBuilder()
@@ -667,6 +689,7 @@ public class Server {
         public void backupFile(String zooPath, ByteString file, String uid) throws SSLException {
             ZKRecord record = null;
             BackupServerGrpc.BackupServerBlockingStub blockingStub;
+            //Builds communication channel with a given backup
             ManagedChannel channel;
             try {
                 record = zkNaming.lookup(zooPath);
@@ -680,6 +703,7 @@ public class Server {
                     .build();
             blockingStub = BackupServerGrpc.newBlockingStub(channel);
 
+            //Stores wanted file
             BackupFileReply reply = blockingStub.backupFile(
                     BackupFileRequest
                             .newBuilder()
@@ -707,17 +731,17 @@ public class Server {
 
         private void registerUser(String name, byte[] password, byte[] salt, byte[] publicKeyBytes) {
             User user = new User(name, password, salt, ITERATIONS, publicKeyBytes);
-            user.saveInDatabase(this.c);
+            user.saveInDatabase(this.connector);
         }
 
         private void registerFile(String uid, String filename, String owner, String partId, byte[] AESEncrypted, byte[] iv) {
             server.domain.file.File file = new server.domain.file.File(uid, owner, filename, partId, AESEncrypted, iv);
-            file.saveInDatabase(this.c);
+            file.saveInDatabase(this.connector);
         }
 
         private void registerFileVersion(String versionId, String fileId, String creator, byte[] digitalSignature) {
             FileVersion fileVersion = new FileVersion(versionId, fileId, creator, new Date(System.currentTimeMillis()), digitalSignature);
-            fileVersion.saveInDatabase(this.c);
+            fileVersion.saveInDatabase(this.connector);
         }
 
         private boolean usernameExists(String name) {
