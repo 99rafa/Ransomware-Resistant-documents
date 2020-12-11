@@ -90,7 +90,7 @@ public class Client {
         assert record != null;
         /* Only for using provided test certs. */
         ManagedChannel channel = NettyChannelBuilder.forTarget(record.getURI())
-                .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
+                //.overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
                 .sslContext(sslContext)
                 .build();
         ServerGrpc.ServerBlockingStub blockingStub = ServerGrpc.newBlockingStub(channel);
