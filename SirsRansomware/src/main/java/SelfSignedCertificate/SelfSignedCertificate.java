@@ -23,7 +23,7 @@ public class SelfSignedCertificate {
     private static final String CERTIFICATE_ALGORITHM = "RSA";
     private static final String CERTIFICATE_DN = "CN=cn, O=o, L=L, ST=il, C= c";
     private static final String CERTIFICATE_NAME = "src/assets/certs/clientCert.pem";
-    private static final int CERTIFICATE_BITS = 1024;
+    private static final int CERTIFICATE_BITS = 2048;
 
     static {
         // adds the Bouncy castle provider to java security
