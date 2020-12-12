@@ -40,27 +40,26 @@ In order to run the program, at least 3 terminal windows must be open:
 1. Server initialization
 ---------------------------------------------
 
-Assuming `$LOCALPATH` is the root directory of the project,
+Run
 
 ```bash
-mvn exec:java -Dexec.mainClass="server.Server" -Dexec.args="<zooPort> <zooHost> <serverPort> <serverHost> $LOCALPATH/<path-to-trust-certificate> $LOCALPATH/<path-to-server-private-key> $LOCALPATH/<path-to-certificate-authority>" 
+mvn exec:java -Dexec.mainClass="server.Server" -Dexec.args="<zooPort> <zooHost> <serverPort> <serverHost>" 
 ```
 
 - zooPort: zookeeper(port)
 - zooHost: zookeeper(host)
 - serverPort: server(port)
 - serverHost: server(host)
-- path-to-trust-certificate: path to the trustable server's certificate
-- path-to-server-private-key: path to the server's private key
-- path-to-certificate-authority: path to the certificate authority
 
 Alternatively, open `<root-project-directory>/run_scripts` and run script server.sh to run the server program.
 
 2. Backup Server initialization
 ---------------------------------------------
 
+Run
+
 ```bash
-mvn exec:java -Dexec.mainClass="server.BackupServer" -Dexec.args="<partitionID> <serverID> <zooPort> <zooHost> <backupServerPort> <backupServerHost> $LOCALPATH/<path-to-trust-certificate> $LOCALPATH/<path-to-backupServer-private-key> $LOCALPATH/<path-to-certificate-authority>" 
+mvn exec:java -Dexec.mainClass="server.BackupServer" -Dexec.args="<partitionID> <serverID> <zooPort> <zooHost> <backupServerPort> <backupServerHost>" 
 ```
 
 - partitionID: Id of the partition(integer)
@@ -69,9 +68,6 @@ mvn exec:java -Dexec.mainClass="server.BackupServer" -Dexec.args="<partitionID> 
 - zooHost: zookeeper(host)
 - backupServerPort: backupServer(port)
 - backupServerHost: backupServer(host)
-- path-to-trust-certificate: path to the trustable backup server's certificate
-- path-to-server-private-key: path to the backup server's private key
-- path-to-certificate-authority:path to the certificate authority
 
 Alternatively, open `<root-project-directory>/run_scripts` and run script backup.sh to run the backup server program.
 
@@ -79,15 +75,14 @@ Alternatively, open `<root-project-directory>/run_scripts` and run script backup
 3. Client Initialization
 ---------------------------------------------
 
+Run
+
 ```bash
-mvn exec:java -Dexec.mainClass="client.Client" -Dexec.args="<zooPort> <zooHost> $LOCALPATH/<path-to-trust-certificate> $LOCALPATH/<path-to-client-private-key> $LOCALPATH/<path-to-certificate-authority>" 
+mvn exec:java -Dexec.mainClass="client.Client" -Dexec.args="<zooPort> <zooHost>" 
 ```
 
 - zooPort: zookeeper(port)
 - zooHost: zookeeper(host)
-- path-to-trust-certificate: path to the trustable client's certificate
-- path-to-client-private-key: path to the client's private key
-- path-to-certificate-authority:path to the certificate authority
 
 Alternatively, open `<root-project-directory>/run_scripts` and run script client.sh to run the client program.
 
