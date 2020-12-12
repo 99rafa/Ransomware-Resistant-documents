@@ -13,7 +13,8 @@ The requirements needed to run the program are:
 - Java 15
 - Maven
 - MySQL 
-- ZooKeeper name Server/zkNaming
+- ZooKeeper name Server
+- zkNaming
 
 
 ## Usage
