@@ -32,7 +32,7 @@ In order to run the program, at least 3 terminal windows must be open:
 
 3. Run `mysql.server start`. Then, create the database in which the data will be stored, running the command `createdb <name-of-db>` where `<name-of-db>` is the desired name for the databse. Afterwards, Open `<root-project-directory>/SirsRansomware/src/assets/sql_scripts>` and run `mysql <name-of-db> -p < init.sql` to initialize the databse.
 
-4. Open `<root-project-directory>/run_scripts` and run script **init.sh** to install and compile the whole project.
+4. Open `<root-project-directory>/SirsRansomware/run_scripts` and run script **init.sh** to install and compile the whole project.
 
 #### 1. Server initialization
 
