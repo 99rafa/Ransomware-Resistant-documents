@@ -52,9 +52,11 @@ Alternatively, open `<root-project-directory>/run_scripts` and run script **serv
 Run
 
 ```bash
-mvn exec:java -Dexec.mainClass="server.BackupServer" -Dexec.args="<partitionID> <serverID> <zooPort> <zooHost> <backupServerPort> <backupServerHost>" 
+mvn exec:java -Dexec.mainClass="server.BackupServer" -Dexec.args="<dbUser> <dbPass> <partitionID> <serverID> <zooPort> <zooHost> <backupServerPort> <backupServerHost>" 
 ```
 
+- **dbUser**: created user for using the MySQL database
+- **dbPass**: password for created user in MySQL
 - **partitionID**: Id of the partition(integer)
 - **serverID**: Id of the server(integer)
 - **zooPort**: zookeeper(port)
