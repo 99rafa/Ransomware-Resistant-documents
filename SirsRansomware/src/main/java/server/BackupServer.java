@@ -13,11 +13,16 @@ import proto.*;
 import pt.ulisboa.tecnico.sdis.zk.ZKNaming;
 import pt.ulisboa.tecnico.sdis.zk.ZKNamingException;
 
+import java.io.Console;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.*;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 
 /**
  * Server that manages startup/shutdown of a {@code Greeter} server with TLS enabled.
@@ -29,9 +34,9 @@ public class BackupServer {
     private final String zooPath;
     private final String host;
     private final String port;
-    private final String certChainFilePath;
-    private final String privateKeyFilePath;
-    private final String trustCertCollectionFilePath;
+    private X509Certificate certChain = null;
+    private PrivateKey privateKey = null;
+    private X509Certificate trustCertCollection = null;
     private Server server;
     private ZKNaming zkNaming;
 
@@ -40,18 +45,87 @@ public class BackupServer {
                         String zooPort,
                         String zooHost,
                         String port,
-                        String host,
-                        String certChainFilePath,
-                        String privateKeyFilePath,
-                        String trustCertCollectionFilePath) {
+                        String host) {
         this.zooPort = zooPort;
         this.zooHost = zooHost;
         this.zooPath = "/sirs/ransomware/backups/" + partId + "_" + id;
         this.host = host;
         this.port = port;
-        this.certChainFilePath = certChainFilePath;
-        this.privateKeyFilePath = privateKeyFilePath;
-        this.trustCertCollectionFilePath = trustCertCollectionFilePath;
+
+        KeyStore ks = null;
+        String passwd = null;
+
+        Console console = System.console();
+
+        try {
+            ks = KeyStore.getInstance("PKCS12");
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+
+        boolean wrongPassword = true;
+
+        while (wrongPassword) {
+            passwd = new String(console.readPassword("Enter private Key keyStore password: "));
+            try {
+                assert ks != null;
+                ks.load(new FileInputStream("src/assets/keyStores/privateKeyServerKeyStore.p12"), passwd.toCharArray());
+                privateKey = (PrivateKey) ks.getKey("server-private-key", passwd.toCharArray());
+                wrongPassword = false;
+            } catch (IOException e) {
+                System.err.println("Error: Incorrect password");
+            } catch (NoSuchAlgorithmException | CertificateException | KeyStoreException | UnrecoverableKeyException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+        KeyStore trustCertKeyStore = null;
+        try {
+            trustCertKeyStore = KeyStore.getInstance("PKCS12");
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+
+        wrongPassword = true;
+
+        while (wrongPassword) {
+            passwd = new String(console.readPassword("Enter trust cert keyStore password: "));
+            try {
+                assert trustCertKeyStore != null;
+                trustCertKeyStore.load(new FileInputStream("src/assets/keyStores/trustCertsServerKeyStore.p12"), passwd.toCharArray());
+                certChain = (X509Certificate) trustCertKeyStore.getCertificate("server-cert");
+                wrongPassword = false;
+            } catch (IOException e) {
+                System.err.println("Error: Incorrect password");
+            } catch (NoSuchAlgorithmException | CertificateException | KeyStoreException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+        KeyStore trustStore = null;
+        try {
+            trustStore = KeyStore.getInstance("PKCS12");
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+
+        wrongPassword = true;
+
+        while (wrongPassword) {
+            passwd = new String(console.readPassword("Enter trustStore password: "));
+            try {
+                assert trustStore != null;
+                trustStore.load(new FileInputStream("src/assets/keyStores/truststore.p12"), passwd.toCharArray());
+                trustCertCollection = (X509Certificate) trustStore.getCertificate("ca-cert");
+                wrongPassword = false;
+            } catch (IOException e) {
+                System.err.println("Error: Incorrect password");
+            } catch (NoSuchAlgorithmException | CertificateException | KeyStoreException e) {
+                e.printStackTrace();
+            }
+        }
 
     }
 
@@ -60,11 +134,9 @@ public class BackupServer {
      */
     public static void main(String[] args) throws IOException, InterruptedException {
 
-        if (args.length != 9) {
+        if (args.length != 6) {
             System.out.println(
-                    "USAGE: ID partID zooHost zooPort host port certChainFilePath privateKeyFilePath " +
-                            "[trustCertCollectionFilePath]\n  Note: You only need to supply trustCertCollectionFilePath if you want " +
-                            "to enable Mutual TLS.");
+                    "USAGE: ID partID zooHost zooPort host port");
             System.exit(0);
         }
 
@@ -74,10 +146,7 @@ public class BackupServer {
                 args[2],
                 args[3],
                 args[4],
-                args[5],
-                args[6],
-                args[7],
-                args[8]);
+                args[5]);
         server.start();
         server.blockUntilShutdown();
     }
@@ -104,10 +173,10 @@ public class BackupServer {
     }
 
     private SslContextBuilder getSslContextBuilder() {
-        SslContextBuilder sslClientContextBuilder = SslContextBuilder.forServer(new File(certChainFilePath),
-                new File(privateKeyFilePath));
-        if (trustCertCollectionFilePath != null) {
-            sslClientContextBuilder.trustManager(new File(trustCertCollectionFilePath));
+        SslContextBuilder sslClientContextBuilder = SslContextBuilder.forServer(privateKey, certChain
+                );
+        if (trustCertCollection!= null) {
+            sslClientContextBuilder.trustManager(trustCertCollection);
             sslClientContextBuilder.clientAuth(ClientAuth.REQUIRE);
         }
         return GrpcSslContexts.configure(sslClientContextBuilder);

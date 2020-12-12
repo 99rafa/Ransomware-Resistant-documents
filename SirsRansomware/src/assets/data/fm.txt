@@ -1,3 +1,0 @@
-/home/mateus/bob b1cfd7cb-9d7f-4fda-a9b7-22d4eff28a34 1 file1 bob
-/home/mateus/bob1 0958b3a5-6042-4e6c-a8a0-614d82bd51f9 2 file2 bob
-/home/mateus/bob 7e11135e-4a1c-4b0d-8c17-a32e0c09d267 1 file1 q

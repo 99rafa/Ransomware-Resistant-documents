@@ -64,7 +64,7 @@ public class UserRepository extends Repository {
     }
 
     public void setUserPermissionFile(String username, String uid, String mode, byte[] AESEncrypted) {
-        System.out.println(!userAllowed(username,uid,mode));
+
         switch (mode) {
             case "read" -> { if (!userAllowed(username,uid,mode)){ addUserToReadableFiles(username, uid, AESEncrypted);}
             }

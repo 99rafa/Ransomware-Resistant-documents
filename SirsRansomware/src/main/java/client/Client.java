@@ -46,13 +46,18 @@ public class Client {
     private final EncryptionLogic e;
     private final ClientFrontend c;
     KeyStore keyStore;
+    KeyStore trustCertKeyStore;
+    KeyStore trustStore;
     private String username = null;
     private byte[] salt = null;
+    private X509Certificate certChain = null;
+    private PrivateKey privateKey = null;
+    private X509Certificate trustCertCollection = null;
 
 
     public Client(String zooHost,
-                  String zooPort,
-                  SslContext sslContext) {
+                  String zooPort
+                  ) {
 
         this.zooHost = zooHost;
         this.zooPort = zooPort;
@@ -64,17 +69,48 @@ public class Client {
         Console console = System.console();
         String passwd = new String(console.readPassword("Enter private Key keyStore password: "));
          */
-        KeyStore ks = null;
+
         try {
-            ks = KeyStore.getInstance("PKCS12");
+            keyStore = KeyStore.getInstance("PKCS12");
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            assert keyStore != null;
+            keyStore.load(new FileInputStream("src/assets/keyStores/clientStore.p12"), "vjZx~R::Vr=s7]bz#".toCharArray());
+            privateKey = (PrivateKey) keyStore.getKey(  "client-private-key", "vjZx~R::Vr=s7]bz#".toCharArray());
+        } catch (IOException e) {
+            System.err.println("Error: Incorrect password");
+        }
+        catch (NoSuchAlgorithmException | CertificateException | KeyStoreException | UnrecoverableKeyException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            trustCertKeyStore = KeyStore.getInstance("PKCS12");
+        } catch (KeyStoreException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            assert trustCertKeyStore != null;
+            trustCertKeyStore.load(new FileInputStream("src/assets/keyStores/trustCertsServerKeyStore.p12"), "w7my3n,~yvF-;Py3".toCharArray());
+            certChain = (X509Certificate) trustCertKeyStore.getCertificate( "client-cert");
+        } catch (NoSuchAlgorithmException | CertificateException | IOException | KeyStoreException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            trustStore = KeyStore.getInstance("PKCS12");
         } catch (KeyStoreException e) {
             e.printStackTrace();
         }
         try {
-            assert ks != null;
-            ks.load(new FileInputStream("src/assets/keyStores/clientStore.p12"), "vjZx~R::Vr=s7]bz#".toCharArray());
-            this.keyStore = ks;
-        } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
+            assert trustStore != null;
+            this.trustStore.load(new FileInputStream("src/assets/keyStores/truststore.p12"), "w?#Sf@ZAL*tY7fVx".toCharArray());
+            trustCertCollection = (X509Certificate) this.trustStore.getCertificate(  "ca-cert");
+        } catch (NoSuchAlgorithmException | CertificateException | IOException | KeyStoreException e) {
             e.printStackTrace();
         }
 
@@ -84,11 +120,21 @@ public class Client {
 
         path = "/sirs/ransomware/server";
         ZKRecord record = null;
+        boolean serverRunning = false;
+        while (!serverRunning) {
+            try {
+                record = zkNaming.lookup(path);
+                System.out.println("");
+                serverRunning = true;
+            } catch (ZKNamingException ignored) {
+            }
+        }
+
+        SslContext sslContext = null;
         try {
-            record = zkNaming.lookup(path);
-            System.out.println("");
-        } catch (ZKNamingException e) {
-            e.printStackTrace();
+            sslContext = buildSslContext(trustCertCollection,certChain, privateKey);
+        } catch (SSLException sslException) {
+            sslException.printStackTrace();
         }
 
 
@@ -103,28 +149,26 @@ public class Client {
         this.e = new EncryptionLogic();
     }
 
-    private static SslContext buildSslContext(String trustCertCollectionFilePath,
-                                              String clientCertChainFilePath,
-                                              String clientPrivateKeyFilePath) throws SSLException {
+    private static SslContext buildSslContext(X509Certificate trustCertCollection,
+                                              X509Certificate clientCertChain,
+                                              PrivateKey clientPrivateKey) throws SSLException {
         SslContextBuilder builder = GrpcSslContexts.forClient();
-        if (trustCertCollectionFilePath != null) {
-            builder.trustManager(new File(trustCertCollectionFilePath));
+        if (trustCertCollection != null) {
+            builder.trustManager(trustCertCollection);
         }
-        if (clientCertChainFilePath != null && clientPrivateKeyFilePath != null) {
-            builder.keyManager(new File(clientCertChainFilePath), new File(clientPrivateKeyFilePath));
+        if (clientCertChain != null && clientPrivateKey != null) {
+            builder.keyManager(clientPrivateKey,clientCertChain);
         }
         return builder.build();
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 5) {
-            System.out.println("USAGE: zooHost zooPort trustCertCollectionFilePath " +
-                    "clientCertChainFilePath clientPrivateKeyFilePath");
+        if (args.length != 2) {
+            System.out.println("USAGE: zooHost zooPort");
             System.exit(0);
         }
         /* Use default CA. Only for real server certificates. */
-        Client client = new Client(args[0], args[1],
-                buildSslContext(args[2], args[3], args[4]));
+        Client client = new Client(args[0], args[1]);
 
         try {
             Scanner in = new Scanner(System.in);

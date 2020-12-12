@@ -26,16 +26,12 @@ import server.domain.user.UserRepository;
 import javax.net.ssl.SSLException;
 import java.io.*;
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.spec.PKCS8EncodedKeySpec;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -57,9 +53,9 @@ public class Server {
     private final String zooPath;
     private final String port;
     private final String host;
-    private final String certChainFilePath;
-    private final String privateKeyFilePath;
-    private final String trustCertCollectionFilePath;
+    private X509Certificate certChain = null;
+    private PrivateKey privateKey = null;
+    private X509Certificate trustCertCollection = null;
     private final String user;
     private final String pass;
 
@@ -70,10 +66,7 @@ public class Server {
                   String zooPort,
                   String zooHost,
                   String port,
-                  String host,
-                  String certChainFilePath,
-                  String privateKeyFilePath,
-                  String trustCertCollectionFilePath) throws Exception {
+                  String host) throws Exception {
         this.user = user;
         this.pass = pass;
         this.zooPort = zooPort;
@@ -81,66 +74,106 @@ public class Server {
         this.zooPath = "/sirs/ransomware/server";
         this.host = host;
         this.port = port;
-        this.certChainFilePath = certChainFilePath;
-        this.privateKeyFilePath = privateKeyFilePath;
-        this.trustCertCollectionFilePath = trustCertCollectionFilePath;
 
 
-        // Private Key KeyStore
         Console console = System.console();
-        String passwd = new String(console.readPassword("Enter private Key keyStore password: "));
+        String passwd = null;
         KeyStore ks = null;
         try {
             ks = KeyStore.getInstance("PKCS12");
         } catch (KeyStoreException e) {
             e.printStackTrace();
         }
-        try {
-            assert ks != null;
-            ks.load(new FileInputStream("src/assets/keyStores/privateKeyServerKeyStore.p12"), "5Xa)^WU_(rw$<}p%".toCharArray());
-        } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
-            e.printStackTrace();
+
+        boolean wrongPassword = true;
+
+        while (wrongPassword) {
+            passwd = new String(console.readPassword("Enter private Key keyStore password: "));
+            try {
+                assert ks != null;
+                ks.load(new FileInputStream("src/assets/keyStores/privateKeyServerKeyStore.p12"), passwd.toCharArray());
+                privateKey = (PrivateKey) ks.getKey("server-private-key", passwd.toCharArray());
+                wrongPassword = false;
+            } catch (IOException e) {
+                System.err.println("Error: Incorrect password");
+            } catch (NoSuchAlgorithmException | CertificateException e) {
+                e.printStackTrace();
+            }
         }
 
-        //Trust Certificate Key Store
-        passwd = new String(console.readPassword("Enter trust cert keyStore password: "));
+
         KeyStore trustCertKeyStore = null;
+
         try {
             trustCertKeyStore = KeyStore.getInstance("PKCS12");
         } catch (KeyStoreException e) {
             e.printStackTrace();
         }
-        try {
-            assert trustCertKeyStore != null;
-            trustCertKeyStore.load(new FileInputStream("src/assets/keyStores/trustCertsServerKeyStore.p12"), "w7my3n,~yvF-;Py3".toCharArray());
-        } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
-            e.printStackTrace();
+
+        wrongPassword = true;
+
+        while (wrongPassword) {
+            passwd = new String(console.readPassword("Enter trust cert keyStore password: "));
+            try {
+                assert trustCertKeyStore != null;
+                trustCertKeyStore.load(new FileInputStream("src/assets/keyStores/trustCertsServerKeyStore.p12"), passwd.toCharArray());
+                certChain = (X509Certificate) trustCertKeyStore.getCertificate("server-cert");
+                wrongPassword = false;
+            } catch (IOException e) {
+                System.err.println("Error: Incorrect password");
+            } catch (NoSuchAlgorithmException | CertificateException e) {
+                e.printStackTrace();
+            }
         }
 
-        //Trust Store Key Store
-        passwd = new String(console.readPassword("Enter trustStore password: "));
+
         KeyStore trustStore = null;
         try {
             trustStore = KeyStore.getInstance("PKCS12");
         } catch (KeyStoreException e) {
             e.printStackTrace();
         }
-        try {
-            assert trustStore != null;
-            trustStore.load(new FileInputStream("src/assets/keyStores/truststore.p12"), "w?#Sf@ZAL*tY7fVx".toCharArray());
-        } catch (NoSuchAlgorithmException | CertificateException | IOException e) {
-            e.printStackTrace();
+
+        wrongPassword = true;
+        while (wrongPassword) {
+            passwd = new String(console.readPassword("Enter trustStore password: "));
+            try {
+                assert trustStore != null;
+                trustStore.load(new FileInputStream("src/assets/keyStores/truststore.p12"), passwd.toCharArray());
+                trustCertCollection = (X509Certificate) trustStore.getCertificate("ca-cert");
+                wrongPassword = false;
+            } catch (IOException e) {
+                System.err.println("Error: Incorrect password");
+            } catch (NoSuchAlgorithmException | CertificateException e) {
+                e.printStackTrace();
+            }
         }
     }
-    private static SslContext buildSslContext(String trustCertCollectionFilePath,
-                                              String clientCertChainFilePath,
-                                              String clientPrivateKeyFilePath) throws SSLException {
-        SslContextBuilder builder = GrpcSslContexts.forClient();
-        if (trustCertCollectionFilePath != null) {
-            builder.trustManager(new java.io.File(trustCertCollectionFilePath));
+
+    /*private static X509Certificate readCertificate(String path) {
+        CertificateFactory fact = null;
+        FileInputStream is = null;
+        try {
+            fact = CertificateFactory.getInstance("X.509");
+             is = new FileInputStream(path);
+            return ((X509Certificate) fact.generateCertificate(is));
+        } catch (CertificateException | FileNotFoundException e) {
+            e.printStackTrace();
         }
-        if (clientCertChainFilePath != null && clientPrivateKeyFilePath != null) {
-            builder.keyManager(new java.io.File(clientCertChainFilePath), new java.io.File(clientPrivateKeyFilePath));
+        return null;
+
+    }*/
+
+
+    private static SslContext buildSslContext(X509Certificate trustCertCollection,
+                                              X509Certificate clientCertChain,
+                                              PrivateKey key) throws SSLException {
+        SslContextBuilder builder = GrpcSslContexts.forClient();
+        if (trustCertCollection!= null) {
+            builder.trustManager(trustCertCollection);
+        }
+        if (clientCertChain != null && key != null) {
+            builder.keyManager(key, clientCertChain);
         }
         return builder.build();
     }
@@ -150,11 +183,9 @@ public class Server {
      */
     public static void main(String[] args) throws Exception {
 
-        if (args.length != 9) {
+        if (args.length != 6) {
             System.out.println(
-                    "USAGE: ServerTls dbuser dbpass zooHost zooPort host port certChainFilePath privateKeyFilePath " +
-                            "[trustCertCollectionFilePath]\n  Note: You only need to supply trustCertCollectionFilePath if you want " +
-                            "to enable Mutual TLS.");
+                    "USAGE: ServerTls dbuser dbpass zooHost zooPort host port");
             System.exit(0);
         }
 
@@ -165,10 +196,8 @@ public class Server {
                 args[2],
                 args[3],
                 args[4],
-                args[5],
-                args[6],
-                args[7],
-                args[8]);
+                args[5]
+        );
         server.start();
 
         server.blockUntilShutdown();
@@ -177,10 +206,10 @@ public class Server {
     }
 
     private SslContextBuilder getSslContextBuilder() {
-        SslContextBuilder sslClientContextBuilder = SslContextBuilder.forServer(new java.io.File(certChainFilePath),
-                new java.io.File(privateKeyFilePath));
-        if (trustCertCollectionFilePath != null) {
-            sslClientContextBuilder.trustManager(new java.io.File(trustCertCollectionFilePath));
+        SslContextBuilder sslClientContextBuilder = SslContextBuilder.forServer(privateKey,
+                 certChain);
+        if (trustCertCollection != null) {
+            sslClientContextBuilder.trustManager(trustCertCollection);
             sslClientContextBuilder.clientAuth(ClientAuth.REQUIRE);
         }
         return GrpcSslContexts.configure(sslClientContextBuilder);
@@ -191,9 +220,9 @@ public class Server {
                 .addService(new ServerImp(
                         this.user,
                         this.pass,
-                        this.certChainFilePath,
-                        this.privateKeyFilePath,
-                        this.trustCertCollectionFilePath)
+                        this.certChain,
+                        this.privateKey,
+                        this.trustCertCollection)
                 )
                 .sslContext(getSslContextBuilder().build())
                 .build()
@@ -249,11 +278,10 @@ public class Server {
 
     static class ServerImp extends ServerGrpc.ServerImplBase {
         private final static int ITERATIONS = 10000;
-        private final static String BACKUP_ZOO_PATH = "/sirs/ransomware/backups";
-        private final String certChainFilePath;
-        private final String privateKeyFilePath;
-        private final String trustCertCollectionFilePath;
-        Connector connector;
+        private X509Certificate certChain;
+        private PrivateKey privateKey;
+        private X509Certificate trustCertCollection;
+        Connector c;
         UserRepository userRepository;
         FileRepository fileRepository;
         FileVersionRepository fileVersionRepository;
@@ -261,18 +289,18 @@ public class Server {
 
         public ServerImp(String user,
                          String pass,
-                         String certChainFilePath,
-                         String privateKeyFilePath,
-                         String trustCertCollectionFilePath
+                         X509Certificate certChain,
+                         PrivateKey privateKey,
+                         X509Certificate trustCertCollection
         ) {
-            this.certChainFilePath = certChainFilePath;
-            this.privateKeyFilePath = privateKeyFilePath;
-            this.trustCertCollectionFilePath = trustCertCollectionFilePath;
+            this.certChain = certChain;
+            this.privateKey = privateKey;
+            this.trustCertCollection = trustCertCollection;
             try {
-                this.connector = new Connector(user,pass);
-                this.userRepository = new UserRepository(connector.getConnection());
-                this.fileRepository = new FileRepository(connector.getConnection());
-                this.fileVersionRepository = new FileVersionRepository(connector.getConnection());
+                c = new Connector(user,pass);
+                userRepository = new UserRepository(c.getConnection());
+                fileRepository = new FileRepository(c.getConnection());
+                fileVersionRepository = new FileVersionRepository(c.getConnection());
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -285,16 +313,14 @@ public class Server {
             System.out.println("Received revert most recent version request");
 
             try {
-                //Gets all backups currently up
-                List<String> servers = getZooPaths(BACKUP_ZOO_PATH);
                 System.out.println();
+                List<String> servers = getZooPaths("/sirs/ransomware/backups");
                 for (String server : servers) {
                     String pair = server.split("/")[4];
                     String part = pair.split("_")[0];
                     String id = pair.split("_")[1];
-                    //Asks a backup that serves the file to revert it
                     if (part.equals(request.getPartId())) {
-                        System.out.println("Rolling back to version " + request + " of file " + request.getFileUid());
+                        System.out.println("Rolling back to version " + request.getVersionUid() + " of file " + request.getFileUid());
                         byte[] file = getBackup(server, request.getVersionUid()).toByteArray();
                         FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), file);
                         break;
@@ -348,12 +374,10 @@ public class Server {
             System.out.println();
             System.out.println("Received retrieve healthy versions request");
 
-            //Gets all available backup servers
-            List<String> servers = getZooPaths(BACKUP_ZOO_PATH);
+            List<String> servers = getZooPaths("/sirs/ransomware/backups");
             List<ByteString> backup_versions = new ArrayList<>();
             for (String backup : servers) {
                 try {
-                    //Gets the same file version from every backup that has it
                     backup_versions.add(getBackup(backup, request.getUid()));
                 } catch (SSLException e) {
                     e.printStackTrace();
@@ -376,7 +400,6 @@ public class Server {
             System.out.println("Received heal corrupted version request");
 
             try {
-                //Overwrites current version with healthy one
                 System.out.println("Healing corrupted version " + request.getVersionUid() + " of file " + request.getFileUid());
                 FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), request.getFile().toByteArray());
                 replicateFile(request.getPartId(), request.getFile(), request.getVersionUid());
@@ -408,10 +431,8 @@ public class Server {
             System.out.println("Received register request for user " + req.getUsername());
 
             RegisterReply reply;
-            //Username validation
             if (req.getUsername().length() > 15 || req.getUsername().length() == 0)
                 reply = RegisterReply.newBuilder().setOk("Username must have between 1 and 15 characters").build();
-            //Duplicated username
             else if (usernameExists(req.getUsername()))
                 reply = RegisterReply.newBuilder().setOk("Duplicate user with username " + req.getUsername()).build();
             else {
@@ -424,7 +445,7 @@ public class Server {
         }
 
         public void usernameExists(UsernameExistsRequest req, StreamObserver<UsernameExistsReply> responseObserver) {
-            System.out.println("Checking if user " + req.getUsername() + " exists");
+
             UsernameExistsReply reply;
             if (usernameExists(req.getUsername())) {
                 reply = UsernameExistsReply.newBuilder().setOkUsername(true).build();
@@ -516,8 +537,6 @@ public class Server {
             System.out.println("Pull All request received");
 
             PullReply.Builder reply = PullReply.newBuilder();
-
-            //Gets all files that the given user can read
             List<File> readableFiles = this.fileRepository.getUserReadableFiles(req.getUsername());
             for (File file : readableFiles) {
                 System.out.println("Sending file " + file.getName() + " " + file.getUid() + " to client " + req.getUsername());
@@ -588,9 +607,7 @@ public class Server {
 
             GivePermissionReply reply = null;
 
-            //Verifies if users exist in the database
             if (allUsernamesExist(req.getOthersNamesList())) {
-                //Verifies if file exists in the database
                 if (filenameExists(req.getUid())) {
                     giveUsersPermission(req.getOthersNamesList(), req.getUid(), req.getMode(), req.getOtherAESEncryptedList().stream().map(ByteString::toByteArray).collect(Collectors.toList()));
                     reply = GivePermissionReply.newBuilder().setOkOthers(true).setOkUid(true).build();
@@ -610,11 +627,8 @@ public class Server {
             if (isOwner(req.getUsername(), req.getUid())) {
                 owner = true;
             }
-            //Gets file key encrypted with user's public key
             byte[] aes = getAESEncrypted(req.getUsername(), req.getUid(), req.getMode());
-            //Gets all users public keys to give permission
             List<byte[]> pk = userRepository.getPublicKeysByUsernames(req.getOthersNamesList());
-            //Gets the iv used in the file encryption
             byte[] iv = fileRepository.getFileIv(req.getUid());
             replyBuilder = GetAESEncryptedReply
                     .newBuilder()
@@ -649,9 +663,7 @@ public class Server {
         }
 
         public void replicateFile(String partId, ByteString file, String versionId) throws SSLException {
-            //Gets all available backups
-            List<String> servers = getZooPaths(BACKUP_ZOO_PATH);
-            //Sends file version to store in the backups that serve that file
+            List<String> servers = getZooPaths("/sirs/ransomware/backups");
             for (String server : servers) {
                 String pair = server.split("/")[4];
                 String part = pair.split("_")[0];
@@ -680,7 +692,6 @@ public class Server {
             ZKRecord record = null;
             ByteString bytes;
             BackupServerGrpc.BackupServerBlockingStub blockingStub;
-            //Builds communication channel with a given backup
             ManagedChannel channel;
             try {
                 record = zkNaming.lookup(zooPath);
@@ -688,12 +699,12 @@ public class Server {
                 e.printStackTrace();
             }
             assert record != null;
+            System.out.println(record.getURI());
             channel = NettyChannelBuilder.forTarget(record.getURI())
                     .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
-                    .sslContext(buildSslContext(trustCertCollectionFilePath, certChainFilePath, privateKeyFilePath))
+                    .sslContext(buildSslContext(trustCertCollection, certChain, privateKey))
                     .build();
             blockingStub = BackupServerGrpc.newBlockingStub(channel);
-            //Retrieves wanted file
             bytes = blockingStub.getBackup(
                     GetBackupRequest
                             .newBuilder()
@@ -709,7 +720,6 @@ public class Server {
         public void backupFile(String zooPath, ByteString file, String uid) throws SSLException {
             ZKRecord record = null;
             BackupServerGrpc.BackupServerBlockingStub blockingStub;
-            //Builds communication channel with a given backup
             ManagedChannel channel;
             try {
                 record = zkNaming.lookup(zooPath);
@@ -717,13 +727,13 @@ public class Server {
                 e.printStackTrace();
             }
             assert record != null;
+
             channel = NettyChannelBuilder.forTarget(record.getURI())
                     .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
-                    .sslContext(buildSslContext(trustCertCollectionFilePath, certChainFilePath, privateKeyFilePath))
+                    .sslContext(buildSslContext(trustCertCollection, certChain, privateKey))
                     .build();
-            blockingStub = BackupServerGrpc.newBlockingStub(channel);
 
-            //Stores wanted file
+            blockingStub = BackupServerGrpc.newBlockingStub(channel);
             BackupFileReply reply = blockingStub.backupFile(
                     BackupFileRequest
                             .newBuilder()
@@ -751,17 +761,17 @@ public class Server {
 
         private void registerUser(String name, byte[] password, byte[] salt, byte[] publicKeyBytes) {
             User user = new User(name, password, salt, ITERATIONS, publicKeyBytes);
-            user.saveInDatabase(this.connector);
+            user.saveInDatabase(this.c);
         }
 
         private void registerFile(String uid, String filename, String owner, String partId, byte[] AESEncrypted, byte[] iv) {
             server.domain.file.File file = new server.domain.file.File(uid, owner, filename, partId, AESEncrypted, iv);
-            file.saveInDatabase(this.connector);
+            file.saveInDatabase(this.c);
         }
 
         private void registerFileVersion(String versionId, String fileId, String creator, byte[] digitalSignature) {
             FileVersion fileVersion = new FileVersion(versionId, fileId, creator, new Date(System.currentTimeMillis()), digitalSignature);
-            fileVersion.saveInDatabase(this.connector);
+            fileVersion.saveInDatabase(this.c);
         }
 
         private boolean usernameExists(String name) {
