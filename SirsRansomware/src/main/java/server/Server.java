@@ -321,6 +321,7 @@ public class Server {
                     if (part.equals(request.getPartId())) {
                         System.out.println("Rolling back to version " + request.getVersionUid() + " of file " + request.getFileUid());
                         byte[] file = getBackup(server, request.getVersionUid()).toByteArray();
+                        FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), new byte[0]);
                         FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), file);
                         FileVersion version = fileVersionRepository.getFileVersionByUid(request.getVersionUid());
                         version.setVersionUid(UUID.randomUUID().toString());
@@ -408,6 +409,7 @@ public class Server {
 
             try {
                 System.out.println("Healing corrupted version " + request.getVersionUid() + " of file " + request.getFileUid());
+                FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), new byte[0]);
                 FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), request.getFile().toByteArray());
                 replicateFile(request.getPartId(), request.getFile(), request.getVersionUid());
             } catch (IOException e) {
@@ -514,6 +516,7 @@ public class Server {
             String versionId = UUID.randomUUID().toString();
             byte[] bytes = bs.toByteArray();
             try {
+                FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + req.getUid()), new byte[0]);
                 FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + req.getUid()), bytes);
                 reply = PushReply.newBuilder().setOk(true).build();
             } catch (IOException e) {
