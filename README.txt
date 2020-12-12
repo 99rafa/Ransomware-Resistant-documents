@@ -40,7 +40,7 @@ In order to run the program, at least 3 terminal windows must be open:
 1. Server initialization
 ---------------------------------------------
 
-On <root-project-directory>/SirsRansomwareRun
+On <root-project-directory>/SirsRansomware, run
 
 ```bash
 mvn exec:java -Dexec.mainClass="server.Server" -Dexec.args="<dbUser> <dbPass> <zooPort> <zooHost> <serverPort> <serverHost>" 
@@ -58,7 +58,7 @@ Alternatively, open `<root-project-directory>/SirsRansomware/run_scripts` and ru
 2. Backup Server initialization
 ---------------------------------------------
 
-On <root-project-directory>/SirsRansomware run
+On <root-project-directory>/SirsRansomware, run
 
 ```bash
 mvn exec:java -Dexec.mainClass="server.BackupServer" -Dexec.args="<partitionID> <serverID> <zooPort> <zooHost> <backupServerPort> <backupServerHost>" 
@@ -77,7 +77,7 @@ Alternatively, open `<root-project-directory>/SirsRansomware/run_scripts` and ru
 3. Client Initialization
 ---------------------------------------------
 
-On <root-project-directory>/SirsRansomware run
+On <root-project-directory>/SirsRansomware, run
 
 ```bash
 mvn exec:java -Dexec.mainClass="client.Client" -Dexec.args="<zooPort> <zooHost>" 
