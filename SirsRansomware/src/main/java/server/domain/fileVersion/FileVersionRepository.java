@@ -78,8 +78,8 @@ public class FileVersionRepository extends Repository {
 
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
-                version.setVersionUid(rs.getString(uid));
-                version.setFileUid("file_uid");
+                version.setVersionUid(uid);
+                version.setFileUid(rs.getString("file_uid"));
                 version.setCreator(rs.getString("creator"));
                 version.setDate(rs.getTimestamp("ts"));
                 version.setDigitalSignature(rs.getBytes("digital_signature"));
