@@ -378,7 +378,12 @@ public class Server {
             List<ByteString> backup_versions = new ArrayList<>();
             for (String backup : servers) {
                 try {
-                    backup_versions.add(getBackup(backup, request.getUid()));
+                    String pair = backup.split("/")[4];
+                    String part = pair.split("_")[0];
+                    String id = pair.split("_")[1];
+                    if (part.equals(request.getPartId()))
+                        backup_versions.add(getBackup(backup, request.getUid()));
+
                 } catch (SSLException e) {
                     e.printStackTrace();
                 }

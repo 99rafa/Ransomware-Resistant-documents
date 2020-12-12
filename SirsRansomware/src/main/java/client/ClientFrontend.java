@@ -109,11 +109,12 @@ public class ClientFrontend {
                         .build());
     }
 
-    public RetrieveHealthyVersionsReply RetrieveHealthyVersions(String version_uid) {
+    public RetrieveHealthyVersionsReply RetrieveHealthyVersions(String version_uid,String part_id) {
         return blockingStub.retrieveHealthyVersions(
                 RetrieveHealthyVersionsRequest
                         .newBuilder()
                         .setUid(version_uid)
+                        .setPartId(part_id)
                         .build());
     }
 
