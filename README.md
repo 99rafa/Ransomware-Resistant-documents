@@ -52,7 +52,7 @@ mvn exec:java -Dexec.mainClass="server.Server" -Dexec.args="<dbUser> <dbPass> <z
 Alternatively, open `<root-project-directory>/SirsRansomware/run_scripts` and run script **server.sh** to run the server program.
 
 For this program, it is required to enter the passwords of the key stores that store all the keys/certificates used during communication.
-For every one of those stores, the password is set by default to `123456`. However, we **strongly recommend** that the user changes that password to a stronger one, which can be done by issuing the command `keytool -storepasswd -keystore <path-to-key-store>`.
+For every one of those stores, the password is set by default to `123456`. However, we **strongly recommend** that the user changes that password to a stronger one, which can be done by issuing the command `keytool -storepasswd -keystore <root-project-directory>/SirsRansomware/src/assets/keyStores<path-to-key-store>`.
 
 #### 2. Backup Server initialization
 
@@ -72,7 +72,7 @@ mvn exec:java -Dexec.mainClass="server.BackupServer" -Dexec.args="<partitionID> 
 Alternatively, open `<root-project-directory>/SirsRansomware/run_scripts` and run script **backup.sh** to run the backup server program.
 
 For this program, it is required to enter the passwords of the key stores that store all the keys/certificates used during communication.
-For every one of those stores, the password is set by default to `123456`. However, we **strongly recommend** that the user changes that password to a stronger one, which can be done by issuing the command `keytool -storepasswd -keystore <path-to-key-store>`.
+For every one of those stores, the password is set by default to `123456`. However, we **strongly recommend** that the user changes that password to a stronger one, which can be done by issuing the command `keytool -storepasswd -keystore <root-project-directory>/SirsRansomware/src/assets/keyStores<path-to-key-store>`.
 
 
 #### 3. Client Initialization
