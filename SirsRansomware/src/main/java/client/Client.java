@@ -59,6 +59,13 @@ public class Client {
 
         String path;
 
+
+        //check if file manage dir exists and create it if it does not
+        File directory = new File(SIRS_DIR + "/src/assets/data");
+        if (!directory.exists()) {
+            directory.mkdir();
+        }
+
         //client does not need to know key store implementation
         /*
         Console console = System.console();
@@ -523,8 +530,11 @@ public class Client {
                         PublicKey pk = encryptionLogic.getPublicKey(ownerPublicKey);
                         //verify file signature
 
+
                         if (!encryptionLogic.verifyDigitalSignature(decipheredFileData, digitalSignature, pk)) { //dies here wrong IV
-                            System.err.println(" Error: Signature verification failed");
+
+                            System.err.println("Error: Signature verification failed");
+                            
                             //if signature does not match, we will check for an healthy copy of that version in the backup servers
                             RetrieveHealthyVersionsReply reply1 = clientFrontend.RetrieveHealthyVersions(version_uid,partId);
 
