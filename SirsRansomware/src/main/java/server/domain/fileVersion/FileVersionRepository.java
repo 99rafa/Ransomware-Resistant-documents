@@ -66,4 +66,29 @@ public class FileVersionRepository extends Repository {
         }
         return version;
     }
+
+    public FileVersion getFileVersionByUid(String uid) {
+        FileVersion version = new FileVersion();
+        try {
+            String sql = "SELECT version_uid,file_uid,digital_signature,creator,ts FROM FileVersions WHERE version_uid = ?";
+            PreparedStatement statement = super.getConnection().prepareStatement(sql);
+
+            //Set parameters
+            statement.setString(1, uid);
+
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                version.setVersionUid(rs.getString("version_uid"));
+                version.setFileUid(uid);
+                version.setCreator(rs.getString("creator"));
+                version.setDate(rs.getTimestamp("ts"));
+                version.setDigitalSignature(rs.getBytes("digital_signature"));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return version;
+    }
+
 }

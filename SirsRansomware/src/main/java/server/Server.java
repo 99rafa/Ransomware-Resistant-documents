@@ -30,7 +30,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.sql.SQLException;
 import java.text.DateFormat;
@@ -281,7 +280,7 @@ public class Server {
         private X509Certificate certChain;
         private PrivateKey privateKey;
         private X509Certificate trustCertCollection;
-        Connector c;
+        Connector connector;
         UserRepository userRepository;
         FileRepository fileRepository;
         FileVersionRepository fileVersionRepository;
@@ -297,10 +296,10 @@ public class Server {
             this.privateKey = privateKey;
             this.trustCertCollection = trustCertCollection;
             try {
-                c = new Connector(user,pass);
-                userRepository = new UserRepository(c.getConnection());
-                fileRepository = new FileRepository(c.getConnection());
-                fileVersionRepository = new FileVersionRepository(c.getConnection());
+                connector = new Connector(user,pass);
+                userRepository = new UserRepository(connector.getConnection());
+                fileRepository = new FileRepository(connector.getConnection());
+                fileVersionRepository = new FileVersionRepository(connector.getConnection());
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -323,6 +322,9 @@ public class Server {
                         System.out.println("Rolling back to version " + request.getVersionUid() + " of file " + request.getFileUid());
                         byte[] file = getBackup(server, request.getVersionUid()).toByteArray();
                         FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), file);
+                        FileVersion version = fileVersionRepository.getFileVersionByUid(request.getVersionUid());
+                        version.setVersionUid(UUID.randomUUID().toString());
+                        version.saveInDatabase(this.connector);
                         break;
                     }
 
@@ -766,17 +768,17 @@ public class Server {
 
         private void registerUser(String name, byte[] password, byte[] salt, byte[] publicKeyBytes) {
             User user = new User(name, password, salt, ITERATIONS, publicKeyBytes);
-            user.saveInDatabase(this.c);
+            user.saveInDatabase(this.connector);
         }
 
         private void registerFile(String uid, String filename, String owner, String partId, byte[] AESEncrypted, byte[] iv) {
             server.domain.file.File file = new server.domain.file.File(uid, owner, filename, partId, AESEncrypted, iv);
-            file.saveInDatabase(this.c);
+            file.saveInDatabase(this.connector);
         }
 
         private void registerFileVersion(String versionId, String fileId, String creator, byte[] digitalSignature) {
             FileVersion fileVersion = new FileVersion(versionId, fileId, creator, new Date(System.currentTimeMillis()), digitalSignature);
-            fileVersion.saveInDatabase(this.c);
+            fileVersion.saveInDatabase(this.connector);
         }
 
         private boolean usernameExists(String name) {

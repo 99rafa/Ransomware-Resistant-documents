@@ -17,16 +17,11 @@ import pt.ulisboa.tecnico.sdis.zk.ZKRecord;
 import javax.crypto.*;
 import javax.net.ssl.SSLException;
 import java.io.*;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -43,8 +38,8 @@ public class Client {
     private static final String PULLS_DIR = SIRS_DIR + "/src/assets/clientPulls/";
     private final String zooHost;
     private final String zooPort;
-    private final EncryptionLogic e;
-    private final ClientFrontend c;
+    private final EncryptionLogic encryptionLogic;
+    private final ClientFrontend clientFrontend;
     KeyStore keyStore;
     KeyStore trustCertKeyStore;
     KeyStore trustStore;
@@ -145,8 +140,8 @@ public class Client {
                 .sslContext(sslContext)
                 .build();
         ServerGrpc.ServerBlockingStub blockingStub = ServerGrpc.newBlockingStub(channel);
-        this.c = new ClientFrontend(blockingStub, channel);
-        this.e = new EncryptionLogic();
+        this.clientFrontend = new ClientFrontend(blockingStub, channel);
+        this.encryptionLogic = new EncryptionLogic();
     }
 
     private static SslContext buildSslContext(X509Certificate trustCertCollection,
@@ -190,7 +185,7 @@ public class Client {
                 }
             }
         } finally {
-            client.c.Shutdown();
+            client.clientFrontend.Shutdown();
         }
     }
 
@@ -220,7 +215,7 @@ public class Client {
 
         System.out.println("Registering user " + name + " ...");
         // generate RSA Keys
-        KeyPair keyPair = e.generateUserKeyPair();
+        KeyPair keyPair = encryptionLogic.generateUserKeyPair();
         PublicKey publicKey = keyPair.getPublic();
         // Get the bytes of the public key
         byte[] publicKeyBytes = publicKey.getEncoded();
@@ -243,7 +238,7 @@ public class Client {
 
         //get salt to produce KDF password hashing
         byte[] salt = PBKDF2Main.getNextSalt();
-        RegisterReply response = c.Register(name, e.generateSecurePassword(passwd, salt), publicKeyBytes, salt);
+        RegisterReply response = clientFrontend.Register(name, encryptionLogic.generateSecurePassword(passwd, salt), publicKeyBytes, salt);
         System.out.println(response.getOk());
     }
 
@@ -259,15 +254,15 @@ public class Client {
 
         String name = console.readLine("Enter your username: ");
 
-        UsernameExistsReply reply = c.UsernameExists(name);
+        UsernameExistsReply reply = clientFrontend.UsernameExists(name);
         if (reply.getOkUsername()) {
             while (tries < 3) {
                 //get salt used to produce password in order to compute given password salt and compare
-                SaltReply replys = c.Salt(name);
+                SaltReply replys = clientFrontend.Salt(name);
                 byte[] salt = replys.getSalt().toByteArray();
                 String password = new String(console.readPassword("Enter your password: "));
 
-                VerifyPasswordReply response = c.VerifyPassword(name, e.generateSecurePassword(password, salt));
+                VerifyPasswordReply response = clientFrontend.VerifyPassword(name, encryptionLogic.generateSecurePassword(password, salt));
                 if (response.getOkPassword()) {
 
                     this.username = name;
@@ -382,7 +377,7 @@ public class Client {
         int tries = 0;
         while (tries < 3) {
             String passwd = new String((System.console()).readPassword("Enter your password: "));
-            VerifyPasswordReply repPass = c.VerifyPassword(this.username, e.generateSecurePassword(passwd, this.salt));
+            VerifyPasswordReply repPass = clientFrontend.VerifyPassword(this.username, encryptionLogic.generateSecurePassword(passwd, this.salt));
             if (repPass.getOkPassword()) {
                 try {
                     String filePath = System.console().readLine("File path: ");
@@ -409,7 +404,7 @@ public class Client {
                                 System.err.println("Error: Filename already exists");
                             }
                         }
-                        fileSecretKey = e.generateAESKey();
+                        fileSecretKey = encryptionLogic.generateAESKey();
                         partId = getRandomPartition();
                     } else {
                         //it is already in the fm (file manager) file
@@ -418,7 +413,7 @@ public class Client {
                     }
 
                     String uid = generateFileUid(filePath, partId, filename, this.username);
-                    byte[] digitalSignature = e.createDigitalSignature(file_bytes, e.getPrivateKey(this.username, this.keyStore));
+                    byte[] digitalSignature = encryptionLogic.createDigitalSignature(file_bytes, encryptionLogic.getPrivateKey(this.username, this.keyStore));
                     byte[] encryptedAES;
                     byte[] file;
                     byte[] iv;
@@ -431,26 +426,26 @@ public class Client {
                         secureRandom.nextBytes(iv);
 
                         //get user public key
-                        GetPublicKeysByUsernamesReply reply = c.GetPublicKeysByUsernames(this.username);
+                        GetPublicKeysByUsernamesReply reply = clientFrontend.GetPublicKeysByUsernames(this.username);
                         //encrypt file symmetric key with user's public key
-                        encryptedAES = e.encryptWithRSA(e.bytesToPubKey(reply.getKeys(0).toByteArray()), fileSecretKey.getEncoded());
+                        encryptedAES = encryptionLogic.encryptWithRSA(encryptionLogic.bytesToPubKey(reply.getKeys(0).toByteArray()), fileSecretKey.getEncoded());
                         //encrypt file with symmetric key
-                        file = e.encryptWithAES(fileSecretKey, file_bytes, iv);
+                        file = encryptionLogic.encryptWithAES(fileSecretKey, file_bytes, iv);
                     } else {
-                        GetAESEncryptedReply res = c.GetAESEncrypted(this.username, this.username, uid, "write");
+                        GetAESEncryptedReply res = clientFrontend.GetAESEncrypted(this.username, this.username, uid, "write");
                         if (res.getAESEncrypted().toByteArray().length == 0) {
                             System.err.println("Error: You have read-only permission for this file ");
                             return;
                         }
                         iv = res.getIv().toByteArray();
                         encryptedAES = res.getAESEncrypted().toByteArray();
-                        SecretKey fileSecretKey1 = e.bytesToAESKey(e.getAESKeyBytes(encryptedAES, this.username, this.keyStore));
-                        file = e.encryptWithAES(fileSecretKey1, file_bytes, iv);
+                        SecretKey fileSecretKey1 = encryptionLogic.bytesToAESKey(encryptionLogic.getAESKeyBytes(encryptedAES, this.username, this.keyStore));
+                        file = encryptionLogic.encryptWithAES(fileSecretKey1, file_bytes, iv);
                     }
                     System.out.println("Sending file to server");
 
 
-                    PushReply res = c.Push(iv, file, encryptedAES, this.username, digitalSignature, filename, uid, partId);
+                    PushReply res = clientFrontend.Push(iv, file, encryptedAES, this.username, digitalSignature, filename, uid, partId);
                     if (res.getOk()) {
                         System.out.println("File uploaded successfully");
                         break;
@@ -491,16 +486,16 @@ public class Client {
         int tries = 0;
         while (tries < 3) {
             String passwd = new String((System.console()).readPassword("Enter a password: "));
-            VerifyPasswordReply repPass = c.VerifyPassword(this.username, e.generateSecurePassword(passwd, this.salt));
+            VerifyPasswordReply repPass = clientFrontend.VerifyPassword(this.username, encryptionLogic.generateSecurePassword(passwd, this.salt));
             if (repPass.getOkPassword()) {
                 String choice = ((System.console().readLine("Select which files you want to pull, separated by a blank space. 'all' for pulling every file: ")));
                 Map<String, String> uidMap = getUidMap(INDEX_UID, INDEX_PATH, INDEX_USERNAME);
                 PullReply reply;
                 if (choice.equals("all")) {
-                    reply = c.PullAll(this.username);
+                    reply = clientFrontend.PullAll(this.username);
                 } else {
                     String[] fileNames = choice.split(" ");
-                    reply = c.PullSelected(this.username, fileNames);
+                    reply = clientFrontend.PullSelected(this.username, fileNames);
                 }
                 if (!reply.getOk()) {
                     System.err.println("Error: Something wrong with operations in server!");
@@ -521,17 +516,17 @@ public class Client {
                         byte[] decipheredFileData = new byte[0];
                         try {
                             //decrypt file with symmetric key
-                            decipheredFileData = e.decryptSecureFile(file_data, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray(), this.username, this.keyStore);
+                            decipheredFileData = encryptionLogic.decryptSecureFile(file_data, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray(), this.username, this.keyStore);
                         } catch (BadPaddingException | IllegalBlockSizeException ignored) {
                         }
 
-                        PublicKey pk = e.getPublicKey(ownerPublicKey);
+                        PublicKey pk = encryptionLogic.getPublicKey(ownerPublicKey);
                         //verify file signature
 
-                        if (!e.verifyDigitalSignature(decipheredFileData, digitalSignature, pk)) { //dies here wrong IV
+                        if (!encryptionLogic.verifyDigitalSignature(decipheredFileData, digitalSignature, pk)) { //dies here wrong IV
                             System.err.println(" Error: Signature verification failed");
                             //if signature does not match, we will check for an healthy copy of that version in the backup servers
-                            RetrieveHealthyVersionsReply reply1 = c.RetrieveHealthyVersions(version_uid,partId);
+                            RetrieveHealthyVersionsReply reply1 = clientFrontend.RetrieveHealthyVersions(version_uid,partId);
 
                             byte[] healthyVersion = null;
                             boolean hasHealthy = false;
@@ -542,11 +537,11 @@ public class Client {
                             for (byte[] backup : backups) {
                                 byte[] encryptedBackup = backup.clone();
                                 try {
-                                    decipheredFileData = e.decryptSecureFile(backup, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray(), this.username, this.keyStore);
+                                    decipheredFileData = encryptionLogic.decryptSecureFile(backup, reply.getAESEncrypted(i).toByteArray(), reply.getIvs(i).toByteArray(), this.username, this.keyStore);
                                 } catch (BadPaddingException | IllegalBlockSizeException ignored) {
                                 }
 
-                                if (e.verifyDigitalSignature(decipheredFileData, digitalSignature, pk)) {
+                                if (encryptionLogic.verifyDigitalSignature(decipheredFileData, digitalSignature, pk)) {
                                     healthyVersion = encryptedBackup;
                                     hasHealthy = true;
                                     break;
@@ -557,7 +552,7 @@ public class Client {
                                 System.err.println("This file got corrupted!");
                                 continue;
                             }
-                            HealCorruptedVersionReply reply2 = c.HealCorruptedVersion(version_uid, file_uid, healthyVersion, partId);
+                            HealCorruptedVersionReply reply2 = clientFrontend.HealCorruptedVersion(version_uid, file_uid, healthyVersion, partId);
 
                             if (reply2.getOk()) {
                                 System.out.println("Version correctly healed in server");
@@ -617,7 +612,7 @@ public class Client {
         int tries = 0;
         while (tries < 3) {
             String passwd = new String((System.console()).readPassword("Enter a password: "));
-            VerifyPasswordReply repPass = c.VerifyPassword(this.username, e.generateSecurePassword(passwd, this.salt));
+            VerifyPasswordReply repPass = clientFrontend.VerifyPassword(this.username, encryptionLogic.generateSecurePassword(passwd, this.salt));
             if (repPass.getOkPassword()) {
                 String others = console.readLine("Enter the username/s to give permission, separated by a blank space: ");
                 String s = System.console().readLine("Select what type of permission:\n -> 'read' for read permission\n -> 'write' for read/write permission\nType of permission: ");
@@ -633,7 +628,7 @@ public class Client {
                     if (name.equals(this.username))
                         System.err.println("Error: Cannot give permission to user " + this.username + ". Ignoring..");
                     else {
-                        UsernameExistsReply reply = c.UsernameExists(name);
+                        UsernameExistsReply reply = clientFrontend.UsernameExists(name);
                         if (reply.getOkUsername()) {
                             existingNames.add(name);
                         } else
@@ -658,7 +653,7 @@ public class Client {
                 }
 
                 // Gets the owners encrypted key
-                GetAESEncryptedReply reply = c.GetAESEncrypted(this.username, existingNames.toArray(new String[0]), uid, s);
+                GetAESEncryptedReply reply = clientFrontend.GetAESEncrypted(this.username, existingNames.toArray(new String[0]), uid, s);
                 byte[] aesEncrypted = reply.getAESEncrypted().toByteArray();
 
                 //Get users' whose permission is being assigned public keys
@@ -672,13 +667,13 @@ public class Client {
                 byte[] aesKeyBytes;
                 if (reply.getIsOwner()) {
                     //decrypt with private key in order to obtain symmetric key
-                    aesKeyBytes = e.getAESKeyBytes(aesEncrypted, this.username, this.keyStore);
+                    aesKeyBytes = encryptionLogic.getAESKeyBytes(aesEncrypted, this.username, this.keyStore);
 
                     //encrypt AES with "others" public keys to send to the server
-                    List<byte[]> othersAesEncrypted = e.getOthersAESEncrypted(othersPubKeysBytes, aesKeyBytes);
+                    List<byte[]> othersAesEncrypted = encryptionLogic.getOthersAESEncrypted(othersPubKeysBytes, aesKeyBytes);
 
                     //read/write permissions
-                    GivePermissionReply res = c.GivePermission(othersNames, uid, s, othersAesEncrypted);
+                    GivePermissionReply res = clientFrontend.GivePermission(othersNames, uid, s, othersAesEncrypted);
                     if (res.getOkOthers()) {
                         if (res.getOkUid()) {
                             for (String name : othersNames) {
@@ -707,20 +702,20 @@ public class Client {
             Console console = System.console();
             while (tries < 3) {
                 String passwd = new String(console.readPassword("Enter your password: "));
-                VerifyPasswordReply repPass = c.VerifyPassword(this.username, e.generateSecurePassword(passwd, this.salt));
+                VerifyPasswordReply repPass = clientFrontend.VerifyPassword(this.username, encryptionLogic.generateSecurePassword(passwd, this.salt));
                 if (repPass.getOkPassword()) {
                     Map<String, String> map = getUidMap(INDEX_NAME, INDEX_UID, INDEX_USERNAME);
                     Map<String, String> map1 = getUidMap(INDEX_NAME, INDEX_PART_ID, INDEX_USERNAME);
                     String filename = console.readLine("Enter filename to roll back: ");
                     String fileUid = map.get(filename);
                     String partId= map1.get(filename);
-                    GetAESEncryptedReply res = c.GetAESEncrypted(this.username, this.username, fileUid, "write");
+                    GetAESEncryptedReply res = clientFrontend.GetAESEncrypted(this.username, this.username, fileUid, "write");
                     if (res.getAESEncrypted().toByteArray().length == 0) {
                         System.err.println("Error: You have read-only permission for this file");
                         return;
                     }
                     //get list of all available versions for that file
-                    ListFileVersionsReply reply = c.ListFileVersions(fileUid);
+                    ListFileVersionsReply reply = clientFrontend.ListFileVersions(fileUid);
                     int version = reply.getDatesCount();
 
                     for (String date : reply.getDatesList()) {
@@ -728,7 +723,7 @@ public class Client {
                         version--;
                     }
                     String number = console.readLine("Enter version number to revert into: ");
-                    RevertMostRecentVersionReply reply1 = c.RevertMostRecentVersion(reply.getFileIds(reply.getDatesCount() - Integer.parseInt(number)),
+                    RevertMostRecentVersionReply reply1 = clientFrontend.RevertMostRecentVersion(reply.getFileIds(reply.getDatesCount() - Integer.parseInt(number)),
                             reply.getVersionsUids(reply.getDatesCount() - Integer.parseInt(number)),partId);
 
                     if (reply1.getOk()) {
