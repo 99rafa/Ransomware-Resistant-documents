@@ -43,9 +43,11 @@ In order to run the program, at least 3 terminal windows must be open:
 Run
 
 ```bash
-mvn exec:java -Dexec.mainClass="server.Server" -Dexec.args="<zooPort> <zooHost> <serverPort> <serverHost>" 
+mvn exec:java -Dexec.mainClass="server.Server" -Dexec.args="<dbUser> <dbPass> <zooPort> <zooHost> <serverPort> <serverHost>" 
 ```
 
+- dbUser: created user for using the MySQL database
+- dbPass: password for created user in MySQL
 - zooPort: zookeeper(port)
 - zooHost: zookeeper(host)
 - serverPort: server(port)
