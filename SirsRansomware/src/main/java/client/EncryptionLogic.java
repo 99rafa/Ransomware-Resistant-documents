@@ -86,7 +86,6 @@ public class EncryptionLogic {
     public PrivateKey getPrivateKey(String username, KeyStore keyStore) {
         PrivateKey privateKey = null;
         try {
-            //TODO provide a password
             privateKey = (PrivateKey) keyStore.getKey(username + "privkey", "".toCharArray());
         } catch (NoSuchAlgorithmException | KeyStoreException | UnrecoverableKeyException e) {
             e.printStackTrace();

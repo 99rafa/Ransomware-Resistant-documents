@@ -97,7 +97,8 @@ public class Client {
 
         try {
             assert trustCertKeyStore != null;
-            trustCertKeyStore.load(new FileInputStream("src/assets/keyStores/trustCertsServerKeyStore.p12"), "w7my3n,~yvF-;Py3".toCharArray());
+            //change key store password if considered necessary
+            trustCertKeyStore.load(new FileInputStream("src/assets/keyStores/trustCertsServerKeyStore.p12"), "123456".toCharArray());
             certChain = (X509Certificate) trustCertKeyStore.getCertificate( "client-cert");
         } catch (NoSuchAlgorithmException | CertificateException | IOException | KeyStoreException e) {
             e.printStackTrace();
@@ -110,7 +111,8 @@ public class Client {
         }
         try {
             assert trustStore != null;
-            this.trustStore.load(new FileInputStream("src/assets/keyStores/truststore.p12"), "w?#Sf@ZAL*tY7fVx".toCharArray());
+            //change key store password if considered necessary
+            this.trustStore.load(new FileInputStream("src/assets/keyStores/truststore.p12"), "123456".toCharArray());
             trustCertCollection = (X509Certificate) this.trustStore.getCertificate(  "ca-cert");
         } catch (NoSuchAlgorithmException | CertificateException | IOException | KeyStoreException e) {
             e.printStackTrace();
@@ -732,9 +734,22 @@ public class Client {
                         System.out.println("Version " + version + " modified on date " + date);
                         version--;
                     }
-                    String number = console.readLine("Enter version number to revert into: ");
-                    RevertMostRecentVersionReply reply1 = clientFrontend.RevertMostRecentVersion(reply.getFileIds(reply.getDatesCount() - Integer.parseInt(number)),
-                            reply.getVersionsUids(reply.getDatesCount() - Integer.parseInt(number)),partId);
+
+                    String v = null;
+
+                    boolean number = false;
+                    RevertMostRecentVersionReply reply1 = null;
+                    while (!number) {
+                        try {
+                            v = console.readLine("Enter version number to revert into: ");
+                             reply1 = clientFrontend.RevertMostRecentVersion(reply.getFileIds(reply.getDatesCount() - Integer.parseInt(v)),
+                                    reply.getVersionsUids(reply.getDatesCount() - Integer.parseInt(v)), partId);
+                            number = true;
+                        } catch (NumberFormatException e) {
+                            System.err.println("Error: input must be an integer");
+                        }
+                    }
+
 
                     if (reply1.getOk()) {
                         System.out.println("Version reverted successfully!");

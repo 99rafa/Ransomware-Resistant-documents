@@ -31,12 +31,13 @@ In order to run the program, at least 3 terminal windows must be open:
 0. Installing and compiling project 
 ---------------------------------------------
 
+1. Have all the previous required tools/software installed and ready.
 
-1. Open `zookeeper/bin` folder and run the command `./zkServer.sh start` to launch the ZooKeeper name server. If you wish to stop Zookeper name server, you can run `./zkServer.sh stop`.
+2. Open `zookeeper/bin` folder and run the command `./zkServer.sh start` to launch the ZooKeeper name server. If you wish to stop Zookeper name server, you can run `./zkServer.sh stop`.
 
-2. Run `mysql.server start`. Then, create the database in which the data will be stored, running the command `createdb <name-of-db>` where `<name-of-db>` is the desired name for the databse. Afterwards, Open `<root-project-directory>/SirsRansomware/src/assets/sql_scripts>` and run `mysql <name-of-db> -p < init.sql` to initialize the databse.
+3. Run `mysql.server start`. Then, create the database in which the data will be stored, running the command `createdb <name-of-db>` where `<name-of-db>` is the desired name for the databse. Afterwards, Open `<root-project-directory>/SirsRansomware/src/assets/sql_scripts>` and run `mysql <name-of-db> -p < init.sql` to initialize the databse.
 
-3. Open `<root-project-directory>/SirsRansomware/run_scripts` and run script **init.sh** to install and compile the whole project.
+4. Open `<root-project-directory>/SirsRansomware/run_scripts` and run script **init.sh** to install and compile the whole project.
 
 1. Server initialization
 ---------------------------------------------
@@ -56,6 +57,9 @@ mvn exec:java -Dexec.mainClass="server.Server" -Dexec.args="<dbUser> <dbPass> <z
 
 Alternatively, open `<root-project-directory>/SirsRansomware/run_scripts` and run script server.sh to run the server program.
 
+For this program, it is required to enter the passwords of the key stores that store all the keys/certificates used during communication.
+For every one of those stores, the password is set by default to `123456`. However, we **strongly recommend** that the user changes that password to a stronger one, which can be done by issuing the command `keytool -storepasswd -keystore <path-to-key-store>`.
+
 2. Backup Server initialization
 ---------------------------------------------
 
@@ -73,6 +77,9 @@ mvn exec:java -Dexec.mainClass="server.BackupServer" -Dexec.args="<partitionID> 
 - backupServerHost: backupServer(host)
 
 Alternatively, open `<root-project-directory>/SirsRansomware/run_scripts` and run script backup.sh to run the backup server program.
+
+For this program, it is required to enter the passwords of the key stores that store all the keys/certificates used during communication.
+For every one of those stores, the password is set by default to `123456`. However, we **strongly recommend** that the user changes that password to a stronger one, which can be done by issuing the command `keytool -storepasswd -keystore <path-to-key-store>`.
 
 
 3. Client Initialization

@@ -1,0 +1,2 @@
+/Users/rafael/Documents/file ddf0c836-d835-4d4c-8689-b35c7d8dff9a 1 file rafa
+/Users/rafael/Documents/IST/MEIC/SIRS/project/SIRS_proj1/SirsRansomware/src/assets/certs/ca.pem 72419394-9844-477f-bff6-9c8fddbe6ecd 1 ca rafa

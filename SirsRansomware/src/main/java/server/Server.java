@@ -325,6 +325,7 @@ public class Server {
                         FileUtils.writeByteArrayToFile(new java.io.File(SIRS_DIR + "/src/assets/serverFiles/" + request.getFileUid()), file);
                         FileVersion version = fileVersionRepository.getFileVersionByUid(request.getVersionUid());
                         version.setVersionUid(UUID.randomUUID().toString());
+                        version.setDate(new Date(System.currentTimeMillis()));
                         version.saveInDatabase(this.connector);
                         break;
                     }
@@ -709,7 +710,6 @@ public class Server {
                 e.printStackTrace();
             }
             assert record != null;
-            System.out.println(record.getURI());
             channel = NettyChannelBuilder.forTarget(record.getURI())
                     .overrideAuthority("foo.test.google.fr")  /* Only for using provided test certs. */
                     .sslContext(buildSslContext(trustCertCollection, certChain, privateKey))
