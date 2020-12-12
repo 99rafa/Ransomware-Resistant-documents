@@ -75,6 +75,7 @@ message HealCorruptedVersionReply{
 
 message RetrieveHealthyVersionsRequest{
   string uid = 1;
+  string part_id=2;
 }
 
 message RetrieveHealthyVersionsReply{

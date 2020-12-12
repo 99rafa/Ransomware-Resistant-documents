@@ -531,7 +531,7 @@ public class Client {
                         if (!e.verifyDigitalSignature(decipheredFileData, digitalSignature, pk)) { //dies here wrong IV
                             System.err.println(" Error: Signature verification failed");
                             //if signature does not match, we will check for an healthy copy of that version in the backup servers
-                            RetrieveHealthyVersionsReply reply1 = c.RetrieveHealthyVersions(version_uid);
+                            RetrieveHealthyVersionsReply reply1 = c.RetrieveHealthyVersions(version_uid,partId);
 
                             byte[] healthyVersion = null;
                             boolean hasHealthy = false;
